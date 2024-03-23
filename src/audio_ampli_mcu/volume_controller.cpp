@@ -57,7 +57,7 @@ bool VolumeController::update_volume()
   // Apply volume change
   volume_ += current_count - prev_encoder_count_;
   // Wrap arround
-  volume_ = volume_ % total_tick_for_100percent_;
+  volume_ = constrain(volume_, 0, total_tick_for_100percent_ - 1);
   prev_encoder_count_ = current_count;
 
   set_gpio_based_on_volume();
