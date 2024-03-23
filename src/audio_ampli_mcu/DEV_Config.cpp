@@ -38,22 +38,22 @@ void GPIO_Init()
   pinMode(DEV_DC_PIN, OUTPUT);
   pinMode(DEV_BL_PIN, OUTPUT);
   analogWrite(DEV_BL_PIN, 140);
- }
+}
  
- void Config_Init()
- {
+void Config_Init()
+{
 
   GPIO_Init();
-  
+
   //spi
   // SPI.setDataMode(SPI_MODE3);
   // SPI.setBitOrder(MSBFIRST);
   // SPI.setClockDivider(SPI_CLOCK_DIV2);
   // Which pin is that?
-  // SPI.setRX(pin_size_t pin);
   SPI.setCS(DEV_CS_PIN);
   SPI.setSCK(DEV_CLK_PIN);
   SPI.setTX(DEV_DIN_PIN);
+  SPI.setRX(DEV_DOUT_PIN);
   SPI.begin(/*hwCS = */ false);
   SPI.beginTransaction(SPISettings(8000000, MSBFIRST, SPI_MODE3)); // I think SPI_CLOCK_DIV2 is around 8Mhz
-  }
+}

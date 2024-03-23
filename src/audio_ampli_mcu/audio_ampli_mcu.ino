@@ -29,14 +29,15 @@ AudioInputController audio_input_ctrl(&menu_select_encoder, AudioInput::AUX_3, T
 
 void setup()
 {
+  Serial.begin(115200);
+  while(!Serial);
+  Serial.println("Starting up...");
+
   volume_encoder.begin();
   menu_select_encoder.begin();
 
   volume_ctrl.init();
   audio_input_ctrl.init();
-
-  Serial.begin(115200);
-  while(!Serial);
 
   Config_Init();
   LCD_Init();

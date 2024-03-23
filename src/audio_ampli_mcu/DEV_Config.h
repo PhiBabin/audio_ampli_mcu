@@ -55,6 +55,7 @@
 // Pin not set by the script
 #define DEV_CLK_PIN  10
 #define DEV_DIN_PIN  11
+#define DEV_DOUT_PIN  14 // Hopefully not used
 
 
 /**
