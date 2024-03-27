@@ -37,6 +37,8 @@ void GPIO_Init()
   pinMode(DEV_RST_PIN, OUTPUT);
   pinMode(DEV_DC_PIN, OUTPUT);
   pinMode(DEV_BL_PIN, OUTPUT);
+  pinMode(DEV_DIN_PIN, OUTPUT);
+  pinMode(DEV_DOUT_PIN, INPUT);
   analogWrite(DEV_BL_PIN, 140);
 }
  

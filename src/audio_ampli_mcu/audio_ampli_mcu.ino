@@ -14,16 +14,18 @@
 #include <SPI.h>
 
 #define STARTUP_VOLUME_PERCENTAGE 50
-#define TOTAL_TICK_PER_FULL_VOLUME 1024
-
-#define TICK_PER_AUDIO_IN 300
+#define ENCODER_TICK_PER_ROTATION 24
+#define TOTAL_TICK_FOR_FULL_VOLUME (3 * ENCODER_TICK_PER_ROTATION)
+#define TICK_PER_AUDIO_IN (ENCODER_TICK_PER_ROTATION / 4)
 
 PioEncoder volume_encoder(18); // GP18 and GP19 are the encoder's pins
 PioEncoder menu_select_encoder(20);  // GP20 and GP21 are the encoder's pins
 
+// 6bit output to control the volume
 const std::array<pin_size_t, 6> volume_gpio_pins = {0, 1, 2, 3, 4, 5};
 const pin_size_t mute_button_pin = 16;
-VolumeController volume_ctrl(volume_gpio_pins, &volume_encoder, mute_button_pin, STARTUP_VOLUME_PERCENTAGE, TOTAL_TICK_PER_FULL_VOLUME);
+
+VolumeController volume_ctrl(volume_gpio_pins, &volume_encoder, mute_button_pin, STARTUP_VOLUME_PERCENTAGE, TOTAL_TICK_FOR_FULL_VOLUME);
 AudioInputController audio_input_ctrl(&menu_select_encoder, AudioInput::AUX_3, TICK_PER_AUDIO_IN);
 
 
