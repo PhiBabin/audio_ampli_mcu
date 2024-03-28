@@ -47,15 +47,15 @@
 /**
  * GPIO config
 **/
-#define DEV_CS_PIN  9
+#define DEV_CS_PIN  1
 #define DEV_DC_PIN  8
 #define DEV_RST_PIN 12
 #define DEV_BL_PIN  13
 
 // Pin not set by the script
-#define DEV_CLK_PIN  10
-#define DEV_DIN_PIN  11
-#define DEV_DOUT_PIN  14 // Hopefully not used
+#define DEV_CLK_PIN  2
+#define DEV_DIN_PIN  3
+#define DEV_DOUT_PIN  0
 
 
 /**

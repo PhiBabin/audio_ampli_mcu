@@ -458,10 +458,10 @@ void Paint_DrawChar(UWORD Xpoint, UWORD Ypoint, const char Acsii_Char,
 
       //To determine whether the font background color and screen background color is consistent
       if (FONT_BACKGROUND == Color_Background) { //this process is to speed up the scan
-        if (pgm_read_byte(ptr) & (0x80 >> (Column % 8)))
+        if ((*ptr) & (0x80 >> (Column % 8)))
           Paint_SetPixel (Xpoint + Column, Ypoint + Page, Color_Foreground );
       } else {
-        if (pgm_read_byte(ptr) & (0x80 >> (Column % 8))) {
+        if ((*ptr) & (0x80 >> (Column % 8))) {
           Paint_SetPixel (Xpoint + Column, Ypoint + Page, Color_Foreground );
         } else {
           Paint_SetPixel (Xpoint + Column, Ypoint + Page, Color_Background );
