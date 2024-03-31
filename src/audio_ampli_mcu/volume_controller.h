@@ -13,14 +13,14 @@ public:
   VolumeController(const std::array<pin_size_t, 6> gpio_pin_vol_select, 
                    PioEncoder* vol_encoder_ptr,
                    const int mute_button_pin,
-                   const int32_t startup_volume_percentage,
-                   const int32_t total_tick_for_100percent);
+                   const int32_t startup_volume_db,
+                   const int32_t total_tick_for_63db);
 
   // Init GPIO pins
   void init();
   
-  // Return current volume as a value in the 0-100% range
-  int32_t get_volume_percentage() const;
+  // Return current volume as a value in the 0-63 db range
+  int32_t get_volume_db() const;
 
   // Return whether we're muted
   bool is_muted() const;
@@ -51,7 +51,7 @@ private:
   /// Previous count of the encoder
   int32_t prev_encoder_count_;
   /// How many encoder tick correspond to the full range of 0-100%
-  int32_t total_tick_for_100percent_;
+  int32_t total_tick_for_63db_;
   /// Pointer to the quadrature encoder
   PioEncoder* vol_encoder_ptr_;
   /// Toggle button for the mutting

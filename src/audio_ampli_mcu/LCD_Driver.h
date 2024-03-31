@@ -46,6 +46,7 @@ void LCD_Init(void);
 void LCD_SetBackLight(UWORD Value);
 
 void LCD_Clear(UWORD Color);
+void LCD_Clear_12bitRGB(uint32_t color_12bit);
 void LCD_ClearWindow(UWORD Xstart, UWORD Ystart, UWORD Xend, UWORD Yend,UWORD color);
 
 #endif
