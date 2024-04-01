@@ -1324,14 +1324,14 @@ static const uint8_t dmsans_80pt_thin_glyph_bitmap[] =
 static const uint32_t dmsans_80pt_thin_width_px[] = 
 {
   64, // 0
-  15,
-  49,
-  52,
-  57,
-  53,
-  56,
-  53,
-  51,
+  15, // 1
+  49, // 2
+  52, // 3
+  57, // 4
+  53, // 5
+  56, // 6
+  53, // 7
+  51, // 8
   57, // 9
 };
 

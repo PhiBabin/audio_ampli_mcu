@@ -47,15 +47,25 @@ struct Digit
   void set_digit(int32_t digit_)
   {
     digit = digit_;
+
     /// Find the offset in the bitmap of where the digit started
     start_digit_bitmap_ptr = dmsans_80pt_thin_glyph_bitmap;
+    std::size_t offset = 0;
     for (size_t i = 0; i < digit_; ++i)
     {
       const auto width = dmsans_80pt_thin_width_px[i];
+      Serial.println(width);
       const auto actual_width = width % 2 == 0 ? width : width + 1;
-      start_digit_bitmap_ptr += (actual_width * max_height) * 8 / 4;
+      start_digit_bitmap_ptr += (actual_width * max_height) / 2;
+      offset += (actual_width * max_height) / 2;
     }
     digit_width = dmsans_80pt_thin_width_px[digit_];
+    
+    Serial.print("d=");
+    Serial.print(digit_);
+    Serial.print(" start=");
+    Serial.print(offset);
+    Serial.println("");
   }
 
   bool is_within_boundary(const uint32_t x, const uint32_t y) const
@@ -77,11 +87,12 @@ struct Digit
     {
       return BLANK_COLOR;
     }
+    // return 0xF;
     const uint32_t bitmap_x_px = x - start_x - (max_width - digit_width);
     const uint32_t bitmap_y_px =  y - start_y;
     const uint32_t bitmap_y_offset_px =  digit_width % 2 == 0 ? digit_width * bitmap_y_px : (digit_width + 1) * bitmap_y_px; // Padding for odd width
     const uint32_t offset_px = bitmap_y_offset_px + bitmap_x_px;
-    const auto two_pixels_byte = start_digit_bitmap_ptr[offset_px  * 8 / 4];
+    const auto two_pixels_byte = start_digit_bitmap_ptr[offset_px  / 2];
     if (offset_px % 2 == 0)
     {
       return two_pixels_byte >> 4;
@@ -114,6 +125,9 @@ void fast_draw_digits(const int32_t maybe_first_digit, const int32_t maybe_secon
     digits[0].start_x = 68;
     digits[0].start_y = 38;
     start_x = digits[0].start_x;
+    start_y = digits[0].start_y;
+    end_x = digits[0].start_x + digits[0].digit_width;
+    end_y = digits[0].start_y +  digits[0].max_height;
   }
   if (maybe_second_digit >= 0)
   {
@@ -122,6 +136,9 @@ void fast_draw_digits(const int32_t maybe_first_digit, const int32_t maybe_secon
     digits[1].start_x = 172;
     digits[1].start_y = 38;
     start_x = min(digits[1].start_x, start_x);
+    start_y = min(digits[1].start_y, start_y);
+    end_x =  max(digits[1].start_x + digits[1].digit_width, end_x);
+    end_y =  max(digits[1].start_y +  digits[1].max_height, end_y);
   }
 
   // Make sure that we have an even number of columns, that way we don't have to worry about write call with only one column
@@ -131,11 +148,21 @@ void fast_draw_digits(const int32_t maybe_first_digit, const int32_t maybe_secon
   }
 
   // LCD will auto increment the row when we reach columns == end_x
-	LCD_SetWindow(start_x, start_y, end_x, end_y);
+	LCD_SetWindow(start_x, start_y + 1, end_x, end_y + 1);
+  
+  Serial.print(start_x);
+  Serial.print(" ");
+  Serial.print(start_y);
+  Serial.print(" ");
+  Serial.print(end_x);
+  Serial.print(" ");
+  Serial.print(end_y);
+  Serial.println("foo");
   for (int32_t y = start_y; y < end_y; ++y)
   {
     uint8_t px_count = 0;
     uint32_t color_2pixels = 0;
+    // LCD_SetCursor(start_x, y);
     for (int32_t x = start_x; x < end_x; ++x)
     {
       uint8_t color_4bit = BLANK_COLOR;
@@ -143,17 +170,21 @@ void fast_draw_digits(const int32_t maybe_first_digit, const int32_t maybe_secon
       {
         if (digit.enabled && digit.is_within_boundary(x, y))
         {
+          // Serial.print(x);
+          // Serial.print(" ");
+          // Serial.println(y);
           color_4bit = digit.get_color(x, y);
         }
       }
+      
       // Convert 4bit grayscale to four 4bit RGB
       color_2pixels = (color_2pixels << 12) | (color_4bit << 8 | color_4bit << 4 | color_4bit);
       ++px_count;
       if (px_count == 2)
       {
+        send_2pixel_color(color_2pixels);
         px_count = 0;
         color_2pixels = 0;
-        send_2pixel_color(color_2pixels);
       }
     }
   }
