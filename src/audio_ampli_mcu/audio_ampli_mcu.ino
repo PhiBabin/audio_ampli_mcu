@@ -126,7 +126,7 @@ void fast_draw_digits(const int32_t maybe_first_digit, const int32_t maybe_secon
     digits[0].start_y = 38;
     start_x = digits[0].start_x;
     start_y = digits[0].start_y;
-    end_x = digits[0].start_x + digits[0].digit_width;
+    end_x = digits[0].start_x + digits[0].max_width;
     end_y = digits[0].start_y +  digits[0].max_height;
   }
   if (maybe_second_digit >= 0)
@@ -137,7 +137,7 @@ void fast_draw_digits(const int32_t maybe_first_digit, const int32_t maybe_secon
     digits[1].start_y = 38;
     start_x = min(digits[1].start_x, start_x);
     start_y = min(digits[1].start_y, start_y);
-    end_x =  max(digits[1].start_x + digits[1].digit_width, end_x);
+    end_x =  max(digits[1].start_x + digits[1].max_width, end_x);
     end_y =  max(digits[1].start_y +  digits[1].max_height, end_y);
   }
 
