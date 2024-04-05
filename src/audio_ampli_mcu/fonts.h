@@ -52,6 +52,37 @@
 /* Includes ------------------------------------------------------------------*/
 #include <stdint.h>
 #include <avr/pgmspace.h>
+
+
+
+struct lv_font_glyph_dsc_t
+{
+  // Pixel width
+  uint32_t w_px;
+  uint32_t glyph_index;
+};
+
+struct lv_font_t
+{
+  // How many pixel to cut off from the top (for some reason there is at least 3 pixels wasted)
+  uint32_t h_top_skip_px;
+  uint32_t h_bot_skip_px;
+  // First unicode code glyph
+  uint32_t unicode_first;
+  // Last unicode code glyph
+  uint32_t unicode_last;
+  // Height of the character in bitmap in pixel
+  uint32_t h_px;
+  // Pointer to the bitmap
+  const uint8_t* glyph_bitmap;
+  // Glyph description (width in px + offset in bitmap)
+  const lv_font_glyph_dsc_t* glyph_dsc;
+  // Unicode code of each character in bitmap
+  const uint32_t* unicode_list;
+};
+
+
+
 //ASCII
 typedef struct _tFont
 {    

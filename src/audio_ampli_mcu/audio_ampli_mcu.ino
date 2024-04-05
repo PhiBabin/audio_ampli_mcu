@@ -7,6 +7,8 @@
 #include "volume_controller.h"
 #include "audio_input_controller.h"
 #include "digit_font.h"
+#include "digit_font2.h"
+#include "dm_sans_extrabold.h"
 
 #include "LCD_Driver.h"
 #include "GUI_Paint.h"
@@ -33,14 +35,21 @@ VolumeController volume_ctrl(volume_gpio_pins, &volume_encoder, mute_button_pin,
 AudioInputController audio_input_ctrl(&menu_select_encoder, AudioInput::AUX_3, TICK_PER_AUDIO_IN);
 
 
+const uint8_t WHITE_COLOR = 0xf;
+const uint8_t BLACK_COLOR = 0x0;
 
 class LvFontWrapper
 {
 public:
-  struct LvCharacter
+  struct LvGlyph
   {
-    uint8_t get_color(const uint32_t bitmap_x_px, const uint32_t bitmap_y_px) const
+    uint8_t get_color(const uint32_t bitmap_x_px, const uint32_t y_px) const
     {
+      if (bitmap_x_px > width_px || y_px > height_px)
+      {
+        return 0;
+      }
+      const auto bitmap_y_px = y_px + skip_top_px;
       const uint32_t bitmap_y_offset_px =  width_px % 2 == 0 ? width_px * bitmap_y_px : (width_px + 1) * bitmap_y_px; // Padding for odd width
       const uint32_t offset_px = bitmap_y_offset_px + bitmap_x_px;
       const auto two_pixels_byte = raw_bytes[offset_px / 2];
@@ -52,70 +61,96 @@ public:
     };
   
     uint32_t width_px;
-    uint32_t height_px;
+    uint32_t height_px; // height_px = Real height - skip_top_px - bot_skip_px
+    uint32_t skip_top_px;
     const uint8_t* raw_bytes;
   };
 
-  LvFontWrapper(const lv_font_t* font) : font_(font)
+  LvFontWrapper(const lv_font_t* font) : font_(font), height_px_(font_->h_px - font_->h_top_skip_px - font_->h_bot_skip_px)
   {
-    const uint32_t* unicodes_list = font_->unicode_list;
-    size_t i = 0;
-    while (unicodes_list[i] != 0)
+    
+    auto add_character = [this](const uint32_t unicode, const uint32_t index)
     {
-      LvCharacter character{
-        .width_px = font_->glyph_dsc[i].w_px,
-        .height_px = font_->h_px,
-        .raw_bytes = font_->glyph_bitmap + font_->glyph_dsc[i].glyph_index
+      LvGlyph glyph{
+        .width_px = font_->glyph_dsc[index].w_px,
+        .height_px = height_px_,
+        .skip_top_px = font_->h_top_skip_px,
+        .raw_bytes = font_->glyph_bitmap + font_->glyph_dsc[index].glyph_index
       };
-      unicode_to_char_.emplace(unicodes_list[i], character);
-      ++i;
+      unicode_to_char_.emplace(unicode, glyph);
+    };
+    
+    // There are two way to encode the unicode, either as a continious array or as the range between unicode_first and unicode_last
+    if (font_->unicode_list != NULL)
+    {
+      uint32_t i = 0;
+      while (font_->unicode_list[i] != 0)
+      {
+        add_character(font_->unicode_list[i], i);
+        ++i;
+      }
+    }
+    else
+    {
+      for (uint32_t unicode = font_->unicode_first; unicode <= font_->unicode_last; ++unicode)
+      {
+        add_character(unicode, unicode - font_->unicode_first);
+      }
     }
   }
 
-  std::optional<const LvCharacter*> get_character(const char c) const
+  std::optional<const LvGlyph*> get_glyph(const char c) const
   {
     const auto iter = unicode_to_char_.find(static_cast<uint32_t>(c));
     if (iter == unicode_to_char_.end())
     {
       return {};
     }
-    return std::optional<const LvCharacter*>(&iter->second);
+    return std::optional<const LvGlyph*>(&iter->second);
   };
 
-
-
+  uint32_t get_height_px() const
+  {
+    return height_px_;
+  }
 
 private:
-  // Unicode to the character
-  std::unordered_map<uint32_t, LvCharacter> unicode_to_char_;
+  // Unicode to the glyph
+  std::unordered_map<uint32_t, LvGlyph> unicode_to_char_;
+  // Actual font informations
   const lv_font_t* font_;
+  uint32_t height_px_;
 };
 
 
 LvFontWrapper digit_thin_font(&dmsans_80pt_thin);
+LvFontWrapper digit_light_font(&dmsans_36pt_light);
+LvFontWrapper regular_bold_font(&dmsans_36pt_extrabold);
 
-void draw_character_fast(const LvFontWrapper::LvCharacter* character, const uint32_t start_x, const uint32_t start_y, bool is_b_and_w = true)
+void draw_character_fast(const LvFontWrapper::LvGlyph* glyph, const uint32_t start_x, const uint32_t start_y, bool is_white_on_black = true)
 {
-  uint32_t end_x = start_x + character->width_px;
-  const uint32_t end_y = start_y + character->height_px;
+  uint32_t end_x = start_x + glyph->width_px;
+  const uint32_t end_y = start_y + glyph->height_px;
   
   // Make sure that we have an even number of columns, that way we don't have to worry about write call with only one column
-  if (end_x - start_x % 2 != 0)
+  if ((end_x - start_x) % 2 != 0)
   {
     ++end_x;
   }
 
   // LCD will auto increment the row when we reach columns == end_x
-	LCD_SetWindow(start_x, start_y + 1, end_x, end_y + 1);
-  for (int32_t y = start_y; y < end_y; ++y)
+	LCD_SetWindow(start_x, start_y, end_x + 1, end_y + 1);
+  for (int32_t y = 0; y < end_y - start_y; ++y)
   {
     uint8_t px_count = 0;
     uint32_t color_2pixels = 0;
-    // LCD_SetCursor(start_x, y);
-    for (int32_t x = start_x; x < end_x; ++x)
+    for (int32_t x = 0; x < end_x - start_x; ++x)
     {
-      const auto color_4bit = character->get_color(start_x - x, y - start_y);
-      
+      auto color_4bit = glyph->get_color(x, y);
+      if (!is_white_on_black)
+      {
+        color_4bit = 0xf - color_4bit;
+      }
       // Convert 4bit grayscale to four 4bit RGB
       color_2pixels = (color_2pixels << 12) | (color_4bit << 8 | color_4bit << 4 | color_4bit);
       ++px_count;
@@ -129,9 +164,9 @@ void draw_character_fast(const LvFontWrapper::LvCharacter* character, const uint
   }
 }
 
-void draw_string_fast(const char* str, const uint32_t start_x, const uint32_t start_y, const uint32_t end_x, const LvFontWrapper& font, bool is_b_and_w = true)
+void draw_string_fast(const char* str, const uint32_t start_x, const uint32_t start_y, const uint32_t end_x, const LvFontWrapper& font, bool is_white_on_black = true)
 {
-  if (*str == '\0')
+  if (str == NULL || *str == '\0')
   {
     return;
   }
@@ -143,30 +178,34 @@ void draw_string_fast(const char* str, const uint32_t start_x, const uint32_t st
   const char* str_temp = str;
   while (*str_temp != '\0')
   {
-    if (const auto maybe_char = font.get_character(*str); maybe_char)
+    if (const auto maybe_glyph = font.get_glyph(*str_temp); maybe_glyph)
     {
-      text_width_px += maybe_char.value()->width_px;
+      text_width_px += maybe_glyph.value()->width_px;
     }
     ++str_temp;
   }
+  const auto end_y = start_y + font.get_height_px();
   const auto middle_x = (end_x - start_x) / 2 + start_x;
   const auto start_text_x = middle_x - text_width_px / 2;
   const auto end_text_x = middle_x + text_width_px / 2;
   if (start_x < start_text_x)
   {
     // whiteout
+    LCD_ClearWindow_12bitRGB(start_x, start_y, start_text_x, end_y, is_white_on_black ? BLACK_COLOR : WHITE_COLOR);
   }
   if (end_text_x < end_x)
   {
     // whiteout
+    LCD_ClearWindow_12bitRGB(end_text_x, start_y, end_x, end_y, is_white_on_black ? BLACK_COLOR : WHITE_COLOR);
   }
   str_temp = str;
   auto current_text_x = start_text_x;
   while (*str_temp != '\0')
   {
-    if (const auto maybe_char = font.get_character(*str); maybe_char)
+    if (const auto maybe_glyph = font.get_glyph(*str_temp); maybe_glyph)
     {
-      draw_character_fast(*maybe_char, start_text_x, start_y, is_b_and_w);
+      draw_character_fast(*maybe_glyph, current_text_x, start_y, is_white_on_black);
+      current_text_x += maybe_glyph.value()->width_px;
     }
     ++str_temp;
   }
@@ -285,13 +324,13 @@ void fast_draw_digits(const int32_t maybe_first_digit, const int32_t maybe_secon
   }
 
   // Make sure that we have an even number of columns, that way we don't have to worry about write call with only one column
-  if (end_x - start_x % 2 != 0)
+  if ((end_x - start_x) % 2 != 0)
   {
     ++end_x;
   }
 
   // LCD will auto increment the row when we reach columns == end_x
-	LCD_SetWindow(start_x, start_y + 1, end_x, end_y + 1);
+	LCD_SetWindow(start_x, start_y, end_x + 1, end_y + 1);
   
   Serial.print(start_x);
   Serial.print(" ");
@@ -355,6 +394,29 @@ void draw_volume()
   is_init = true;
 }
 
+
+void draw_audio_inputs()
+{
+  const uint32_t tab_width_px = 75;
+  const uint32_t tab_height_px = 28;
+  const uint32_t start_y = 52;
+  LCD_ClearWindow_12bitRGB(0, 0, tab_width_px, LCD_HEIGHT, BLACK_COLOR);
+
+  const auto max_enum_value = static_cast<uint8_t>(AudioInput::audio_input_enum_length);
+
+  for (uint8_t enum_value = 0; enum_value < max_enum_value; ++enum_value)
+  {
+    const auto audio_input = static_cast<AudioInput>(enum_value);
+    const auto is_selected = audio_input_ctrl.get_audio_input() != audio_input;
+    const auto option_y = start_y + enum_value * 42;
+    if (is_selected)
+    {
+      LCD_ClearWindow_12bitRGB(0, option_y - 5, tab_width_px, option_y - 5 + tab_height_px, WHITE_COLOR);
+    }
+    draw_string_fast(audio_input_to_string(audio_input), 0, option_y, tab_width_px, regular_bold_font, !is_selected);
+  }
+}
+
 void setup()
 {
   Serial.begin(115200);
@@ -371,7 +433,8 @@ void setup()
   LCD_Init();
   LCD_Clear_12bitRGB(0x0000);
 
-  draw_volume();
+  // draw_volume();
+  draw_audio_inputs();
 }
 
 void loop()
@@ -385,23 +448,26 @@ void loop()
     }
     Serial.print("Volume %: ");
     Serial.println(volume_ctrl.get_volume_db());
+    
+    char buffer[100];
+    // sprintf(buffer, "%sVolume: %ddB  Audio input: %s", volume_ctrl.is_muted() ? "[MUTED]" : "", volume_ctrl.get_volume_db(), audio_input_to_string(audio_input_ctrl.get_audio_input()));     
+    // draw_volume();
+    sprintf(buffer, "%d", volume_ctrl.get_volume_db());
+    draw_string_fast(buffer, 68, 38, 68 + 210, digit_thin_font);
   }
   const auto audio_input_change = audio_input_ctrl.update();
   has_changed |= audio_input_change;
   if (audio_input_change)
   {
     Serial.println(audio_input_to_string(audio_input_ctrl.get_audio_input()));
+    draw_audio_inputs();
+
   }
   if (has_changed)
   {
     // LCD_Clear(0xffff);
     // Paint_Clear(WHITE);
 
-    char buffer[100];
-    // sprintf(buffer, "%sVolume: %ddB  Audio input: %s", volume_ctrl.is_muted() ? "[MUTED]" : "", volume_ctrl.get_volume_db(), audio_input_to_string(audio_input_ctrl.get_audio_input()));     
-    // draw_volume();
-    sprintf(buffer, "%d", volume_ctrl.get_volume_db());
-    draw_string_fast(buffer, 68, 38, 68 + 210, digit_thin_font);
   }
 }
 
