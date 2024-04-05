@@ -1319,8 +1319,26 @@ static const uint8_t dmsans_80pt_thin_glyph_bitmap[] =
 
 };
 
-
+struct lv_font_glyph_dsc_t
+{
+  uint32_t w_px;
+  uint32_t glyph_index;
+};
 /*Store the glyph descriptions*/
+const lv_font_glyph_dsc_t dmsans_80pt_thin_glyph_dsc[] = 
+{
+  {.w_px = 44,	.glyph_index = 0},	/*Unicode: U+002d (-)*/
+  {.w_px = 65,	.glyph_index = 2816},	/*Unicode: U+0030 (0)*/
+  {.w_px = 20,	.glyph_index = 7040},	/*Unicode: U+0031 (1)*/
+  {.w_px = 51,	.glyph_index = 8320},	/*Unicode: U+0032 (2)*/
+  {.w_px = 52,	.glyph_index = 11648},	/*Unicode: U+0033 (3)*/
+  {.w_px = 60,	.glyph_index = 14976},	/*Unicode: U+0034 (4)*/
+  {.w_px = 54,	.glyph_index = 18816},	/*Unicode: U+0035 (5)*/
+  {.w_px = 56,	.glyph_index = 22272},	/*Unicode: U+0036 (6)*/
+  {.w_px = 52,	.glyph_index = 25856},	/*Unicode: U+0037 (7)*/
+  {.w_px = 53,	.glyph_index = 29184},	/*Unicode: U+0038 (8)*/
+  {.w_px = 57,	.glyph_index = 32640},	/*Unicode: U+0039 (9)*/
+};
 static const uint32_t dmsans_80pt_thin_width_px[] = 
 {
   64, // 0
@@ -1336,32 +1354,40 @@ static const uint32_t dmsans_80pt_thin_width_px[] =
 };
 
 // /*List of unicode characters*/
-// static const uint32_t dmsans_80pt_thin_unicode_list[] = {
-//   48,	/*Unicode: U+0030 (0)*/
-//   49,	/*Unicode: U+0031 (1)*/
-//   50,	/*Unicode: U+0032 (2)*/
-//   51,	/*Unicode: U+0033 (3)*/
-//   52,	/*Unicode: U+0034 (4)*/
-//   53,	/*Unicode: U+0035 (5)*/
-//   54,	/*Unicode: U+0036 (6)*/
-//   55,	/*Unicode: U+0037 (7)*/
-//   56,	/*Unicode: U+0038 (8)*/
-//   57,	/*Unicode: U+0039 (9)*/
-//   0,    /*End indicator*/
-// };
+static const uint32_t dmsans_80pt_thin_unicode_list[] = {
+  48,	/*Unicode: U+0030 (0)*/
+  49,	/*Unicode: U+0031 (1)*/
+  50,	/*Unicode: U+0032 (2)*/
+  51,	/*Unicode: U+0033 (3)*/
+  52,	/*Unicode: U+0034 (4)*/
+  53,	/*Unicode: U+0035 (5)*/
+  54,	/*Unicode: U+0036 (6)*/
+  55,	/*Unicode: U+0037 (7)*/
+  56,	/*Unicode: U+0038 (8)*/
+  57,	/*Unicode: U+0039 (9)*/
+  0,    /*End indicator*/
+};
 
-// lv_font_t dmsans_80pt_thin = 
-// {
+struct lv_font_t
+{
+  uint32_t h_px;
+  const uint8_t* glyph_bitmap;
+  const lv_font_glyph_dsc_t* glyph_dsc;
+  const uint32_t* unicode_list;
+};
+
+lv_font_t dmsans_80pt_thin = 
+{
 //     .unicode_first = 32,	/*First Unicode letter in this font*/
 //     .unicode_last = 126,	/*Last Unicode letter in this font*/
-//     .h_px = 128,				/*Font height in pixels*/
-//     .glyph_bitmap = dmsans_80pt_thin_glyph_bitmap,	/*Bitmap of glyphs*/
-//     .glyph_dsc = dmsans_80pt_thin_glyph_dsc,		/*Description of glyphs*/
+    .h_px = 128,				/*Font height in pixels*/
+    .glyph_bitmap = dmsans_80pt_thin_glyph_bitmap,	/*Bitmap of glyphs*/
+    .glyph_dsc = dmsans_80pt_thin_glyph_dsc,		/*Description of glyphs*/
 //     .glyph_cnt = 10,			/*Number of glyphs in the font*/
-//     .unicode_list = dmsans_80pt_thin_unicode_list,	/*List of unicode characters*/
+    .unicode_list = dmsans_80pt_thin_unicode_list,	/*List of unicode characters*/
 //     .get_bitmap = lv_font_get_bitmap_sparse,	/*Function pointer to get glyph's bitmap*/
 //     .get_width = lv_font_get_width_sparse,	/*Function pointer to get glyph's width*/
 //     .bpp = 4,				/*Bit per pixel*/
 //     .monospace = 0,				/*Fix width (0: if not used)*/
 //     .next_page = NULL,		/*Pointer to a font extension*/
-// };
+};
