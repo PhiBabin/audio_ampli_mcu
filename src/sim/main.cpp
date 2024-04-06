@@ -46,8 +46,14 @@ int main( int argc, char* args[] )
         
         SDL_Event e;
         bool quit = false;
+
+        constexpr int FPS = 60;
+        constexpr int frameDelay = 1000 / FPS;
+        uint32_t frameStart = 0;
+        int frameTime = 0;
         while(!quit)
         {
+            frameStart = SDL_GetTicks();
             // Execute main loop of arduino
             loop();
             SDL_UpdateWindowSurface(window);
@@ -57,6 +63,11 @@ int main( int argc, char* args[] )
                 {
                     quit = true;
                 }
+            }
+            frameTime = SDL_GetTicks() - frameStart;
+            if(frameDelay > frameTime)
+            {
+                SDL_Delay(frameDelay - frameTime);
             }
         }
     }
