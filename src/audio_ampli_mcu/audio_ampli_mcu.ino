@@ -18,7 +18,7 @@
 
 #include <algorithm>
 
-#define STARTUP_VOLUME_DB 42
+#define STARTUP_VOLUME_DB -42
 #define ENCODER_TICK_PER_ROTATION 24
 #define TOTAL_TICK_FOR_FULL_VOLUME (9 * ENCODER_TICK_PER_ROTATION)
 #define TICK_PER_AUDIO_IN (ENCODER_TICK_PER_ROTATION / 4)
@@ -44,7 +44,7 @@ void draw_volume()
   // sprintf(buffer, "%sVolume: %ddB  Audio input: %s", volume_ctrl.is_muted() ? "[MUTED]" : "",
   // volume_ctrl.get_volume_db(), audio_input_to_string(audio_input_ctrl.get_audio_input()));
   sprintf(buffer, "%d", volume_ctrl.get_volume_db());
-  draw_string_fast(buffer, 98, 64, 98 + 200, digit_light_font);
+  draw_string_fast(buffer, 95, 64, 95 + 222, digit_light_font);
 }
 
 void draw_audio_inputs()

@@ -2078,7 +2078,7 @@ static const lv_font_glyph_dsc_t dmsans_36pt_light_glyph_dsc[] =
   {.w_px = 68,	.glyph_index = 44856},	/*Unicode: U+0037 (7)*/
   {.w_px = 69,	.glyph_index = 50568},	/*Unicode: U+0038 (8)*/
   {.w_px = 74,	.glyph_index = 56448},	/*Unicode: U+0039 (9)*/
-  {.w_px = 34,	.glyph_index = 56448 + 74 * 168 / 2},	/*Unicode: U+002d (-) smol one*/
+  {.w_px = 30,	.glyph_index = 56448 + 74 * 168 / 2},	/*Unicode: U+002d (-) smol one*/
 };
 
 /*List of unicode characters*/

@@ -10,7 +10,7 @@ VolumeController::VolumeController(
   const int32_t total_tick_for_63db)
   : gpio_pin_vol_select_(gpio_pin_vol_select)
   , mute_button_pin_(mute_button_pin)
-  , volume_(map(startup_volume_db, 0, 64, 0, total_tick_for_63db))
+  , volume_(map(startup_volume_db, -63, 1, 0, total_tick_for_63db))
   , prev_encoder_count_(0)
   , total_tick_for_63db_(total_tick_for_63db)
   , vol_encoder_ptr_(vol_encoder_ptr)
@@ -30,7 +30,7 @@ void VolumeController::init()
 void VolumeController::set_gpio_based_on_volume()
 {
   // Map volume to 6 bit (64 state)
-  const uint8_t vol_6bit = static_cast<uint8_t>(map(volume_, 0, total_tick_for_63db_, 0, 63));
+  const uint8_t vol_6bit = static_cast<uint8_t>(map(volume_, 0, total_tick_for_63db_, 0, 64));
   for (size_t i = 0; i < gpio_pin_vol_select_.size(); ++i)
   {
     const auto& pin = gpio_pin_vol_select_[i];
@@ -49,7 +49,7 @@ int32_t VolumeController::get_volume_db() const
   {
     return 0;
   }
-  return map(volume_, 0, total_tick_for_63db_, 0, 64);
+  return map(volume_, 0, total_tick_for_63db_, -63, 1);
 }
 
 bool VolumeController::update_volume()
