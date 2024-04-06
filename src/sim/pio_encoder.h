@@ -3,6 +3,9 @@
 
 #include "sim/arduino.h"
 
+void increment_encoder(const uint8_t encoder_pin, const int increment);
+void decrement_encoder(const uint8_t encoder_pin, const int increment);
+
 class PioEncoder{
     private:
         uint8_t pin;

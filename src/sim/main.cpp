@@ -3,6 +3,7 @@
 
 
 #include "sim/LCD_Driver.h"
+#include "sim/pio_encoder.h"
 
 
 void setup();
@@ -44,7 +45,7 @@ int main( int argc, char* args[] )
         // Call arduino's setup
         setup();
         
-        SDL_Event e;
+        SDL_Event event;
         bool quit = false;
 
         constexpr int FPS = 60;
@@ -57,11 +58,31 @@ int main( int argc, char* args[] )
             // Execute main loop of arduino
             loop();
             SDL_UpdateWindowSurface(window);
-            while (SDL_PollEvent(&e))
+            while (SDL_PollEvent(&event))
             {
-                if (e.type == SDL_QUIT)
+                switch (event.type)
                 {
-                    quit = true;
+                    case SDL_QUIT:
+                        quit = true;
+                        break;
+                    case SDL_KEYDOWN:
+                        switch( event.key.keysym.sym ){
+                            case SDLK_w:
+                                decrement_encoder(20, 100);
+                                break;
+                            case SDLK_s:
+                                increment_encoder(20, 100);
+                                break;
+                            case SDLK_a:
+                                decrement_encoder(18, 3);
+                                break;
+                            case SDLK_d:
+                                increment_encoder(18, 3);
+                                break;
+                            default:
+                                break;
+                        }
+                        break;
                 }
             }
             frameTime = SDL_GetTicks() - frameStart;

@@ -1,7 +1,26 @@
 #include "sim/pio_encoder.h"
 
 
-PioEncoder::PioEncoder(uint8_t _pin, size_t _pio, unsigned int _sm, int max_step_rate, bool wflip)
+int count[40] = {0};
+
+
+void increment_encoder(const uint8_t encoder_pin, const int increment)
+{
+    if (encoder_pin < 40)
+    {
+        count[encoder_pin] += increment;
+    }
+}
+
+void decrement_encoder(const uint8_t encoder_pin, const int increment)
+{
+    if (encoder_pin < 40)
+    {
+        count[encoder_pin] -= increment;
+    }
+}
+
+PioEncoder::PioEncoder(uint8_t _pin, size_t _pio, unsigned int _sm, int max_step_rate, bool wflip): pin(_pin)
 {
 }
 
@@ -18,5 +37,5 @@ void PioEncoder::flip(const bool x)
 }
 
 int PioEncoder::getCount(){
-    return 0;
+    return count[pin];
 }
