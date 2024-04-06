@@ -277,7 +277,7 @@ void LCD_ClearWindow(UWORD Xstart, UWORD Ystart, UWORD Xend, UWORD Yend,UWORD co
 void LCD_ClearWindow_12bitRGB(UWORD Xstart, UWORD Ystart, UWORD Xend, UWORD Yend, uint32_t color_12bit)
 {
 	unsigned int i,j;  	
-  if (Xend - Xstart % 2 != 0)
+  if ((Xend - Xstart) % 2 != 0)
   {
     ++Xend;
   }
@@ -285,7 +285,7 @@ void LCD_ClearWindow_12bitRGB(UWORD Xstart, UWORD Ystart, UWORD Xend, UWORD Yend
 	DEV_Digital_Write(DEV_CS_PIN, 0);
 	DEV_Digital_Write(DEV_DC_PIN, 1);
 	for(j = Ystart; j < Yend; ++j){
-	  for(i = Xstart; i < Xend / 2; ++i){
+	  for(i = 0; i <= (Xend - Xstart) / 2; ++i){
 			DEV_SPI_WRITE((color_12bit >> 4) & 0xff); // 8 MSb
 			DEV_SPI_WRITE(((color_12bit & 0xf) << 4) + ((color_12bit & 0x0f00) >> 8)); // 4 LSb + 4 MSb
 			DEV_SPI_WRITE(color_12bit & 0xff); // 8 LSb
