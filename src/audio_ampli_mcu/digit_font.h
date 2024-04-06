@@ -1370,6 +1370,7 @@ lv_font_t dmsans_80pt_thin =
 {
     .h_top_skip_px = 20,
     .h_bot_skip_px = 20,
+    .spacing_px = 10,
     .unicode_first = 32,	/*First Unicode letter in this font*/
     .unicode_last = 126,	/*Last Unicode letter in this font*/
     .h_px = 128,				/*Font height in pixels*/

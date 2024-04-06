@@ -1,8 +1,13 @@
 #ifndef VOL_CTRL_GUARD_H_
 #define VOL_CTRL_GUARD_H_
 
+#ifdef SIM
+#include "sim/pio_encoder.h"
+#include "sim/toggle_button.h"
+#else
 #include "pio_encoder.h"
 #include "toggle_button.h"
+#endif
 
 #include <array>
 

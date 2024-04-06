@@ -51,7 +51,10 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include <stdint.h>
+
+#ifndef SIM
 #include <avr/pgmspace.h>
+#endif
 
 
 
@@ -67,6 +70,7 @@ struct lv_font_t
   // How many pixel to cut off from the top (for some reason there is at least 3 pixels wasted)
   uint32_t h_top_skip_px;
   uint32_t h_bot_skip_px;
+  uint32_t spacing_px;
   // First unicode code glyph
   uint32_t unicode_first;
   // Last unicode code glyph

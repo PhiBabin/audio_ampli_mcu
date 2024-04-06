@@ -24,8 +24,8 @@ AudioInputController::AudioInputController(//const std::array<pin_size_t, 6> gpi
                    const int32_t tick_per_audio_in)
   : audio_input_(startup_audio_in)
   , prev_encoder_count_(0)
-  , audio_in_encoder_ptr_(audio_in_encoder_ptr)
   , tick_per_audio_in_(tick_per_audio_in)
+  , audio_in_encoder_ptr_(audio_in_encoder_ptr)
 {}
 
 void AudioInputController::init()

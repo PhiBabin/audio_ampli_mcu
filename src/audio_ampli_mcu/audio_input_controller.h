@@ -1,7 +1,11 @@
 #ifndef AUDIO_INPUT_CTRL_GUARD_H_
 #define AUDIO_INPUT_CTRL_GUARD_H_
 
+#ifdef SIM
+#include "sim/pio_encoder.h"
+#else
 #include "pio_encoder.h"
+#endif
 
 #include <array>
 

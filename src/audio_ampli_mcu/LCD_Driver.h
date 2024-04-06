@@ -35,6 +35,9 @@
 #define LCD_WIDTH   320 //LCD width
 #define LCD_HEIGHT  240 //LCD height
 
+
+
+void LCD_write_2pixel_color(const uint32_t color_2pixels);
  
 void LCD_WriteData_Word(UWORD da);
 

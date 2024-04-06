@@ -306,3 +306,14 @@ void LCD_DrawPaint(UWORD x, UWORD y, UWORD Color)
 	LCD_SetCursor(x, y);
 	LCD_WriteData_Word(Color); 	    
 }
+
+
+void LCD_write_2pixel_color(const uint32_t color_2pixels)
+{
+	DEV_Digital_Write(DEV_CS_PIN, 0);
+	DEV_Digital_Write(DEV_DC_PIN, 1);
+	DEV_SPI_WRITE((color_2pixels >> 16) & 0xff);
+	DEV_SPI_WRITE((color_2pixels >> 8) & 0xff);
+	DEV_SPI_WRITE(color_2pixels & 0xff);
+	DEV_Digital_Write(DEV_CS_PIN, 1);
+}
