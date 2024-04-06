@@ -9,12 +9,11 @@
 #include "LCD_Driver.h"
 #endif
 
-
 #define MAX(a,b) ((a)>(b)?(a):(b))
 
-void draw_character_fast(const LvFontWrapper::LvGlyph* glyph, const uint32_t start_x, const uint32_t start_y, bool is_white_on_black)
+void draw_character_fast(const LvFontWrapper::LvGlyph* glyph, const uint32_t start_x, const uint32_t start_y, bool is_white_on_black, bool draw_spacing)
 {
-  uint32_t end_x = start_x + glyph->width_with_spacing_px;
+  uint32_t end_x = start_x + (draw_spacing ? glyph->width_with_spacing_px : glyph->width_px);
   const uint32_t end_y = start_y + glyph->height_px;
   
   // Make sure that we have an even number of columns, that way we don't have to worry about write call with only one column
@@ -70,7 +69,7 @@ void draw_string_fast(const char* str, const uint32_t start_x, const uint32_t st
   {
     if (const auto maybe_glyph = font.get_glyph(*str_temp); maybe_glyph)
     {
-      text_width_px += maybe_glyph.value()->width_px;
+        text_width_px += maybe_glyph.value()->width_px;
     }
     ++str_temp;
   }
@@ -106,8 +105,10 @@ void draw_string_fast(const char* str, const uint32_t start_x, const uint32_t st
   {
     if (const auto maybe_glyph = font.get_glyph(*str_temp); maybe_glyph)
     {
-      draw_character_fast(*maybe_glyph, current_text_x, start_y, is_white_on_black);
-      current_text_x += maybe_glyph.value()->width_px + font.get_spacing_px();
+        // If next character is null byte, we reach end of string
+        const bool do_draw_spacing = str_temp[1] != '\0';
+        draw_character_fast(*maybe_glyph, current_text_x, start_y, is_white_on_black, do_draw_spacing);
+        current_text_x += maybe_glyph.value()->width_px + font.get_spacing_px();
     }
     ++str_temp;
   }
@@ -116,9 +117,9 @@ void draw_string_fast(const char* str, const uint32_t start_x, const uint32_t st
 
 uint8_t LvFontWrapper::LvGlyph::get_color(const uint32_t bitmap_x_px, const uint32_t y_px) const
 {
-    if (bitmap_x_px > width_px || y_px > height_px)
+    if (bitmap_x_px >= width_px || y_px >= height_px)
     {
-    return 0;
+        return 0;
     }
     const auto bitmap_y_px = y_px + skip_top_px;
     const uint32_t bitmap_y_offset_px =  width_px % 2 == 0 ? width_px * bitmap_y_px : (width_px + 1) * bitmap_y_px; // Padding for odd width
@@ -126,7 +127,7 @@ uint8_t LvFontWrapper::LvGlyph::get_color(const uint32_t bitmap_x_px, const uint
     const auto two_pixels_byte = raw_bytes[offset_px / 2];
     if (offset_px % 2 == 0)
     {
-    return two_pixels_byte >> 4;
+        return two_pixels_byte >> 4;
     }
     return two_pixels_byte & 0x0F;
 }
