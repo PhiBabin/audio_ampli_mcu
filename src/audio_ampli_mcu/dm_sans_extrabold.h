@@ -3,8 +3,8 @@
 
 /***********************************************************************************
  * DMSans-ExtraBold.ttf 31 px Font in U+0020 ( ) .. U+007e (~)  range with 4 bpp
-***********************************************************************************/
-
+ ***********************************************************************************/
+// clang-format off
 /*Store the image of the letters (glyph)*/
 static const uint8_t dmsans_36pt_extrabold_glyph_bitmap[] = 
 {
@@ -3359,3 +3359,4 @@ lv_font_t dmsans_36pt_extrabold =
     // .monospace = 0,				/*Fix width (0: if not used)*/
     // .next_page = NULL,		/*Pointer to a font extension*/
 };
+// clang-format on

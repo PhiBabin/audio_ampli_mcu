@@ -15,15 +15,16 @@ class VolumeController
 {
 public:
   // Construtor
-  VolumeController(const std::array<pin_size_t, 6> gpio_pin_vol_select, 
-                   PioEncoder* vol_encoder_ptr,
-                   const int mute_button_pin,
-                   const int32_t startup_volume_db,
-                   const int32_t total_tick_for_63db);
+  VolumeController(
+    const std::array<pin_size_t, 6> gpio_pin_vol_select,
+    PioEncoder* vol_encoder_ptr,
+    const int mute_button_pin,
+    const int32_t startup_volume_db,
+    const int32_t total_tick_for_63db);
 
   // Init GPIO pins
   void init();
-  
+
   // Return current volume as a value in the 0-63 db range
   int32_t get_volume_db() const;
 
@@ -63,4 +64,4 @@ private:
   ToggleButton mute_button_;
 };
 
-#endif // VOL_CTRL_GUARD_H_
+#endif  // VOL_CTRL_GUARD_H_

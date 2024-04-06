@@ -7,6 +7,7 @@
 
 #include "fonts.h"
 
+// clang-format off
 /*Store the image of the letters (glyph)*/
 static const uint8_t dmsans_36pt_light_glyph_bitmap[] = 
 {
@@ -2115,3 +2116,4 @@ lv_font_t dmsans_36pt_light =
     // .monospace = 0,				/*Fix width (0: if not used)*/
     // .next_page = NULL,		/*Pointer to a font extension*/
 };
+// clang-format on

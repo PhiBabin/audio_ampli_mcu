@@ -3,7 +3,7 @@
 * | Author      :   Waveshare team
 * | Function    :   Hardware underlying interface
 * | Info        :
-*                Used to shield the underlying layers of each master 
+*                Used to shield the underlying layers of each master
 *                and enhance portability
 *----------------
 * | This version:   V1.0
@@ -32,53 +32,49 @@
 #ifndef _DEV_CONFIG_H_
 #define _DEV_CONFIG_H_
 
-#include <stdint.h>
-#include <stdio.h>
 #include <SPI.h>
 #include <avr/pgmspace.h>
+#include <stdint.h>
+#include <stdio.h>
 
-
-
-#define UBYTE   uint8_t
-#define UWORD   uint16_t
+#define UBYTE uint8_t
+#define UWORD uint16_t
 #define UDOUBLE uint32_t
 
 /**
  * GPIO config
-**/
-#define DEV_CS_PIN  1
-#define DEV_DC_PIN  8
+ **/
+#define DEV_CS_PIN 1
+#define DEV_DC_PIN 8
 #define DEV_RST_PIN 12
-#define DEV_BL_PIN  13
+#define DEV_BL_PIN 13
 
 // Pin not set by the script
-#define DEV_CLK_PIN  2
-#define DEV_DIN_PIN  3
-#define DEV_DOUT_PIN  0
-
+#define DEV_CLK_PIN 2
+#define DEV_DIN_PIN 3
+#define DEV_DOUT_PIN 0
 
 /**
  * GPIO read and write
-**/
-#define DEV_Digital_Write(_pin, _value) digitalWrite(_pin, _value == 0? LOW:HIGH)
+ **/
+#define DEV_Digital_Write(_pin, _value) digitalWrite(_pin, _value == 0 ? LOW : HIGH)
 #define DEV_Digital_Read(_pin) digitalRead(_pin)
-
 
 /**
  * SPI
-**/
-#define DEV_SPI_WRITE(_dat)   SPI.transfer(_dat)
+ **/
+#define DEV_SPI_WRITE(_dat) SPI.transfer(_dat)
 
 /**
  * delay x ms
-**/
-#define DEV_Delay_ms(__xms)    delay(__xms)
+ **/
+#define DEV_Delay_ms(__xms) delay(__xms)
 
 /**
  * PWM_BL
-**/
- #define  DEV_Set_PWM(_Value)  analogWrite(DEV_BL_PIN, _Value)
+ **/
+#define DEV_Set_PWM(_Value) analogWrite(DEV_BL_PIN, _Value)
 
 /*-----------------------------------------------------------------------------*/
- void Config_Init();
+void Config_Init();
 #endif

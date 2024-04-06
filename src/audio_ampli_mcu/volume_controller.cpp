@@ -1,16 +1,21 @@
 #include "volume_controller.h"
 
+#define BUTTON_DEBOUNCE_DELAY 20  // [ms]
 
-#define BUTTON_DEBOUNCE_DELAY   20   // [ms]
-
- VolumeController::VolumeController(const std::array<pin_size_t, 6> gpio_pin_vol_select, PioEncoder* vol_encoder_ptr, const int mute_button_pin, const int32_t startup_volume_db, const int32_t total_tick_for_63db)
+VolumeController::VolumeController(
+  const std::array<pin_size_t, 6> gpio_pin_vol_select,
+  PioEncoder* vol_encoder_ptr,
+  const int mute_button_pin,
+  const int32_t startup_volume_db,
+  const int32_t total_tick_for_63db)
   : gpio_pin_vol_select_(gpio_pin_vol_select)
   , mute_button_pin_(mute_button_pin)
   , volume_(map(startup_volume_db, 0, 64, 0, total_tick_for_63db))
   , prev_encoder_count_(0)
   , total_tick_for_63db_(total_tick_for_63db)
   , vol_encoder_ptr_(vol_encoder_ptr)
-{}
+{
+}
 
 void VolumeController::init()
 {
@@ -63,7 +68,6 @@ bool VolumeController::update_volume()
   set_gpio_based_on_volume();
   return true;
 }
-
 
 bool VolumeController::update_mute()
 {

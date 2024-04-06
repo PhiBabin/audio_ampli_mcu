@@ -1,0 +1,90 @@
+---
+Language: Cpp
+AccessModifierOffset: -2
+AlignAfterOpenBracket: AlwaysBreak 
+AlignConsecutiveAssignments: false
+AlignConsecutiveDeclarations: false
+AlignEscapedNewlines: true
+AlignOperands: true
+AlignTrailingComments: true
+AllowAllParametersOfDeclarationOnNextLine: true
+AllowShortBlocksOnASingleLine: false
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortFunctionsOnASingleLine : None
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+AlwaysBreakAfterReturnType: None
+AlwaysBreakBeforeMultilineStrings: true
+AlwaysBreakTemplateDeclarations: true
+BinPackArguments : false
+BinPackParameters: false
+BraceWrapping:
+    AfterUnion: true
+    AfterExternBlock: true
+    BeforeCatch: true
+    BeforeElse: true
+    BeforeLambdaBody: false
+    AfterCaseLabel: true
+    AfterClass: true
+    AfterControlStatement: Always
+    AfterEnum: true
+    AfterFunction: true
+    AfterNamespace: true
+    AfterStruct: true
+
+
+SpacesInAngles: false
+SpacesInCStyleCastParentheses: false
+SpacesInContainerLiterals: false
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+Standard : Cpp11
+TabWidth : 2
+UseTab: Never
+
+IndentExternBlock: AfterExternBlock
+BreakBeforeBinaryOperators: None
+BreakBeforeBraces: Custom
+BreakBeforeTernaryOperators: true
+BreakConstructorInitializersBeforeComma: true
+BreakInheritanceList: BeforeComma
+ColumnLimit: 120
+CommentPragmas: ''
+ConstructorInitializerAllOnOneLineOrOnePerLine: true
+ConstructorInitializerIndentWidth: 2
+ContinuationIndentWidth: 2
+Cpp11BracedListStyle: true
+DerivePointerBinding: false
+DisableFormat: false
+FixNamespaceComments: true
+IncludeBlocks: Regroup
+
+# Category regex
+
+ObjCSpaceAfterProperty: false
+ObjCSpaceBeforeProtocolList: false
+PenaltyBreakBeforeFirstCallParameter: 1
+PenaltyBreakComment: 300
+PenaltyBreakFirstLessLess: 120
+PenaltyBreakString: 1000
+PenaltyExcessCharacter: 1000000
+PenaltyReturnTypeOnItsOwnLine: 200
+PointerAlignment: Left
+ReferenceAlignment: Left
+ReflowComments: true
+IndentCaseLabels: true
+IndentWidth: 2
+IndentWrappedFunctionNames: false
+KeepEmptyLinesAtTheStartOfBlocks: true
+MacroBlockBegin: ''
+MacroBlockEnd: ''
+MaxEmptyLinesToKeep: 1
+NamespaceIndentation: None
+ObjCBlockIndentWidth: 2
+SortIncludes: true
+SpaceAfterCStyleCast: false
+SpaceAfterTemplateKeyword : true
+SpaceBeforeAssignmentOperators: true
+SpaceBeforeParens: ControlStatements
+SpaceInEmptyParentheses: false
+SpacesBeforeTrailingComments: 2

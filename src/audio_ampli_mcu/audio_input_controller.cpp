@@ -1,37 +1,38 @@
 #include "audio_input_controller.h"
 
-
 const char* audio_input_to_string(const AudioInput audio_in)
 {
   switch (audio_in)
   {
     case AudioInput::AUX_1:
-     return "AUX 1";
+      return "AUX 1";
     case AudioInput::AUX_2:
-     return "AUX 2";
+      return "AUX 2";
     case AudioInput::AUX_3:
-     return "AUX 3";
+      return "AUX 3";
     case AudioInput::BAL:
-     return "BAL";
+      return "BAL";
     default:
-     return "INVALID";
+      return "INVALID";
   }
-} 
+}
 
-AudioInputController::AudioInputController(//const std::array<pin_size_t, 6> gpio_pin_audio_in_select,  // <== Don't  know where they go
-                   PioEncoder* audio_in_encoder_ptr,
-                   const AudioInput startup_audio_in,
-                   const int32_t tick_per_audio_in)
+AudioInputController::AudioInputController(  // const std::array<pin_size_t, 6> gpio_pin_audio_in_select,  // <== Don't
+                                             // know where they go
+  PioEncoder* audio_in_encoder_ptr,
+  const AudioInput startup_audio_in,
+  const int32_t tick_per_audio_in)
   : audio_input_(startup_audio_in)
   , prev_encoder_count_(0)
   , tick_per_audio_in_(tick_per_audio_in)
   , audio_in_encoder_ptr_(audio_in_encoder_ptr)
-{}
+{
+}
 
 void AudioInputController::init()
 {
 }
-  
+
 AudioInput AudioInputController::get_audio_input() const
 {
   return audio_input_;
@@ -40,7 +41,7 @@ AudioInput AudioInputController::get_audio_input() const
 bool AudioInputController::update()
 {
   const int32_t current_count = audio_in_encoder_ptr_->getCount();
-  
+
   const auto max_enum_value = static_cast<uint8_t>(AudioInput::audio_input_enum_length);
   auto audio_input_int = static_cast<uint8_t>(audio_input_);
   if (current_count - prev_encoder_count_ > tick_per_audio_in_)

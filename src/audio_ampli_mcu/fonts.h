@@ -2,11 +2,9 @@
 #ifndef __FONTS_H
 #define __FONTS_H
 
-#include <stdint.h>
 #include <optional>
+#include <stdint.h>
 #include <unordered_map>
-
-
 
 const uint32_t WHITE_COLOR = 0xfff;
 const uint32_t BLACK_COLOR = 0x0;
@@ -38,16 +36,15 @@ struct lv_font_t
   const uint32_t* unicode_list;
 };
 
-
 class LvFontWrapper
 {
 public:
   struct LvGlyph
   {
     uint8_t get_color(const uint32_t bitmap_x_px, const uint32_t y_px) const;
-    
+
     uint32_t width_px;
-    uint32_t height_px; // height_px = Real height - skip_top_px - bot_skip_px
+    uint32_t height_px;  // height_px = Real height - skip_top_px - bot_skip_px
     uint32_t width_with_spacing_px;
     uint32_t skip_top_px;
     const uint8_t* raw_bytes;
@@ -66,9 +63,16 @@ private:
   uint32_t height_px_;
 };
 
-void draw_character_fast(const LvFontWrapper::LvGlyph* glyph, const uint32_t start_x, const uint32_t start_y, bool is_white_on_black = true);
+void draw_character_fast(
+  const LvFontWrapper::LvGlyph* glyph, const uint32_t start_x, const uint32_t start_y, bool is_white_on_black = true);
 
-void draw_string_fast(const char* str, const uint32_t start_x, const uint32_t start_y, const uint32_t end_x, const LvFontWrapper& font, bool is_white_on_black = true, bool clear_side = true);
-
+void draw_string_fast(
+  const char* str,
+  const uint32_t start_x,
+  const uint32_t start_y,
+  const uint32_t end_x,
+  const LvFontWrapper& font,
+  bool is_white_on_black = true,
+  bool clear_side = true);
 
 #endif /* __FONTS_H */
