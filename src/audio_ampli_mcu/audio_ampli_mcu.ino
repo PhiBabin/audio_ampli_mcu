@@ -64,7 +64,7 @@ void draw_volume()
 
   if (volume_ctrl.is_muted())
   {
-    draw_image(mute_image, (max_x - min_x) / 2 + min_x, middle_y);
+    draw_image(mute_image, (max_x - min_x) / 2 + min_x + 3, middle_y);
   }
   else
   {
@@ -128,28 +128,11 @@ void loop()
   bool has_changed = volume_ctrl.update();
   if (has_changed)
   {
-    if (volume_ctrl.is_muted())
-    {
-      Serial.println("[MUTED]");
-    }
-    // Serial.print("Volume %: ");
-    // Serial.println(volume_ctrl.get_volume_db());
-
-    // char buffer[100];
-    // sprintf(buffer, "%sVolume: %ddB  Audio input: %s", volume_ctrl.is_muted() ? "[MUTED]" : "",
-    // volume_ctrl.get_volume_db(), audio_input_to_string(audio_input_ctrl.get_audio_input()));
     draw_volume();
   }
   const auto audio_input_change = audio_input_ctrl.update();
-  has_changed |= audio_input_change;
   if (audio_input_change)
   {
-    Serial.println(audio_input_to_string(audio_input_ctrl.get_audio_input()));
     draw_audio_inputs();
-  }
-  if (has_changed)
-  {
-    // LCD_Clear(0xffff);
-    // Paint_Clear(WHITE);
   }
 }
