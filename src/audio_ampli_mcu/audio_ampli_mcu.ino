@@ -50,8 +50,35 @@ LvFontWrapper regular_bold_font(&dmsans_36pt_extrabold);
 
 void draw_volume()
 {
-  if (state_machine.get_state() != State::main_menu)
+  const int max_time_since_last_change = 5000;
+  static auto prev_volume = volume_ctrl.get_volume_db();
+  static int time_since_last_change = -max_time_since_last_change;
+  if (volume_ctrl.get_volume_db() != prev_volume)
   {
+    time_since_last_change = millis();
+    prev_volume = volume_ctrl.get_volume_db();
+  }
+
+  if (state_machine.get_state() == State::option_menu)
+  {
+    const uint32_t y_end = 50;
+    const uint32_t y_text_top = (y_end - regular_bold_font.get_height_px()) / 2;
+    LCD_ClearWindow_12bitRGB(0, 0, LCD_WIDTH, y_end, BLACK_COLOR);
+    if (millis() - time_since_last_change >= max_time_since_last_change)
+    {
+      return;
+    }
+
+    char option_buffer[10];
+    if (volume_ctrl.is_muted())
+    {
+      strcpy(option_buffer, "[MUTED]");
+    }
+    else
+    {
+      sprintf(option_buffer, "Vol: %ddB", volume_ctrl.get_volume_db());
+    }
+    draw_string_fast(option_buffer, 0, y_text_top, LCD_WIDTH, regular_bold_font);
     return;
   }
   static bool prev_mute_state = volume_ctrl.is_muted();
@@ -123,10 +150,12 @@ void draw_options()
   {
     return;
   }
-  LCD_Clear_12bitRGB(BLACK_COLOR);
 
   const auto max_enum_value = static_cast<uint8_t>(Option::option_enum_length);
   const uint32_t ver_spacing = LCD_HEIGHT / (max_enum_value + 2);
+
+  LCD_ClearWindow_12bitRGB(0, ver_spacing, LCD_WIDTH, LCD_HEIGHT, BLACK_COLOR);
+
   for (uint8_t enum_value = 0; enum_value < max_enum_value; ++enum_value)
   {
     const auto option = static_cast<Option>(enum_value);
@@ -159,14 +188,6 @@ void draw_options()
         false);
     }
   }
-
-  // char buffer[40];
-  // sprintf(
-  //   buffer,
-  //   "%s:%s",
-  //   option_to_string(option_ctrl.get_selected_option()),
-  //   option_ctrl.get_option_value_string(option_ctrl.get_selected_option()));
-  // draw_string_fast(buffer, 20, LCD_HEIGHT / 2, LCD_WIDTH - 20, font, true);
 }
 
 void setup()

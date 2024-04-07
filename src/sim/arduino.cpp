@@ -1,5 +1,6 @@
 #include "sim/arduino.h"
 
+#include <SDL.h>
 #include <iostream>
 
 SerialObject Serial;
@@ -19,7 +20,7 @@ void digitalWrite(int pin, int input_output)
 
 unsigned long millis()
 {
-  return 0;
+  return static_cast<unsigned long>(SDL_GetTicks());
 }
 
 bool SerialObject::begin(int baudrate)
