@@ -1,5 +1,6 @@
 #include "sim/LCD_Driver.h"
 #include "sim/pio_encoder.h"
+#include "sim/toggle_button.h"
 
 #include <SDL.h>
 #include <stdio.h>
@@ -82,6 +83,12 @@ int main(int argc, char* args[])
                 break;
               case SDLK_d:
                 increment_encoder(18, 3);
+                break;
+              case SDLK_m:
+                toggle_button(16);
+                break;
+              case SDLK_e:
+                toggle_button(17);
                 break;
               default:
                 break;

@@ -113,7 +113,7 @@ void loop()
   {
     if (volume_ctrl.is_muted())
     {
-      Serial.print("[MUTED]");
+      Serial.println("[MUTED]");
     }
     // Serial.print("Volume %: ");
     // Serial.println(volume_ctrl.get_volume_db());

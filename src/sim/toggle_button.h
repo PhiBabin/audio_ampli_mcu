@@ -21,6 +21,8 @@ public:
   };
 };
 
+void toggle_button(const uint8_t pin);
+
 class ToggleButton : public InputDebounce
 {
 public:
@@ -40,11 +42,11 @@ public:
 
   // Get current state of the toggle button
   bool get_state() const;
-  void pressed();
   void process(unsigned long);
 
 private:
-  bool state_;
+  bool state_{false};
+  int8_t pin_in_;
 };
 
 #endif  // TOG_BUTTON_GUARD_H_

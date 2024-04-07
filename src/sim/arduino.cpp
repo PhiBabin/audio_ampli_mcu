@@ -28,16 +28,16 @@ bool SerialObject::begin(int baudrate)
 }
 void SerialObject::print(const char* text)
 {
-  std::cout << text;
+  std::cout << text << std::flush;
 }
 void SerialObject::print(const uint32_t number)
 {
-  std::cout << std::to_string(number);
+  std::cout << std::to_string(number) << std::flush;
 }
 
 void SerialObject::print(const int32_t number)
 {
-  std::cout << std::to_string(number);
+  std::cout << std::to_string(number) << std::flush;
 }
 void SerialObject::println(const uint32_t number)
 {
