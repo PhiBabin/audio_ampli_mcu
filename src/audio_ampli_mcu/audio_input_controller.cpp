@@ -19,10 +19,13 @@ const char* audio_input_to_string(const AudioInput audio_in)
 
 AudioInputController::AudioInputController(  // const std::array<pin_size_t, 6> gpio_pin_audio_in_select,  // <== Don't
                                              // know where they go
+
+  StateMachine* state_machine_ptr,
   PioEncoder* audio_in_encoder_ptr,
   const AudioInput startup_audio_in,
   const int32_t tick_per_audio_in)
-  : audio_input_(startup_audio_in)
+  : state_machine_ptr_(state_machine_ptr)
+  , audio_input_(startup_audio_in)
   , prev_encoder_count_(0)
   , tick_per_audio_in_(tick_per_audio_in)
   , audio_in_encoder_ptr_(audio_in_encoder_ptr)
@@ -41,6 +44,11 @@ AudioInput AudioInputController::get_audio_input() const
 bool AudioInputController::update()
 {
   const int32_t current_count = audio_in_encoder_ptr_->getCount();
+  if (state_machine_ptr_->get_state() == State::option_menu)
+  {
+    prev_encoder_count_ = current_count;
+    return false;
+  }
 
   const auto max_enum_value = static_cast<uint8_t>(AudioInput::audio_input_enum_length);
   auto audio_input_int = static_cast<uint8_t>(audio_input_);

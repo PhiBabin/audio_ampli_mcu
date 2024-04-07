@@ -3,12 +3,14 @@
 #define BUTTON_DEBOUNCE_DELAY 20  // [ms]
 
 VolumeController::VolumeController(
+  StateMachine* state_machine_ptr,
   const std::array<pin_size_t, 6> gpio_pin_vol_select,
   PioEncoder* vol_encoder_ptr,
   const int mute_button_pin,
   const int32_t startup_volume_db,
   const int32_t total_tick_for_63db)
-  : gpio_pin_vol_select_(gpio_pin_vol_select)
+  : state_machine_ptr_(state_machine_ptr)
+  , gpio_pin_vol_select_(gpio_pin_vol_select)
   , mute_button_pin_(mute_button_pin)
   , volume_(map(startup_volume_db, -63, 1, 0, total_tick_for_63db))
   , prev_encoder_count_(0)

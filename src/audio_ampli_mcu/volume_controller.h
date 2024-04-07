@@ -9,6 +9,8 @@
 #include "toggle_button.h"
 #endif
 
+#include "state_machine.h"
+
 #include <array>
 
 class VolumeController
@@ -16,6 +18,7 @@ class VolumeController
 public:
   // Construtor
   VolumeController(
+    StateMachine* state_machine_ptr,
     const std::array<pin_size_t, 6> gpio_pin_vol_select,
     PioEncoder* vol_encoder_ptr,
     const int mute_button_pin,
@@ -48,11 +51,13 @@ private:
   // Set GPIO based on current volume
   void set_gpio_based_on_volume();
 
+  // Non-owning pointer to the state machine
+  StateMachine* state_machine_ptr_;
   // GPIO pin for each of the 6 bit of the volume
   std::array<pin_size_t, 6> gpio_pin_vol_select_;
   // Pin for the mute toggle button
   pin_size_t mute_button_pin_;
-  /// Volume as a wrap arround integer
+  /// Volume as a wrap around integer
   int32_t volume_;
   /// Previous count of the encoder
   int32_t prev_encoder_count_;

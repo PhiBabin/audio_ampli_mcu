@@ -7,6 +7,8 @@
 #include "pio_encoder.h"
 #endif
 
+#include "state_machine.h"
+
 #include <array>
 
 enum class AudioInput : uint8_t
@@ -24,7 +26,8 @@ class AudioInputController
 {
 public:
   // Construtor
-  AudioInputController(  // const std::array<pin_size_t, 6> gpio_pin_audio_in_select,  // <== Don't  know where they go
+  AudioInputController(
+    StateMachine* state_machine_ptr,  // const std::array<pin_size_t, 6> gpio_pin_audio_in_select,  // <== Don't  know where they go
     PioEncoder* audio_in_encoder_ptr,
     const AudioInput startup_audio_in,
     const int32_t tick_per_audio_in);
@@ -40,6 +43,8 @@ public:
   bool update();
 
 private:
+  // Non-owning pointer to the state machine
+  StateMachine* state_machine_ptr_;
   // GPIO pin for each of the 6 bit of the volume
   // std::array<pin_size_t, 6> gpio_pin_audio_in_select;
   // Current audio input state

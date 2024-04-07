@@ -5,8 +5,10 @@ OBJS = sim/main.cpp \
       sim/arduino.cpp \
 	  audio_ampli_mcu/audio_ampli_mcu.ino \
 	  audio_ampli_mcu/fonts.cpp \
+	  audio_ampli_mcu/options_controller.cpp \
 	  audio_ampli_mcu/volume_controller.cpp \
-	  audio_ampli_mcu/audio_input_controller.cpp
+	  audio_ampli_mcu/audio_input_controller.cpp\
+	  audio_ampli_mcu/state_machine.cpp
 
 OBJ_NAME = simulator
 
