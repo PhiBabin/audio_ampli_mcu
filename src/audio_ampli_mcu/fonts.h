@@ -43,14 +43,17 @@ public:
   {
     uint8_t get_color(const uint32_t bitmap_x_px, const uint32_t y_px) const;
 
+    // When monospace this is fixed
     uint32_t width_px;
+    // Real width of the glyph
+    uint32_t bitmap_width_px;
     uint32_t height_px;  // height_px = Real height - skip_top_px - bot_skip_px
     uint32_t width_with_spacing_px;
     uint32_t skip_top_px;
     const uint8_t* raw_bytes;
   };
 
-  LvFontWrapper(const lv_font_t* font);
+  LvFontWrapper(const lv_font_t* font, const bool is_monospace = false);
   std::optional<const LvGlyph*> get_glyph(const char c) const;
   uint32_t get_height_px() const;
   uint32_t get_spacing_px() const;

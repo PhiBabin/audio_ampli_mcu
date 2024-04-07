@@ -1,5 +1,6 @@
 #include "fonts.h"
 
+#include <algorithm>
 #include <cstring>
 
 #ifdef SIM
@@ -130,15 +131,19 @@ void draw_string_fast(
   }
 }
 
-uint8_t LvFontWrapper::LvGlyph::get_color(const uint32_t bitmap_x_px, const uint32_t y_px) const
+uint8_t LvFontWrapper::LvGlyph::get_color(const uint32_t x_px, const uint32_t y_px) const
 {
-  if (bitmap_x_px >= width_px || y_px >= height_px)
+  // Monospace font offset the font
+  const uint32_t left_offset_px = (width_px - bitmap_width_px) / 2;
+  if (x_px < left_offset_px || x_px >= bitmap_width_px + left_offset_px || y_px >= height_px)
   {
     return 0;
   }
+  const auto bitmap_x_px = x_px - left_offset_px;
   const auto bitmap_y_px = y_px + skip_top_px;
-  const uint32_t bitmap_y_offset_px =
-    width_px % 2 == 0 ? width_px * bitmap_y_px : (width_px + 1) * bitmap_y_px;  // Padding for odd width
+  const uint32_t bitmap_y_offset_px = bitmap_width_px % 2 == 0
+                                        ? bitmap_width_px * bitmap_y_px
+                                        : (bitmap_width_px + 1) * bitmap_y_px;  // Padding for odd width
   const uint32_t offset_px = bitmap_y_offset_px + bitmap_x_px;
   const auto two_pixels_byte = raw_bytes[offset_px / 2];
   if (offset_px % 2 == 0)
@@ -148,12 +153,13 @@ uint8_t LvFontWrapper::LvGlyph::get_color(const uint32_t bitmap_x_px, const uint
   return two_pixels_byte & 0x0F;
 }
 
-LvFontWrapper::LvFontWrapper(const lv_font_t* font)
+LvFontWrapper::LvFontWrapper(const lv_font_t* font, const bool is_monospace)
   : font_(font), height_px_(font_->h_px - font_->h_top_skip_px - font_->h_bot_skip_px)
 {
   auto add_character = [this](const uint32_t unicode, const uint32_t index) {
     LvGlyph glyph{
-      .width_px = font_->glyph_dsc[index].w_px,
+      .width_px = font_->glyph_dsc[index].w_px,  // Will be updated if monospace
+      .bitmap_width_px = font_->glyph_dsc[index].w_px,
       .height_px = height_px_,
       .width_with_spacing_px = font_->glyph_dsc[index].w_px + font_->spacing_px,
       .skip_top_px = font_->h_top_skip_px,
@@ -177,6 +183,24 @@ LvFontWrapper::LvFontWrapper(const lv_font_t* font)
     for (uint32_t unicode = font_->unicode_first; unicode <= font_->unicode_last; ++unicode)
     {
       add_character(unicode, unicode - font_->unicode_first);
+    }
+  }
+
+  // Update width_px to the largest glyph width
+  if (is_monospace && !unicode_to_char_.empty())
+  {
+    const auto max_width =
+      std::max_element(unicode_to_char_.begin(), unicode_to_char_.end(), [](const auto& a, const auto& b) {
+        return a.second.width_px < b.second.width_px;
+      })->second.width_px;
+    for (auto& [unicode, glyph] : unicode_to_char_)
+    {
+      // 0-9
+      if (48 <= unicode && unicode <= 57)
+      {
+        glyph.width_px = max_width;
+        glyph.width_with_spacing_px = max_width + font_->spacing_px;
+      }
     }
   }
 }

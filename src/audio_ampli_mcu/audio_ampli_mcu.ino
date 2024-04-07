@@ -5,6 +5,8 @@
 
 #include "audio_input_controller.h"
 #include "digit_font.h"
+#include "digit_font_droid_sans_mono.h"
+#include "digit_font_lt_superior_mono.h"
 #include "dm_sans_extrabold.h"
 #include "volume_controller.h"
 
@@ -35,16 +37,22 @@ VolumeController volume_ctrl(
   volume_gpio_pins, &volume_encoder, mute_button_pin, STARTUP_VOLUME_DB, TOTAL_TICK_FOR_FULL_VOLUME);
 AudioInputController audio_input_ctrl(&menu_select_encoder, AudioInput::AUX_3, TICK_PER_AUDIO_IN);
 
-LvFontWrapper digit_light_font(&dmsans_36pt_light);
+LvFontWrapper digit_lt_superior_font(&lt_superior_mono, true);
+LvFontWrapper digit_droid_sans_font(&droid_sans_mono, true);
+LvFontWrapper digit_light_font(&dmsans_36pt_light, true);
 LvFontWrapper regular_bold_font(&dmsans_36pt_extrabold);
 
 void draw_volume()
 {
+  const auto& font = digit_lt_superior_font;
   char buffer[5];
-  // sprintf(buffer, "%sVolume: %ddB  Audio input: %s", volume_ctrl.is_muted() ? "[MUTED]" : "",
-  // volume_ctrl.get_volume_db(), audio_input_to_string(audio_input_ctrl.get_audio_input()));
   sprintf(buffer, "%d", volume_ctrl.get_volume_db());
-  draw_string_fast(buffer, 95, 64, 95 + 222, digit_light_font);
+
+  const uint32_t min_x = 85;
+  const uint32_t max_x = LCD_WIDTH - 10;
+  const uint32_t middle_y = LCD_HEIGHT / 2;
+  const uint32_t start_y = middle_y - font.get_height_px() / 2;
+  draw_string_fast(buffer, min_x, start_y, max_x, font);
 }
 
 void draw_audio_inputs()
@@ -107,8 +115,8 @@ void loop()
     {
       Serial.print("[MUTED]");
     }
-    Serial.print("Volume %: ");
-    Serial.println(volume_ctrl.get_volume_db());
+    // Serial.print("Volume %: ");
+    // Serial.println(volume_ctrl.get_volume_db());
 
     // char buffer[100];
     // sprintf(buffer, "%sVolume: %ddB  Audio input: %s", volume_ctrl.is_muted() ? "[MUTED]" : "",
