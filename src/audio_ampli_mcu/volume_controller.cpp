@@ -59,6 +59,12 @@ bool VolumeController::update_volume()
   {
     return false;
   }
+  // If muted don't update the volume
+  if (is_muted())
+  {
+    prev_encoder_count_ = current_count;
+    return false;
+  }
   // Apply volume change
   volume_ += current_count - prev_encoder_count_;
   // Wrap arround

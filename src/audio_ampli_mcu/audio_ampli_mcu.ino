@@ -8,6 +8,7 @@
 #include "digit_font_droid_sans_mono.h"
 #include "digit_font_lt_superior_mono.h"
 #include "dm_sans_extrabold.h"
+#include "mute_image.h"
 #include "volume_controller.h"
 
 #ifdef SIM
@@ -44,6 +45,8 @@ LvFontWrapper regular_bold_font(&dmsans_36pt_extrabold);
 
 void draw_volume()
 {
+  static bool prev_mute_state = volume_ctrl.is_muted();
+
   const auto& font = digit_lt_superior_font;
   char buffer[5];
   sprintf(buffer, "%d", volume_ctrl.get_volume_db());
@@ -52,7 +55,21 @@ void draw_volume()
   const uint32_t max_x = LCD_WIDTH - 10;
   const uint32_t middle_y = LCD_HEIGHT / 2;
   const uint32_t start_y = middle_y - font.get_height_px() / 2;
-  draw_string_fast(buffer, min_x, start_y, max_x, font);
+
+  if (prev_mute_state != volume_ctrl.is_muted())
+  {
+    LCD_ClearWindow_12bitRGB(min_x, 0, max_x, LCD_HEIGHT, BLACK_COLOR);
+    prev_mute_state = volume_ctrl.is_muted();
+  }
+
+  if (volume_ctrl.is_muted())
+  {
+    draw_image(mute_image, (max_x - min_x) / 2 + min_x, middle_y);
+  }
+  else
+  {
+    draw_string_fast(buffer, min_x, start_y, max_x, font);
+  }
 }
 
 void draw_audio_inputs()

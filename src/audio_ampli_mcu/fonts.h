@@ -78,4 +78,13 @@ void draw_string_fast(
   bool is_white_on_black = true,
   bool clear_side = true);
 
+struct lv_img_dsc_t
+{
+  uint32_t w_px;
+  uint32_t h_px;
+  const uint8_t* data;
+};
+
+void draw_image(const lv_img_dsc_t& img, const uint32_t center_x, const uint32_t center_y);
+
 #endif /* __FONTS_H */

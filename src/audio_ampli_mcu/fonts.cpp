@@ -224,3 +224,54 @@ uint32_t LvFontWrapper::get_spacing_px() const
 {
   return font_->spacing_px;
 }
+
+void draw_image(const lv_img_dsc_t& img, const uint32_t center_x, const uint32_t center_y)
+{
+  const uint32_t start_x = center_x - img.w_px / 2;
+  const uint32_t start_y = center_y - img.h_px / 2;
+  uint32_t end_x = start_x + img.w_px;
+  const uint32_t end_y = start_y + img.h_px;
+
+  if (img.w_px % 2 != 0)
+  {
+    ++end_x;
+  }
+
+  //   Serial.print("\tstart_x=");
+  //   Serial.print(start_x);
+  //   Serial.print("end_x=");
+  //   Serial.print(end_x);
+  //   Serial.println("");
+  LCD_SetWindow(start_x, start_y, end_x, end_y + 1);
+  for (uint32_t y = 0; y < end_y - start_y; ++y)
+  {
+    uint8_t px_count = 0;
+    uint32_t color_2pixels = 0;
+    for (uint32_t x = 0; x < end_x - start_x; ++x)
+    {
+      uint32_t r = 0;
+      uint32_t g = 0;
+      uint32_t b = 0;
+      if (x < img.w_px && y < img.h_px)
+      {
+        const auto offset = (img.w_px % 2 == 0) ? y * img.w_px * 3 + x * 3 : y * (img.w_px + 1) * 3 + x * 3;
+        r = img.data[offset];
+        g = img.data[offset + 1];
+        b = img.data[offset + 2];
+      }
+      // 8 bit -> 4bit
+      r >>= 4;
+      g >>= 4;
+      b >>= 4;
+      // Convert 4bit grayscale to four 4bit RGB
+      color_2pixels = (color_2pixels << 12) | (r << 8 | g << 4 | b);
+      ++px_count;
+      if (px_count == 2)
+      {
+        LCD_write_2pixel_color(color_2pixels);
+        px_count = 0;
+        color_2pixels = 0;
+      }
+    }
+  }
+}
