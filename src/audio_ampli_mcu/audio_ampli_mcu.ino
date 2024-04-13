@@ -23,7 +23,7 @@
 
 #include <algorithm>
 
-#define STARTUP_VOLUME_DB -42
+#define STARTUP_VOLUME_DB 0
 #define ENCODER_TICK_PER_ROTATION 24
 #define TOTAL_TICK_FOR_FULL_VOLUME (9 * ENCODER_TICK_PER_ROTATION)
 #define TICK_PER_AUDIO_IN (ENCODER_TICK_PER_ROTATION / 4)
@@ -83,7 +83,7 @@ void draw_volume()
   }
   static bool prev_mute_state = volume_ctrl.is_muted();
 
-  const auto& font = digit_lt_superior_font;
+  const auto& font = digit_light_font;
   char buffer[5];
   sprintf(buffer, "%d", volume_ctrl.get_volume_db());
 

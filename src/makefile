@@ -1,5 +1,30 @@
-OBJS = sim/main.cpp \
-      sim/LCD_Driver.cpp \
+
+
+# OBJ_NAME = simulator
+
+# $(PROGRAMS): $(PROGRAM=$(.TARGET))
+# all: $(PROGRAMS)
+
+# $(PROGRAM): $(PROGRAM).cpp $(OBJS)
+# 	$(CC) -o $(.TARGET) -x c++  $(OBJS) $(COMPILER_FLAGS) $(LINKER_FLAGS)  -I. -Isim -o $(OBJ_NAME) `sdl2-config --cflags --libs` -DSIM
+
+CC = g++
+COMPILER_FLAGS = -Wall
+LINKER_FLAGS = -I. -Isim  `sdl2-config --cflags --libs` -DSIM
+# # -DSIM creates a macro named SIM that would allow to override the MCU libraries calls
+CCFLAGS = $(COMPILER_FLAGS) -x c++ 
+
+# $(PROGRAM).o: $(PROGRAM).cpp
+OBJ_DIR = obj
+BIN_DIR = bin
+
+SIMULATOR_BIN = $(BIN_DIR)/simulator
+GIF_GENERATOR_BIN = $(BIN_DIR)/gif_generator
+
+SIMULATOR_SRC = sim/main_simulator.cpp
+GIF_GENERATOR_SRC = sim/main_gif_generator.cpp
+
+COMMON_SRC = sim/LCD_Driver.cpp \
       sim/pio_encoder.cpp \
       sim/toggle_button.cpp \
       sim/arduino.cpp \
@@ -9,15 +34,25 @@ OBJS = sim/main.cpp \
 	  audio_ampli_mcu/volume_controller.cpp \
 	  audio_ampli_mcu/audio_input_controller.cpp\
 	  audio_ampli_mcu/state_machine.cpp
+COMMON_OBJ = $(patsubst %.cpp,$(OBJ_DIR)/%.o,$(COMMON_SRC))
+# Targets
+all: $(SIMULATOR_BIN) $(GIF_GENERATOR_BIN)
 
-OBJ_NAME = simulator
+$(SIMULATOR_BIN): $(SIMULATOR_SRC)
+	@mkdir -p $(BIN_DIR)
+	$(CC) $(CCFLAGS) $(COMMON_SRC) $(SIMULATOR_SRC) -o $@ $(LINKER_FLAGS) 
 
-CC = g++
+$(GIF_GENERATOR_BIN): $(GIF_GENERATOR_SRC)
+	@mkdir -p $(BIN_DIR)
+	$(CC) $(CCFLAGS) $(COMMON_SRC) $(GIF_GENERATOR_SRC) -o $@ $(LINKER_FLAGS) 
 
-COMPILER_FLAGS = -Wall
+# $(OBJ_DIR)/%.o: %.cpp
+# 	@mkdir -p $(OBJ_DIR)/sim $(OBJ_DIR)/audio_ampli_mcu
+# 	$(CC) $(CCFLAGS) -c $< -o $@
 
-LINKER_FLAGS = -lSDL2
+clean:
+	rm -rf $(OBJ_DIR) $(BIN_DIR)
 
-# -DSIM creates a macro that would allow to override the MCU libraries calls
-all : $(OBJS)
-	$(CC) -x c++ $(OBJS) $(COMPILER_FLAGS) $(LINKER_FLAGS)  -I. -Isim -o $(OBJ_NAME) `sdl2-config --cflags --libs` -DSIM
+.PHONY: all clean
+
+#g++ -Wall -x c++  -lSDL2 -I. -Isim  `sdl2-config --cflags --libs` -DSIM obj/sim/LCD_Driver.o obj/sim/pio_encoder.o obj/sim/toggle_button.o obj/sim/arduino.o audio_ampli_mcu/audio_ampli_mcu.ino obj/audio_ampli_mcu/fonts.o obj/audio_ampli_mcu/options_controller.o obj/audio_ampli_mcu/volume_controller.o obj/audio_ampli_mcu/audio_input_controller.o obj/audio_ampli_mcu/state_machine.o sim/main_simulator.cpp -o bin/simulator
