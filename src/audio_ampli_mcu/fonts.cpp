@@ -275,3 +275,60 @@ void draw_image(const lv_img_dsc_t& img, const uint32_t center_x, const uint32_t
     }
   }
 }
+
+void draw_rounded_rectangle(
+  const uint32_t start_x,
+  const uint32_t start_y,
+  uint32_t end_x,
+  const uint32_t end_y,
+  const bool is_white_on_black,
+  const bool rounded_left,
+  const bool rounded_right)
+{
+
+  // Make sure that we have an even number of columns, that way we don't have to worry about write call with only one
+  // column
+  if ((end_x - start_x) % 2 != 0)
+  {
+    ++end_x;
+  }
+  const uint32_t width_px = end_x - start_x;
+  const uint32_t height_px = end_y - start_y;
+
+  //   Serial.print("\tstart_x=");
+  //   Serial.print(start_x);
+  //   Serial.print("end_x=");
+  //   Serial.print(end_x);
+  //   Serial.println("");
+  // LCD will auto increment the row when we reach columns == end_x
+  LCD_SetWindow(start_x, start_y, end_x, end_y + 1);
+  for (uint32_t y = 0; y < height_px; ++y)
+  {
+    uint8_t px_count = 0;
+    uint32_t color_2pixels = 0;
+    for (uint32_t x = 0; x < width_px; ++x)
+    {
+      bool is_fill = true;
+      if ((x < width_px / 2 && rounded_left) || (x >= width_px / 2 && rounded_right))
+      {
+        // Convert x/y to corner coordinate (origin is the closest corner)
+        const auto corner_x = x < width_px / 2 ? x : width_px - x - 1;
+        const auto corner_y = y < height_px / 2 ? y : height_px - y - 1;
+
+        // Rounded corner conditions
+        is_fill = corner_x + corner_y > 3 && (corner_x != 0 || corner_y > 4);
+      }
+
+      auto color_4bit = (is_fill && is_white_on_black) || (!is_fill && !is_white_on_black) ? WHITE_COLOR : BLACK_COLOR;
+      // Convert 4bit grayscale to four 4bit RGB
+      color_2pixels = (color_2pixels << 12) | (color_4bit << 8 | color_4bit << 4 | color_4bit);
+      ++px_count;
+      if (px_count == 2)
+      {
+        LCD_write_2pixel_color(color_2pixels);
+        px_count = 0;
+        color_2pixels = 0;
+      }
+    }
+  }
+}

@@ -83,7 +83,7 @@ void draw_volume()
   }
   static bool prev_mute_state = volume_ctrl.is_muted();
 
-  const auto& font = digit_light_font;
+  const auto& font = digit_droid_sans_font;
   char buffer[5];
   sprintf(buffer, "%d", volume_ctrl.get_volume_db());
 
@@ -119,7 +119,7 @@ void draw_audio_inputs()
   const uint32_t ver_spacing =
     LCD_HEIGHT / (max_enum_value + 1);  // + 1 is to have equal spacing between the top input and the screen's border
 
-  const uint32_t tab_width_px = 80;
+  const uint32_t tab_width_px = 82;
   const uint32_t tab_height_px = font.get_height_px() + 8;
   const uint32_t first_option_center_y = ver_spacing;
 
@@ -135,8 +135,14 @@ void draw_audio_inputs()
     const auto is_selected = audio_input_ctrl.get_audio_input() == audio_input;
     if (is_selected)
     {
-      LCD_ClearWindow_12bitRGB(
-        0, curr_option_box_top_y, tab_width_px + 1, curr_option_box_top_y + tab_height_px + 1, WHITE_COLOR);
+      draw_rounded_rectangle(
+        0,
+        curr_option_box_top_y,
+        tab_width_px,
+        curr_option_box_top_y + tab_height_px + 1,
+        /*is_white_on_black=*/true,
+        /*rounded_left =*/false,
+        /*rounded_right =*/true);
     }
     draw_string_fast(
       audio_input_to_string(audio_input), 0, curr_option_text_top_y, tab_width_px, font, !is_selected, false);

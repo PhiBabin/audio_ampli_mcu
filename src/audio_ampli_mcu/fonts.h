@@ -87,4 +87,13 @@ struct lv_img_dsc_t
 
 void draw_image(const lv_img_dsc_t& img, const uint32_t center_x, const uint32_t center_y);
 
+void draw_rounded_rectangle(
+  const uint32_t start_x,
+  const uint32_t start_y,
+  uint32_t end_x,
+  const uint32_t end_y,
+  const bool is_white_on_black,
+  const bool rounded_left,
+  const bool rounded_right);
+
 #endif /* __FONTS_H */
