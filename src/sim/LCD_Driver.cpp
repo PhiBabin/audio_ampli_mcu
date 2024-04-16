@@ -16,9 +16,14 @@ uint32_t win_end_y = 0;
 uint32_t win_curr_x = 0;
 uint32_t win_curr_y = 0;
 
-void LCD_hook_sdl(SDL_Surface* surface)
+uint64_t pixel_count = 0;
+constexpr uint64_t ms_per_pixel = 200;
+std::function<void(void)> blip_sdl_window_callback = nullptr;
+
+void LCD_hook_sdl(SDL_Surface* surface, std::function<void(void)> funct)
 {
   global_surface = surface;
+  blip_sdl_window_callback = funct;
 }
 
 void LCD_Init(void)
@@ -76,6 +81,14 @@ void LCD_ClearWindow_12bitRGB(UWORD Xstart, UWORD Ystart, UWORD Xend, UWORD Yend
   rect.w = Xend - Xstart;
   rect.h = Yend - Ystart;
   SDL_FillRect(global_surface, &rect, SDL_MapRGB(global_surface->format, r, g, b));
+
+  pixel_count += rect.w * rect.h;
+  if (pixel_count > ms_per_pixel)
+  {
+    SDL_Delay(pixel_count / ms_per_pixel);
+    pixel_count = 0;
+    blip_sdl_window_callback();
+  }
 }
 
 void LCD_write_2pixel_color(const uint32_t color_2pixels)
@@ -92,10 +105,10 @@ void LCD_write_2pixel_color(const uint32_t color_2pixels)
       ((uint8_t*)global_surface->pixels + y * global_surface->pitch + x * global_surface->format->BytesPerPixel);
 
     const auto [r, g, b] = rgb444_to_rgb888(color12bit);
-    target_pixel[0] = r;
+    // Due to little endianness it's BGR, not RGB
+    target_pixel[0] = b;
     target_pixel[1] = g;
-    target_pixel[2] = b;
-    // target_pixel[3] = 255;
+    target_pixel[2] = r;
   };
   sdl_draw_pixel(win_curr_x, win_curr_y, left_pixel_color);
   sdl_draw_pixel(win_curr_x + 1, win_curr_y, right_pixel_color);
@@ -104,5 +117,13 @@ void LCD_write_2pixel_color(const uint32_t color_2pixels)
   {
     win_curr_x = win_start_x;
     ++win_curr_y;
+  }
+
+  pixel_count += 2;
+  if (pixel_count > ms_per_pixel)
+  {
+    SDL_Delay(pixel_count / ms_per_pixel);
+    pixel_count = 0;
+    blip_sdl_window_callback();
   }
 }

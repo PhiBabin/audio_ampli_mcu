@@ -2,6 +2,7 @@
 #define __LCD_DRIVER_H
 
 #include <cstdint>
+#include <functional>
 
 #define UBYTE uint8_t
 #define UWORD uint16_t
@@ -13,7 +14,7 @@
 // forward declaration
 class SDL_Surface;
 
-void LCD_hook_sdl(SDL_Surface* surface);
+void LCD_hook_sdl(SDL_Surface* surface, std::function<void(void)> funct);
 
 void Config_Init();
 

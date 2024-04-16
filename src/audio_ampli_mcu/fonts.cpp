@@ -255,16 +255,17 @@ void draw_image(const lv_img_dsc_t& img, const uint32_t center_x, const uint32_t
       if (x < img.w_px && y < img.h_px)
       {
         const auto offset = (img.w_px % 2 == 0) ? y * img.w_px * 3 + x * 3 : y * (img.w_px + 1) * 3 + x * 3;
-        r = img.data[offset];
+        // Due to little endianness it's BGR, not RGB
+        b = img.data[offset];
         g = img.data[offset + 1];
-        b = img.data[offset + 2];
+        r = img.data[offset + 2];
       }
       // 8 bit -> 4bit
       r >>= 4;
       g >>= 4;
       b >>= 4;
       // Convert 4bit grayscale to four 4bit RGB
-      color_2pixels = (color_2pixels << 12) | (r << 8 | g << 4 | b);
+      color_2pixels = (color_2pixels << 12) | ((r << 8) | (g << 4) | b);
       ++px_count;
       if (px_count == 2)
       {

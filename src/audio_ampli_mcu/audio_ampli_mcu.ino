@@ -53,6 +53,7 @@ void draw_volume()
   const int max_time_since_last_change = 5000;
   static auto prev_volume = volume_ctrl.get_volume_db();
   static int time_since_last_change = -max_time_since_last_change;
+  static auto prev_state = state_machine.get_state();
   if (volume_ctrl.get_volume_db() != prev_volume)
   {
     time_since_last_change = millis();
@@ -63,7 +64,11 @@ void draw_volume()
   {
     const uint32_t y_end = 50;
     const uint32_t y_text_top = (y_end - regular_bold_font.get_height_px()) / 2;
-    LCD_ClearWindow_12bitRGB(0, 0, LCD_WIDTH, y_end, BLACK_COLOR);
+    if (prev_state != state_machine.get_state())
+    {
+      LCD_ClearWindow_12bitRGB(0, 0, LCD_WIDTH, y_end, BLACK_COLOR);
+    }
+    prev_state = state_machine.get_state();
     if (millis() - time_since_last_change >= max_time_since_last_change)
     {
       return;
@@ -106,6 +111,7 @@ void draw_volume()
   {
     draw_string_fast(buffer, min_x, start_y, max_x, font);
   }
+  prev_state = state_machine.get_state();
 }
 
 void draw_audio_inputs()
@@ -151,16 +157,23 @@ void draw_audio_inputs()
 
 void draw_options()
 {
+  static auto prev_state = state_machine.get_state();
+  static auto prev_selected_option = option_ctrl.get_selected_option();
   const auto& font = regular_bold_font;
   if (state_machine.get_state() != State::option_menu)
   {
+    prev_state = state_machine.get_state();
+    prev_selected_option = option_ctrl.get_selected_option();
     return;
   }
 
   const auto max_enum_value = static_cast<uint8_t>(Option::option_enum_length);
   const uint32_t ver_spacing = LCD_HEIGHT / (max_enum_value + 2);
 
-  LCD_ClearWindow_12bitRGB(0, ver_spacing, LCD_WIDTH, LCD_HEIGHT, BLACK_COLOR);
+  if (prev_state != state_machine.get_state())
+  {
+    LCD_ClearWindow_12bitRGB(0, 0, LCD_WIDTH, LCD_HEIGHT, BLACK_COLOR);
+  }
 
   for (uint8_t enum_value = 0; enum_value < max_enum_value; ++enum_value)
   {
@@ -169,18 +182,24 @@ void draw_options()
     const auto curr_option_text_top_y = curr_option_center_y - font.get_height_px() / 2;
 
     const auto is_selected = option_ctrl.get_selected_option() == option;
+    const auto is_prev_selected_option = option == prev_selected_option;
 
-    if (is_selected)
+    if (is_selected || is_prev_selected_option)
     {
       const auto curr_option_box_top_y = curr_option_center_y - ver_spacing / 2;
       LCD_ClearWindow_12bitRGB(
-        0, curr_option_box_top_y, LCD_WIDTH, curr_option_box_top_y + ver_spacing + 1, WHITE_COLOR);
+        0,
+        curr_option_box_top_y,
+        LCD_WIDTH,
+        curr_option_box_top_y + ver_spacing + 1,
+        is_selected ? WHITE_COLOR : BLACK_COLOR);
     }
 
+    // Back is centered
     if (option == Option::back)
     {
       draw_string_fast("BACK", 0, curr_option_text_top_y, LCD_WIDTH, font, !is_selected, false);
-    }
+    }  // Other option have a field name and values
     else
     {
       draw_string_fast(option_to_string(option), 0, curr_option_text_top_y, LCD_WIDTH / 2, font, !is_selected, false);
@@ -194,6 +213,8 @@ void draw_options()
         false);
     }
   }
+  prev_state = state_machine.get_state();
+  prev_selected_option = option_ctrl.get_selected_option();
 }
 
 void setup()
@@ -212,30 +233,34 @@ void setup()
   LCD_Init();
   LCD_Clear_12bitRGB(BLACK_COLOR);
 
-  draw_volume();
+  draw_options();
   draw_audio_inputs();
+  draw_volume();
 }
 
 void loop()
 {
+  const auto option_change = option_ctrl.update();
+  if (option_change)
+  {
+    Serial.println("update options");
+    draw_options();
+  }
   const auto state_changed = state_machine.update();
-  if (state_changed)
+  if (state_changed && state_machine.get_state() == State::main_menu)
   {
     LCD_Clear_12bitRGB(BLACK_COLOR);
-  }
-  bool has_changed = volume_ctrl.update();
-  if (has_changed || state_changed)
-  {
-    draw_volume();
   }
   const auto audio_input_change = audio_input_ctrl.update();
   if (audio_input_change || state_changed)
   {
+    Serial.println("update audio input");
     draw_audio_inputs();
   }
-  const auto option_change = option_ctrl.update();
-  if (option_change || state_changed)
+  bool has_changed = volume_ctrl.update();
+  if (has_changed || state_changed)
   {
-    draw_options();
+    Serial.println("update volume");
+    draw_volume();
   }
 }

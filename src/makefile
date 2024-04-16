@@ -9,7 +9,7 @@
 # 	$(CC) -o $(.TARGET) -x c++  $(OBJS) $(COMPILER_FLAGS) $(LINKER_FLAGS)  -I. -Isim -o $(OBJ_NAME) `sdl2-config --cflags --libs` -DSIM
 
 CC = g++
-COMPILER_FLAGS = -Wall
+COMPILER_FLAGS = -Wall -O0
 LINKER_FLAGS = -I. -Isim  `sdl2-config --cflags --libs` -DSIM
 # # -DSIM creates a macro named SIM that would allow to override the MCU libraries calls
 CCFLAGS = $(COMPILER_FLAGS) -x c++ 

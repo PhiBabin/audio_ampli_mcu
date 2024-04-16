@@ -15,6 +15,7 @@ int main(int argc, char* args[])
 
   // The surface contained by the window
   SDL_Surface* screenSurface = NULL;
+  bool quit = false;
 
   // Initialize SDL
   if (SDL_Init(SDL_INIT_VIDEO) < 0)
@@ -38,29 +39,8 @@ int main(int argc, char* args[])
     }
     // Get window surface
     screenSurface = SDL_GetWindowSurface(window);
-    LCD_hook_sdl(screenSurface);
-
-    // Fill the surface white
-    SDL_FillRect(screenSurface, NULL, SDL_MapRGB(screenSurface->format, 0xFF, 0xFF, 0xFF));
-
-    // Update the surface
-    SDL_UpdateWindowSurface(window);
-
-    // Call arduino's setup
-    setup();
-
-    SDL_Event event;
-    bool quit = false;
-
-    constexpr int FPS = 60;
-    constexpr int frameDelay = 1000 / FPS;
-    uint32_t frameStart = 0;
-    int frameTime = 0;
-    while (!quit)
-    {
-      frameStart = SDL_GetTicks();
-      // Execute main loop of arduino
-      loop();
+    auto blip_screen = [&quit, &window]() {
+      SDL_Event event;
       SDL_UpdateWindowSurface(window);
       while (SDL_PollEvent(&event))
       {
@@ -96,6 +76,31 @@ int main(int argc, char* args[])
             break;
         }
       }
+    };
+    std::function<void(void)> foo = blip_screen;
+    LCD_hook_sdl(screenSurface, foo);
+
+    // Fill the surface white
+    SDL_FillRect(screenSurface, NULL, SDL_MapRGB(screenSurface->format, 0xFF, 0xFF, 0xFF));
+
+    // Update the surface
+    SDL_UpdateWindowSurface(window);
+
+    // Call arduino's setup
+    setup();
+
+    // SDL_Event event;
+
+    constexpr int FPS = 60;
+    constexpr int frameDelay = 1000 / FPS;
+    uint32_t frameStart = 0;
+    int frameTime = 0;
+    while (!quit)
+    {
+      frameStart = SDL_GetTicks();
+      // Execute main loop of arduino
+      loop();
+      blip_screen();
       frameTime = SDL_GetTicks() - frameStart;
       if (frameDelay > frameTime)
       {

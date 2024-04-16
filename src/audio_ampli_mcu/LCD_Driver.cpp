@@ -222,22 +222,22 @@ function:	Clear screen function, refresh the screen to a certain color
 parameter	:
     Color :		The color you want to clear all the screen
 ******************************************************************************/
-void LCD_Clear(UWORD Color)
-{
-  unsigned int i, j;
-  LCD_SetWindow(0, 0, LCD_WIDTH, LCD_HEIGHT);
-  DEV_Digital_Write(DEV_CS_PIN, 0);
-  DEV_Digital_Write(DEV_DC_PIN, 1);
-  for (i = 0; i < LCD_WIDTH; i++)
-  {
-    for (j = 0; j < LCD_HEIGHT; j++)
-    {
-      DEV_SPI_WRITE((Color >> 8) & 0xff);
-      DEV_SPI_WRITE(Color);
-    }
-  }
-  DEV_Digital_Write(DEV_CS_PIN, 1);
-}
+// void LCD_Clear(UWORD Color)
+// {
+//   unsigned int i, j;
+//   LCD_SetWindow(0, 0, LCD_WIDTH, LCD_HEIGHT);
+//   DEV_Digital_Write(DEV_CS_PIN, 0);
+//   DEV_Digital_Write(DEV_DC_PIN, 1);
+//   for (i = 0; i < LCD_WIDTH; i++)
+//   {
+//     for (j = 0; j < LCD_HEIGHT; j++)
+//     {
+//       DEV_SPI_WRITE((Color >> 8) & 0xff);
+//       DEV_SPI_WRITE(Color);
+//     }
+//   }
+//   DEV_Digital_Write(DEV_CS_PIN, 1);
+// }
 
 void LCD_Clear_12bitRGB(uint32_t color_12bit)
 {
@@ -255,28 +255,6 @@ void LCD_Clear_12bitRGB(uint32_t color_12bit)
     }
   }
   DEV_Digital_Write(DEV_CS_PIN, 1);
-}
-
-/******************************************************************************
-function:	Refresh a certain area to the same color
-parameter	:
-    Xstart: Start UWORD x coordinate
-    Ystart:	Start UWORD y coordinate
-    Xend  :	End UWORD coordinates
-    Yend  :	End UWORD coordinates
-    color :	Set the color
-******************************************************************************/
-void LCD_ClearWindow(UWORD Xstart, UWORD Ystart, UWORD Xend, UWORD Yend, UWORD color)
-{
-  UWORD i, j;
-  LCD_SetWindow(Xstart, Ystart, Xend - 1, Yend - 1);
-  for (i = Ystart; i <= Yend - 1; i++)
-  {
-    for (j = Xstart; j <= Xend - 1; j++)
-    {
-      LCD_WriteData_Word(color);
-    }
-  }
 }
 
 void LCD_ClearWindow_12bitRGB(UWORD Xstart, UWORD Ystart, UWORD Xend, UWORD Yend, uint32_t color_12bit)
@@ -299,19 +277,6 @@ void LCD_ClearWindow_12bitRGB(UWORD Xstart, UWORD Ystart, UWORD Xend, UWORD Yend
     }
   }
   DEV_Digital_Write(DEV_CS_PIN, 1);
-}
-
-/******************************************************************************
-function: Draw a point
-parameter	:
-      X	: 	Set the X coordinate
-      Y	:	Set the Y coordinate
-    Color :	Set the color
-******************************************************************************/
-void LCD_DrawPaint(UWORD x, UWORD y, UWORD Color)
-{
-  LCD_SetCursor(x, y);
-  LCD_WriteData_Word(Color);
 }
 
 void LCD_write_2pixel_color(const uint32_t color_2pixels)
