@@ -217,37 +217,15 @@ void LCD_SetCursor(UWORD X, UWORD Y)
   LCD_Write_Command(0x2C);
 }
 
-/******************************************************************************
-function:	Clear screen function, refresh the screen to a certain color
-parameter	:
-    Color :		The color you want to clear all the screen
-******************************************************************************/
-// void LCD_Clear(UWORD Color)
-// {
-//   unsigned int i, j;
-//   LCD_SetWindow(0, 0, LCD_WIDTH, LCD_HEIGHT);
-//   DEV_Digital_Write(DEV_CS_PIN, 0);
-//   DEV_Digital_Write(DEV_DC_PIN, 1);
-//   for (i = 0; i < LCD_WIDTH; i++)
-//   {
-//     for (j = 0; j < LCD_HEIGHT; j++)
-//     {
-//       DEV_SPI_WRITE((Color >> 8) & 0xff);
-//       DEV_SPI_WRITE(Color);
-//     }
-//   }
-//   DEV_Digital_Write(DEV_CS_PIN, 1);
-// }
-
 void LCD_Clear_12bitRGB(uint32_t color_12bit)
 {
   unsigned int i, j;
   LCD_SetWindow(0, 0, LCD_WIDTH, LCD_HEIGHT);
   DEV_Digital_Write(DEV_CS_PIN, 0);
   DEV_Digital_Write(DEV_DC_PIN, 1);
-  for (i = 0; i < LCD_WIDTH / 2; ++i)
+  for (j = 0; j < LCD_HEIGHT; ++j)
   {
-    for (j = 0; j < LCD_HEIGHT; ++j)
+    for (i = 0; i < LCD_WIDTH / 2; ++i)
     {
       DEV_SPI_WRITE((color_12bit >> 4) & 0xff);                                   // 8 MSb
       DEV_SPI_WRITE(((color_12bit & 0xf) << 4) + ((color_12bit & 0x0f00) >> 8));  // 4 LSb + 4 MSb

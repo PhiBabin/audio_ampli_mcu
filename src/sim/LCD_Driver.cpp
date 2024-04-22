@@ -4,9 +4,9 @@
 #include <cassert>
 #include <tuple>
 
-void Config_Init()
-{
-}
+/// It's around 1333ms/px in theory with 20MHz, 10bit per bytes and 2 px per 3 bytes
+constexpr uint64_t ms_per_pixel = 1333/2;
+uint64_t pixel_count = 0;
 
 SDL_Surface* global_surface = nullptr;
 uint32_t win_start_x = 0;
@@ -16,14 +16,16 @@ uint32_t win_end_y = 0;
 uint32_t win_curr_x = 0;
 uint32_t win_curr_y = 0;
 
-uint64_t pixel_count = 0;
-constexpr uint64_t ms_per_pixel = 200;
 std::function<void(void)> blip_sdl_window_callback = nullptr;
 
 void LCD_hook_sdl(SDL_Surface* surface, std::function<void(void)> funct)
 {
   global_surface = surface;
   blip_sdl_window_callback = funct;
+}
+
+void Config_Init()
+{
 }
 
 void LCD_Init(void)

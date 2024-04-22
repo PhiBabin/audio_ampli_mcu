@@ -3345,7 +3345,7 @@ lv_font_t dmsans_36pt_extrabold =
 {
     .h_top_skip_px = 5,
     .h_bot_skip_px = 6,
-    .spacing_px = 0,
+    .spacing_px = 1,
     .unicode_first = 32,	/*First Unicode letter in this font*/
     .unicode_last = 126,	/*Last Unicode letter in this font*/
     .h_px = 31,				/*Font height in pixels*/
