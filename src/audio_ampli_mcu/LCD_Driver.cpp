@@ -219,20 +219,7 @@ void LCD_SetCursor(UWORD X, UWORD Y)
 
 void LCD_Clear_12bitRGB(uint32_t color_12bit)
 {
-  unsigned int i, j;
-  LCD_SetWindow(0, 0, LCD_WIDTH, LCD_HEIGHT);
-  DEV_Digital_Write(DEV_CS_PIN, 0);
-  DEV_Digital_Write(DEV_DC_PIN, 1);
-  for (j = 0; j < LCD_HEIGHT; ++j)
-  {
-    for (i = 0; i < LCD_WIDTH / 2; ++i)
-    {
-      DEV_SPI_WRITE((color_12bit >> 4) & 0xff);                                   // 8 MSb
-      DEV_SPI_WRITE(((color_12bit & 0xf) << 4) + ((color_12bit & 0x0f00) >> 8));  // 4 LSb + 4 MSb
-      DEV_SPI_WRITE(color_12bit & 0xff);                                          // 8 LSb
-    }
-  }
-  DEV_Digital_Write(DEV_CS_PIN, 1);
+  LCD_ClearWindow_12bitRGB(0, 0, LCD_WIDTH, LCD_HEIGHT, color_12bit);
 }
 
 void LCD_ClearWindow_12bitRGB(UWORD Xstart, UWORD Ystart, UWORD Xend, UWORD Yend, uint32_t color_12bit)
@@ -247,7 +234,7 @@ void LCD_ClearWindow_12bitRGB(UWORD Xstart, UWORD Ystart, UWORD Xend, UWORD Yend
   DEV_Digital_Write(DEV_DC_PIN, 1);
   for (j = Ystart; j < Yend; ++j)
   {
-    for (i = 0; i <= (Xend - Xstart) / 2; ++i)
+    for (i = 0; i < (Xend - Xstart) / 2; ++i)
     {
       DEV_SPI_WRITE((color_12bit >> 4) & 0xff);                                   // 8 MSb
       DEV_SPI_WRITE(((color_12bit & 0xf) << 4) + ((color_12bit & 0x0f00) >> 8));  // 4 LSb + 4 MSb

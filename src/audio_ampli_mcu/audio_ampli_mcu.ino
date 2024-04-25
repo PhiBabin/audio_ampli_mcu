@@ -48,12 +48,12 @@ LvFontWrapper digit_droid_sans_font(&droid_sans_mono, true);
 LvFontWrapper digit_light_font(&dmsans_36pt_light, true);
 LvFontWrapper regular_bold_font(&dmsans_36pt_extrabold);
 
-void draw_volume()
+void draw_volume(const bool has_state_changed = true)
 {
   const int max_time_since_last_change = 5000;
   static auto prev_volume = volume_ctrl.get_volume_db();
   static int time_since_last_change = -max_time_since_last_change;
-  static auto prev_state = state_machine.get_state();
+  // static auto prev_state = state_machine.get_state();
   if (volume_ctrl.get_volume_db() != prev_volume)
   {
     time_since_last_change = millis();
@@ -64,11 +64,11 @@ void draw_volume()
   {
     const uint32_t y_end = 50;
     const uint32_t y_text_top = (y_end - regular_bold_font.get_height_px()) / 2;
-    if (prev_state != state_machine.get_state())
+    if (has_state_changed)
     {
       LCD_ClearWindow_12bitRGB(0, 0, LCD_WIDTH, y_end, BLACK_COLOR);
     }
-    prev_state = state_machine.get_state();
+    // prev_state = state_machine.get_state();
     if (millis() - time_since_last_change >= max_time_since_last_change)
     {
       return;
@@ -111,11 +111,12 @@ void draw_volume()
   {
     draw_string_fast(buffer, min_x, start_y, max_x, font);
   }
-  prev_state = state_machine.get_state();
+  // prev_state = state_machine.get_state();
 }
 
-void draw_audio_inputs()
+void draw_audio_inputs(const bool has_state_changed = true)
 {
+  static auto prev_audio_input = audio_input_ctrl.get_audio_input();
   if (state_machine.get_state() != State::main_menu)
   {
     return;
@@ -129,7 +130,15 @@ void draw_audio_inputs()
   const uint32_t tab_height_px = font.get_height_px() + 8;
   const uint32_t first_option_center_y = ver_spacing;
 
-  LCD_ClearWindow_12bitRGB(0, 0, tab_width_px + 1, LCD_HEIGHT, BLACK_COLOR);
+  if (has_state_changed)
+  {
+    LCD_ClearWindow_12bitRGB(0, 0, tab_width_px + 1, LCD_HEIGHT, BLACK_COLOR);
+  }
+  else if (prev_audio_input == audio_input_ctrl.get_audio_input())
+  {
+    prev_audio_input = audio_input_ctrl.get_audio_input();
+    return;
+  }
 
   for (uint8_t enum_value = 0; enum_value < max_enum_value; ++enum_value)
   {
@@ -139,6 +148,7 @@ void draw_audio_inputs()
     const auto curr_option_text_top_y = curr_option_center_y - font.get_height_px() / 2;
 
     const auto is_selected = audio_input_ctrl.get_audio_input() == audio_input;
+    const auto was_previously_selected = prev_audio_input == audio_input;
     if (is_selected)
     {
       draw_rounded_rectangle(
@@ -150,9 +160,18 @@ void draw_audio_inputs()
         /*rounded_left =*/false,
         /*rounded_right =*/true);
     }
-    draw_string_fast(
-      audio_input_to_string(audio_input), 0, curr_option_text_top_y, tab_width_px, font, !is_selected, false);
+    else if (was_previously_selected)
+    {
+      LCD_ClearWindow_12bitRGB(
+        0, curr_option_box_top_y, tab_width_px, curr_option_box_top_y + tab_height_px + 1, BLACK_COLOR);
+    }
+    if (is_selected || was_previously_selected || has_state_changed)
+    {
+      draw_string_fast(
+        audio_input_to_string(audio_input), 0, curr_option_text_top_y, tab_width_px, font, !is_selected, false);
+    }
   }
+  prev_audio_input = audio_input_ctrl.get_audio_input();
 }
 
 void draw_options()
@@ -255,12 +274,12 @@ void loop()
   if (audio_input_change || state_changed)
   {
     Serial.println("update audio input");
-    draw_audio_inputs();
+    draw_audio_inputs(state_changed);
   }
   bool has_changed = volume_ctrl.update();
   if (has_changed || state_changed)
   {
     Serial.println("update volume");
-    draw_volume();
+    draw_volume(state_changed);
   }
 }

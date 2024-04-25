@@ -5,7 +5,7 @@
 #include <tuple>
 
 /// It's around 1333ms/px in theory with 20MHz, 10bit per bytes and 2 px per 3 bytes
-constexpr uint64_t ms_per_pixel = 1333/2;
+constexpr uint64_t ms_per_pixel = 1333 / 2;
 uint64_t pixel_count = 0;
 
 SDL_Surface* global_surface = nullptr;
