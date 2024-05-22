@@ -11,6 +11,8 @@
 
 #include "state_machine.h"
 
+#include "MCP23S17.h"
+
 enum class Option : uint8_t
 {
   gain = 0,
@@ -50,6 +52,7 @@ public:
   OptionController(
     StateMachine* state_machine_ptr,
     PioEncoder* option_encoder_ptr,
+    MCP23S17* io_expander_ptr,
     const int select_button_pin,
     const int32_t tick_per_option);
 
@@ -85,10 +88,12 @@ private:
   int32_t prev_encoder_count_;
   /// Number of encoder tick per audio in
   int32_t tick_per_option_;
-  /// Pointer to the quadrature encoder
+  /// Non-owning pointer to the quadrature encoder
   PioEncoder* option_encoder_ptr_;
   /// Toggle button for the mutting
   ToggleButton select_button_;
+  /// Non-owning pointer to the io expander
+  MCP23S17* io_expander_ptr_;
 
   // Selected option
   Option selected_option_{Option::back};

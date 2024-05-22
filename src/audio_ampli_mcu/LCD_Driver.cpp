@@ -75,6 +75,7 @@ function:
 ******************************************************************************/
 void LCD_Init(void)
 {
+  DEV_SPI_BEGIN_TRANS;
   LCD_Reset();
 
   LCD_Write_Command(0x36);  // MADCTL (36h): Memory Data Access Control
@@ -166,6 +167,8 @@ void LCD_Init(void)
   LCD_Write_Command(0x11);  //  (11h): Sleep Out
 
   LCD_Write_Command(0x29);  //  (29h): Display On
+  
+  DEV_SPI_END_TRANS;
 }
 
 /******************************************************************************
@@ -193,29 +196,6 @@ void LCD_SetWindow(UWORD Xstart, UWORD Ystart, UWORD Xend, UWORD Yend)
   LCD_Write_Command(0x2C);
 }
 
-/******************************************************************************
-function:	Settings window
-parameter	:
-    Xstart: 	Start UWORD x coordinate
-    Ystart:	Start UWORD y coordinate
-
-******************************************************************************/
-void LCD_SetCursor(UWORD X, UWORD Y)
-{
-  LCD_Write_Command(0x2a);
-  LCD_WriteData_Byte(X >> 8);
-  LCD_WriteData_Byte(X);
-  LCD_WriteData_Byte(X >> 8);
-  LCD_WriteData_Byte(X);
-
-  LCD_Write_Command(0x2b);
-  LCD_WriteData_Byte(Y >> 8);
-  LCD_WriteData_Byte(Y);
-  LCD_WriteData_Byte(Y >> 8);
-  LCD_WriteData_Byte(Y);
-
-  LCD_Write_Command(0x2C);
-}
 
 void LCD_Clear_12bitRGB(uint32_t color_12bit)
 {
@@ -229,6 +209,7 @@ void LCD_ClearWindow_12bitRGB(UWORD Xstart, UWORD Ystart, UWORD Xend, UWORD Yend
   {
     ++Xend;
   }
+  DEV_SPI_BEGIN_TRANS;
   LCD_SetWindow(Xstart, Ystart, Xend, Yend);
   DEV_Digital_Write(DEV_CS_PIN, 0);
   DEV_Digital_Write(DEV_DC_PIN, 1);
@@ -242,6 +223,7 @@ void LCD_ClearWindow_12bitRGB(UWORD Xstart, UWORD Ystart, UWORD Xend, UWORD Yend
     }
   }
   DEV_Digital_Write(DEV_CS_PIN, 1);
+  DEV_SPI_END_TRANS;
 }
 
 void LCD_write_2pixel_color(const uint32_t color_2pixels)

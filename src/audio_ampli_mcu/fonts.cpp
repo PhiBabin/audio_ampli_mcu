@@ -38,6 +38,7 @@ void draw_character_fast(
   //   Serial.print(end_x);
   //   Serial.println("");
   // LCD will auto increment the row when we reach columns == end_x
+  DEV_SPI_BEGIN_TRANS;
   LCD_SetWindow(start_x, start_y, end_x, end_y + 1);
   for (uint32_t y = 0; y < end_y - start_y; ++y)
   {
@@ -61,6 +62,7 @@ void draw_character_fast(
       }
     }
   }
+  DEV_SPI_END_TRANS;
 }
 
 void draw_string_fast(
@@ -242,6 +244,7 @@ void draw_image(const lv_img_dsc_t& img, const uint32_t center_x, const uint32_t
   //   Serial.print("end_x=");
   //   Serial.print(end_x);
   //   Serial.println("");
+  DEV_SPI_BEGIN_TRANS;
   LCD_SetWindow(start_x, start_y, end_x, end_y + 1);
   for (uint32_t y = 0; y < end_y - start_y; ++y)
   {
@@ -275,6 +278,7 @@ void draw_image(const lv_img_dsc_t& img, const uint32_t center_x, const uint32_t
       }
     }
   }
+  DEV_SPI_END_TRANS;
 }
 
 void draw_rounded_rectangle(
@@ -302,6 +306,7 @@ void draw_rounded_rectangle(
   //   Serial.print(end_x);
   //   Serial.println("");
   // LCD will auto increment the row when we reach columns == end_x
+  DEV_SPI_BEGIN_TRANS;
   LCD_SetWindow(start_x, start_y, end_x, end_y + 1);
   for (uint32_t y = 0; y < height_px; ++y)
   {
@@ -332,4 +337,5 @@ void draw_rounded_rectangle(
       }
     }
   }
+  DEV_SPI_END_TRANS;
 }

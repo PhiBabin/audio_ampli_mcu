@@ -22,6 +22,8 @@ AudioInputController::AudioInputController(  // const std::array<pin_size_t, 6> 
 
   StateMachine* state_machine_ptr,
   PioEncoder* audio_in_encoder_ptr,
+  MCP23S17* io_expander_ptr,
+  const std::array<pin_size_t, 4> iox_gpio_pin_audio_in_select,
   const AudioInput startup_audio_in,
   const int32_t tick_per_audio_in)
   : state_machine_ptr_(state_machine_ptr)
@@ -29,11 +31,23 @@ AudioInputController::AudioInputController(  // const std::array<pin_size_t, 6> 
   , prev_encoder_count_(0)
   , tick_per_audio_in_(tick_per_audio_in)
   , audio_in_encoder_ptr_(audio_in_encoder_ptr)
+  , io_expander_ptr_(io_expander_ptr)
+  , iox_gpio_pin_audio_in_select_(iox_gpio_pin_audio_in_select)
 {
 }
 
 void AudioInputController::init()
 {
+  for (const auto pin : iox_gpio_pin_audio_in_select_)
+  {
+    const bool result = io_expander_ptr_->pinMode1(pin, 0); // 0 => OUTPUT
+    if (!result)
+    {
+      Serial.println("Failed to set input/output mode of the io expander");
+      return;
+    }
+  }
+  set_gpio();
 }
 
 AudioInput AudioInputController::get_audio_input() const
@@ -56,6 +70,7 @@ bool AudioInputController::update()
   {
     audio_input_ = static_cast<AudioInput>((audio_input_int + 1) % max_enum_value);
     prev_encoder_count_ = current_count;
+    set_gpio();
     return true;
   }
   if (-tick_per_audio_in_ > current_count - prev_encoder_count_)
@@ -70,7 +85,25 @@ bool AudioInputController::update()
     }
     audio_input_ = static_cast<AudioInput>(audio_input_int);
     prev_encoder_count_ = current_count;
+    set_gpio();
     return true;
   }
   return false;
+}
+
+
+void AudioInputController::set_gpio()
+{
+  for (uint8_t i = 0; i < iox_gpio_pin_audio_in_select_.size(); ++i)
+  {
+    const auto& pin = iox_gpio_pin_audio_in_select_[i];
+    const bool is_selected = i == static_cast<uint8_t>(audio_input_);
+    const bool result = io_expander_ptr_->write1(pin, is_selected ? 1 : 0);
+    if (!result)
+    {
+      Serial.println("Failed to write to the io expander");
+      return;
+    }
+  }
+
 }

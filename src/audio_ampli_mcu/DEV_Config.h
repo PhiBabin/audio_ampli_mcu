@@ -60,6 +60,8 @@
 #define DEV_Digital_Write(_pin, _value) digitalWrite(_pin, _value == 0 ? LOW : HIGH)
 #define DEV_Digital_Read(_pin) digitalRead(_pin)
 
+#define DEV_SPI_BEGIN_TRANS SPI.beginTransaction(SPISettings(20000000, MSBFIRST, SPI_MODE3));
+#define DEV_SPI_END_TRANS SPI.endTransaction();
 /**
  * SPI
  **/

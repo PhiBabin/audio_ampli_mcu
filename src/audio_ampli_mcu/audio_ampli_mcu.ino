@@ -1,7 +1,8 @@
-/// Library version:
-/// Raspberry Pi Pico/RP2040: 3.7.2
-/// rp2040-encoder-library: 0.1.1
-/// InputDebounce: 1.6.0
+/// Version of each external libraries (use Library Manager to install them):
+/// - Raspberry Pi Pico/RP2040: 3.7.2
+/// - rp2040-encoder-library: 0.1.1
+/// - InputDebounce: 1.6.0
+/// - MCP23S17: 0.5.1
 
 #include "audio_input_controller.h"
 #include "digit_font.h"
@@ -12,6 +13,7 @@
 #include "options_controller.h"
 #include "state_machine.h"
 #include "volume_controller.h"
+#include "MCP23S17.h"
 
 #ifdef SIM
 #include "sim/LCD_Driver.h"
@@ -30,18 +32,20 @@
 
 PioEncoder volume_encoder(18);       // GP18 and GP19 are the encoder's pins
 PioEncoder menu_select_encoder(20);  // GP20 and GP21 are the encoder's pins
+const pin_size_t mute_button_pin = 16; // Button for the volume encoder
+const pin_size_t select_button_pin = 17; // Button for the menu select encoder
+MCP23S17 io_expander(7); // GP7 is the chip select of the IO expander
 
 // 6bit output to control the volume
-// const std::array<pin_size_t, 6> volume_gpio_pins = {0, 1, 2, 3, 4, 5};
-const std::array<pin_size_t, 6> volume_gpio_pins = {4, 5, 6, 7, 9, 10};
-const pin_size_t mute_button_pin = 16;
-const pin_size_t select_button_pin = 17;
+const std::array<pin_size_t, 6> volume_gpio_pins = {22, 4, 5, 9, 10, 11};
+// IO expander pins for the audio input selection. AUX 1, AUX 2, AUX 3 and BAL respectively
+const std::array<pin_size_t, 4> audio_input_iox_gpio_pins = {0, 1, 2, 3}; // GPA0, GPA1, GPA2 & GPA3
 
 StateMachine state_machine;
 VolumeController volume_ctrl(
   &state_machine, volume_gpio_pins, &volume_encoder, mute_button_pin, STARTUP_VOLUME_DB, TOTAL_TICK_FOR_FULL_VOLUME);
-AudioInputController audio_input_ctrl(&state_machine, &menu_select_encoder, AudioInput::AUX_3, TICK_PER_AUDIO_IN);
-OptionController option_ctrl(&state_machine, &menu_select_encoder, select_button_pin, TICK_PER_AUDIO_IN);
+AudioInputController audio_input_ctrl(&state_machine, &menu_select_encoder, &io_expander, audio_input_iox_gpio_pins, AudioInput::AUX_3, TICK_PER_AUDIO_IN);
+OptionController option_ctrl(&state_machine, &menu_select_encoder, &io_expander, select_button_pin, TICK_PER_AUDIO_IN);
 
 LvFontWrapper digit_lt_superior_font(&lt_superior_mono, true);
 LvFontWrapper digit_droid_sans_font(&droid_sans_mono, true);
@@ -243,6 +247,12 @@ void setup()
 
   volume_encoder.begin();
   menu_select_encoder.begin();
+
+  auto result = io_expander.begin();
+  if (!result)
+  {
+    Serial.println("Failed to initialize io expander communication");
+  }
 
   volume_ctrl.init();
   audio_input_ctrl.init();

@@ -52,5 +52,4 @@ void Config_Init()
   SPI.setRX(DEV_DOUT_PIN);
   SPI.setTX(DEV_DIN_PIN);
   SPI.begin(/*hwCS = */ false);
-  SPI.beginTransaction(SPISettings(20000000, MSBFIRST, SPI_MODE3));  // I think SPI_CLOCK_DIV2 is around 8Mhz
 }

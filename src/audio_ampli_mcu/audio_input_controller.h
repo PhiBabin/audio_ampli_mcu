@@ -7,6 +7,7 @@
 #include "pio_encoder.h"
 #endif
 
+#include "MCP23S17.h"
 #include "state_machine.h"
 
 #include <array>
@@ -27,8 +28,10 @@ class AudioInputController
 public:
   // Construtor
   AudioInputController(
-    StateMachine* state_machine_ptr,  // const std::array<pin_size_t, 6> gpio_pin_audio_in_select,  // <== Don't  know where they go
+    StateMachine* state_machine_ptr,
     PioEncoder* audio_in_encoder_ptr,
+    MCP23S17* io_expander_ptr,
+    const std::array<pin_size_t, 4> iox_gpio_pin_audio_in_select,
     const AudioInput startup_audio_in,
     const int32_t tick_per_audio_in);
 
@@ -43,18 +46,23 @@ public:
   bool update();
 
 private:
+  // Set GPIO based on state
+  void set_gpio();
+
   // Non-owning pointer to the state machine
   StateMachine* state_machine_ptr_;
-  // GPIO pin for each of the 6 bit of the volume
-  // std::array<pin_size_t, 6> gpio_pin_audio_in_select;
+  // IO expander GPIO pins for each of the AUX 1, AUX 2, AUX 3 and BAL
+  std::array<pin_size_t, 4> iox_gpio_pin_audio_in_select_;
   // Current audio input state
   AudioInput audio_input_;
   /// Previous count of the encoder
   int32_t prev_encoder_count_;
   /// Number of encoder tick per audio in
   int32_t tick_per_audio_in_;
-  /// Pointer to the quadrature encoder
+  ///  Non-owning pointer to the quadrature encoder
   PioEncoder* audio_in_encoder_ptr_;
+  /// Non-owning pointer to the io expander
+  MCP23S17* io_expander_ptr_;
 };
 
 #endif  // AUDIO_INPUT_CTRL_GUARD_H_

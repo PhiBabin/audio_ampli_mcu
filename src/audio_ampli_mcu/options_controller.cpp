@@ -32,6 +32,7 @@ void decrement_enum(const T& max_enum_value, T& enum_value_out)
 OptionController::OptionController(
   StateMachine* state_machine_ptr,
   PioEncoder* option_encoder_ptr,
+  MCP23S17* io_expander_ptr,
   const int select_button_pin,
   const int32_t tick_per_option)
   : state_machine_ptr_(state_machine_ptr)
@@ -39,6 +40,7 @@ OptionController::OptionController(
   , prev_encoder_count_(0)
   , tick_per_option_(tick_per_option)
   , option_encoder_ptr_(option_encoder_ptr)
+  , io_expander_ptr_(io_expander_ptr)
 {
 }
 
