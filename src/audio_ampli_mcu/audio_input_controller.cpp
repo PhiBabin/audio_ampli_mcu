@@ -17,9 +17,7 @@ const char* audio_input_to_string(const AudioInput audio_in)
   }
 }
 
-AudioInputController::AudioInputController(  // const std::array<pin_size_t, 6> gpio_pin_audio_in_select,  // <== Don't
-                                             // know where they go
-
+AudioInputController::AudioInputController( 
   StateMachine* state_machine_ptr,
   PioEncoder* audio_in_encoder_ptr,
   MCP23S17* io_expander_ptr,
@@ -94,6 +92,7 @@ bool AudioInputController::update()
 
 void AudioInputController::set_gpio()
 {
+  Serial.println("Setting GPIO");
   for (uint8_t i = 0; i < iox_gpio_pin_audio_in_select_.size(); ++i)
   {
     const auto& pin = iox_gpio_pin_audio_in_select_[i];

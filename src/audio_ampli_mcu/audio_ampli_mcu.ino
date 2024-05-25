@@ -248,6 +248,7 @@ void setup()
   volume_encoder.begin();
   menu_select_encoder.begin();
 
+  Config_Init(); // initialize SPI
   auto result = io_expander.begin();
   if (!result)
   {
@@ -258,7 +259,6 @@ void setup()
   audio_input_ctrl.init();
   option_ctrl.init();
 
-  Config_Init();
   LCD_Init();
   LCD_Clear_12bitRGB(BLACK_COLOR);
 
