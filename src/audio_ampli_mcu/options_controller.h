@@ -9,9 +9,9 @@
 #include "toggle_button.h"
 #endif
 
+#include "audio_input_controller.h"
+#include "io_expander.h"
 #include "state_machine.h"
-
-#include "MCP23S17.h"
 
 enum class Option : uint8_t
 {
@@ -51,10 +51,16 @@ public:
   // Construtor
   OptionController(
     StateMachine* state_machine_ptr,
+    AudioInputController* audio_input_ctrl_ptr,
     PioEncoder* option_encoder_ptr,
-    MCP23S17* io_expander_ptr,
+    IoExpander* io_expander_ptr,
     const int select_button_pin,
-    const int32_t tick_per_option);
+    const int32_t tick_per_option,
+    const int in_out_unipolar_pin,
+    const int in_out_bal_unipolar_pin,
+    const int set_low_gain_pin,
+    const int out_bal_pin,
+    const int preamp_out_pin);
 
   // Init GPIO pins
   void init();
@@ -63,18 +69,12 @@ public:
 
   const char* get_option_value_string(const Option& option);
 
-  //   // Get mutable gain option
-  //   GainOption& get_gain_mutable();
-
-  //   // Get mutable output option
-  //   OutputOption& get_output_mutable();
-
-  //   // Get mutable LFE option
-  //   LowFrequencyEffectOption& get_lfe_mutable();
-
   // Read encoder, update state and set GPIO pin that set the volume.
   // return true on change in volume or mute status
   bool update();
+
+  void update_gpio();
+  void on_audio_input_change();
 
 private:
   bool update_selection();
@@ -82,8 +82,8 @@ private:
 
   // Non-owning pointer to the state machine
   StateMachine* state_machine_ptr_;
-  // Pin for the mute toggle button
-  pin_size_t select_button_pin_;
+  // Non-owning pointer to the audio input controler
+  AudioInputController* audio_input_ctrl_ptr_;
   /// Previous count of the encoder
   int32_t prev_encoder_count_;
   /// Number of encoder tick per audio in
@@ -92,8 +92,19 @@ private:
   PioEncoder* option_encoder_ptr_;
   /// Toggle button for the mutting
   ToggleButton select_button_;
+
+  // Pin for the mute toggle button
+  pin_size_t select_button_pin_;
+
+  // The various pins that are controled by the options
+  const int in_out_unipolar_pin_;
+  const int in_out_bal_unipolar_pin_;
+  const int set_low_gain_pin_;
+  const int out_bal_pin_;
+  const int preamp_out_pin_;
+
   /// Non-owning pointer to the io expander
-  MCP23S17* io_expander_ptr_;
+  IoExpander* io_expander_ptr_;
 
   // Selected option
   Option selected_option_{Option::back};

@@ -26,11 +26,13 @@ GIF_GENERATOR_SRC = sim/main_gif_generator.cpp
 
 COMMON_SRC = sim/LCD_Driver.cpp \
       sim/pio_encoder.cpp \
+      sim/MCP23S17.cpp \
       sim/toggle_button.cpp \
       sim/arduino.cpp \
 	  audio_ampli_mcu/audio_ampli_mcu.ino \
 	  audio_ampli_mcu/fonts.cpp \
 	  audio_ampli_mcu/options_controller.cpp \
+	  audio_ampli_mcu/io_expander.cpp \
 	  audio_ampli_mcu/volume_controller.cpp \
 	  audio_ampli_mcu/audio_input_controller.cpp\
 	  audio_ampli_mcu/state_machine.cpp

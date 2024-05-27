@@ -9,11 +9,11 @@
 #include "digit_font_droid_sans_mono.h"
 #include "digit_font_lt_superior_mono.h"
 #include "dm_sans_extrabold.h"
+#include "io_expander.h"
 #include "mute_image.h"
 #include "options_controller.h"
 #include "state_machine.h"
 #include "volume_controller.h"
-#include "MCP23S17.h"
 
 #ifdef SIM
 #include "sim/LCD_Driver.h"
@@ -30,22 +30,41 @@
 #define TOTAL_TICK_FOR_FULL_VOLUME (9 * ENCODER_TICK_PER_ROTATION)
 #define TICK_PER_AUDIO_IN (ENCODER_TICK_PER_ROTATION / 4)
 
-PioEncoder volume_encoder(18);       // GP18 and GP19 are the encoder's pins
-PioEncoder menu_select_encoder(20);  // GP20 and GP21 are the encoder's pins
-const pin_size_t mute_button_pin = 16; // Button for the volume encoder
-const pin_size_t select_button_pin = 17; // Button for the menu select encoder
-MCP23S17 io_expander(7); // GP7 is the chip select of the IO expander
+PioEncoder volume_encoder(18);            // GP18 and GP19 are the encoder's pins
+PioEncoder menu_select_encoder(20);       // GP20 and GP21 are the encoder's pins
+const pin_size_t mute_button_pin = 16;    // Button for the volume encoder
+const pin_size_t select_button_pin = 17;  // Button for the menu select encoder
+IoExpander io_expander(7);                // GP7 is the chip select of the IO expander
 
 // 6bit output to control the volume
 const std::array<pin_size_t, 6> volume_gpio_pins = {22, 4, 5, 9, 10, 11};
 // IO expander pins for the audio input selection. AUX 1, AUX 2, AUX 3 and BAL respectively
-const std::array<pin_size_t, 4> audio_input_iox_gpio_pins = {0, 1, 2, 3}; // GPA0, GPA1, GPA2 & GPA3
+const std::array<pin_size_t, 4> audio_input_iox_gpio_pins = {0, 1, 2, 3};  // GPA0, GPA1, GPA2 & GPA3
+
+// Option pins
+const int in_out_unipolar_pin = 4;      // GPA4
+const int in_out_bal_unipolar_pin = 5;  // GPA5
+const int set_low_gain_pin = 8;         // GPB0
+const int out_bal_pin = 9;              // GPB1
+const int preamp_out_pin = 10;          // GPB2
 
 StateMachine state_machine;
 VolumeController volume_ctrl(
   &state_machine, volume_gpio_pins, &volume_encoder, mute_button_pin, STARTUP_VOLUME_DB, TOTAL_TICK_FOR_FULL_VOLUME);
-AudioInputController audio_input_ctrl(&state_machine, &menu_select_encoder, &io_expander, audio_input_iox_gpio_pins, AudioInput::AUX_3, TICK_PER_AUDIO_IN);
-OptionController option_ctrl(&state_machine, &menu_select_encoder, &io_expander, select_button_pin, TICK_PER_AUDIO_IN);
+AudioInputController audio_input_ctrl(
+  &state_machine, &menu_select_encoder, &io_expander, audio_input_iox_gpio_pins, AudioInput::rca_3, TICK_PER_AUDIO_IN);
+OptionController option_ctrl(
+  &state_machine,
+  &audio_input_ctrl,
+  &menu_select_encoder,
+  &io_expander,
+  select_button_pin,
+  TICK_PER_AUDIO_IN,
+  in_out_unipolar_pin,
+  in_out_bal_unipolar_pin,
+  set_low_gain_pin,
+  out_bal_pin,
+  preamp_out_pin);
 
 LvFontWrapper digit_lt_superior_font(&lt_superior_mono, true);
 LvFontWrapper digit_droid_sans_font(&droid_sans_mono, true);
@@ -245,14 +264,9 @@ void setup()
   Serial.begin(115200);
   Serial.println("Starting up...");
 
+  Config_Init();  // initialize SPI
+  io_expander.begin();
 
-  Config_Init(); // initialize SPI
-  auto result = io_expander.begin(false);
-  if (!result)
-  {
-    Serial.println("Failed to initialize io expander communication");
-  }
-  
   volume_encoder.begin();
   menu_select_encoder.begin();
 
@@ -282,6 +296,10 @@ void loop()
     LCD_Clear_12bitRGB(BLACK_COLOR);
   }
   const auto audio_input_change = audio_input_ctrl.update();
+  if (audio_input_change)
+  {
+    option_ctrl.on_audio_input_change();
+  }
   if (audio_input_change || state_changed)
   {
     Serial.println("update audio input");

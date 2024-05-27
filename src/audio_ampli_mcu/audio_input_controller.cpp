@@ -4,48 +4,38 @@ const char* audio_input_to_string(const AudioInput audio_in)
 {
   switch (audio_in)
   {
-    case AudioInput::AUX_1:
-      return "AUX 1";
-    case AudioInput::AUX_2:
-      return "AUX 2";
-    case AudioInput::AUX_3:
-      return "AUX 3";
-    case AudioInput::BAL:
+    case AudioInput::rca_1:
+      return "RCA 1";
+    case AudioInput::rca_2:
+      return "RCA 2";
+    case AudioInput::rca_3:
+      return "RCA 3";
+    case AudioInput::bal:
       return "BAL";
     default:
       return "INVALID";
   }
 }
 
-AudioInputController::AudioInputController( 
+AudioInputController::AudioInputController(
   StateMachine* state_machine_ptr,
   PioEncoder* audio_in_encoder_ptr,
-  MCP23S17* io_expander_ptr,
+  IoExpander* io_expander_ptr,
   const std::array<pin_size_t, 4> iox_gpio_pin_audio_in_select,
   const AudioInput startup_audio_in,
   const int32_t tick_per_audio_in)
   : state_machine_ptr_(state_machine_ptr)
+  , iox_gpio_pin_audio_in_select_(iox_gpio_pin_audio_in_select)
   , audio_input_(startup_audio_in)
   , prev_encoder_count_(0)
   , tick_per_audio_in_(tick_per_audio_in)
   , audio_in_encoder_ptr_(audio_in_encoder_ptr)
   , io_expander_ptr_(io_expander_ptr)
-  , iox_gpio_pin_audio_in_select_(iox_gpio_pin_audio_in_select)
 {
 }
 
 void AudioInputController::init()
 {
-  // io_expander_ptr_->pinMode8(0, 0);
-  // for (const auto pin : iox_gpio_pin_audio_in_select_)
-  // {
-  //   const bool result = io_expander_ptr_->pinMode1(pin, 0); // 0 => OUTPUT
-  //   if (!result)
-  //   {
-  //     Serial.println("Failed to set input/output mode of the io expander");
-  //     return;
-  //   }
-  // }
   set_gpio();
 }
 
@@ -90,26 +80,15 @@ bool AudioInputController::update()
   return false;
 }
 
-
 void AudioInputController::set_gpio()
 {
   Serial.println("Setting GPIO");
-  
-  // io_expander_ptr_->write8(0, 0b00111);
-  // Serial.println(1 << static_cast<uint8_t>(audio_input_));
-  io_expander_ptr_->pinMode8(0, 0);
-  io_expander_ptr_->write8(0,  1 << static_cast<uint8_t>(audio_input_));
-  // for (uint8_t i = 0; i < iox_gpio_pin_audio_in_select_.size(); ++i)
-  // {
-  //   const auto& pin = iox_gpio_pin_audio_in_select_[i];
-  //   const bool is_selected = i == static_cast<uint8_t>(audio_input_);
-  //   bool result = io_expander_ptr_->pinMode1(pin, 0);
-  //   result = io_expander_ptr_->write1(pin, is_selected ? 1 : 0);
-  //   if (!result)
-  //   {
-  //     Serial.println("Failed to write to the io expander");
-  //     return;
-  //   }
-  // }
 
+  for (uint8_t i = 0; i < iox_gpio_pin_audio_in_select_.size(); ++i)
+  {
+    const auto& pin = iox_gpio_pin_audio_in_select_[i];
+    const bool is_selected = i == static_cast<uint8_t>(audio_input_);
+    io_expander_ptr_->cache_write_pin(pin, is_selected ? 1 : 0);
+  }
+  io_expander_ptr_->apply_write();
 }

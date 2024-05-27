@@ -11,6 +11,9 @@
 #define LCD_WIDTH 320   // LCD width
 #define LCD_HEIGHT 240  // LCD height
 
+#define DEV_SPI_BEGIN_TRANS
+#define DEV_SPI_END_TRANS
+
 // forward declaration
 class SDL_Surface;
 

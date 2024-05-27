@@ -7,17 +7,17 @@
 #include "pio_encoder.h"
 #endif
 
-#include "MCP23S17.h"
+#include "io_expander.h"
 #include "state_machine.h"
 
 #include <array>
 
 enum class AudioInput : uint8_t
 {
-  BAL = 0,
-  AUX_1,
-  AUX_2,
-  AUX_3,
+  bal = 0,
+  rca_1,
+  rca_2,
+  rca_3,
   audio_input_enum_length
 };
 
@@ -30,7 +30,7 @@ public:
   AudioInputController(
     StateMachine* state_machine_ptr,
     PioEncoder* audio_in_encoder_ptr,
-    MCP23S17* io_expander_ptr,
+    IoExpander* io_expander_ptr,
     const std::array<pin_size_t, 4> iox_gpio_pin_audio_in_select,
     const AudioInput startup_audio_in,
     const int32_t tick_per_audio_in);
@@ -62,7 +62,7 @@ private:
   ///  Non-owning pointer to the quadrature encoder
   PioEncoder* audio_in_encoder_ptr_;
   /// Non-owning pointer to the io expander
-  MCP23S17* io_expander_ptr_;
+  IoExpander* io_expander_ptr_;
 };
 
 #endif  // AUDIO_INPUT_CTRL_GUARD_H_
