@@ -17,7 +17,6 @@ enum class Option : uint8_t
 {
   gain = 0,
   output,
-  lfe_channel,
   back,
   option_enum_length
 };
@@ -35,14 +34,6 @@ enum class OutputOption : uint8_t
   preamp,
   enum_length
 };
-
-enum class LowFrequencyEffectOption : uint8_t
-{
-  off = 0,
-  on,
-  enum_length
-};
-
 const char* option_to_string(const Option option);
 
 class OptionController
@@ -111,7 +102,6 @@ private:
   // Option value:
   GainOption gain_value_{GainOption::low};                             // TODO set in constructor
   OutputOption output_value_{OutputOption::jack};                      // TODO set in constructor
-  LowFrequencyEffectOption lfe_value_{LowFrequencyEffectOption::off};  // TODO set in constructor
 };
 
 #endif  // OPTIONS_CTRL_GUARD_H_

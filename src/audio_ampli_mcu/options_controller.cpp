@@ -109,8 +109,6 @@ const char* option_to_string(const Option option)
       return "GAIN";
     case Option::output:
       return "OUTPUT";
-    case Option::lfe_channel:
-      return "LFE";
     case Option::back:
       return "";
     case Option::option_enum_length:
@@ -146,16 +144,6 @@ const char* OptionController::get_option_value_string(const Option& option)
         default:
           return "ERR2";
       }
-    case Option::lfe_channel:
-      switch (lfe_value_)
-      {
-        case LowFrequencyEffectOption::off:
-          return "OFF";
-        case LowFrequencyEffectOption::on:
-          return "ON";
-        default:
-          return "ERR3";
-      }
     case Option::back:
       return "";
     case Option::option_enum_length:
@@ -188,10 +176,6 @@ bool OptionController::update_selection()
       break;
     case Option::output:
       increment_enum(OutputOption::enum_length, output_value_);
-      update_gpio();
-      break;
-    case Option::lfe_channel:
-      increment_enum(LowFrequencyEffectOption::enum_length, lfe_value_);
       update_gpio();
       break;
     case Option::back:
