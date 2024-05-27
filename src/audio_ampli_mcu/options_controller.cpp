@@ -70,17 +70,17 @@ void OptionController::update_gpio()
   // Set Low gain GPIO
   io_expander_ptr_->cache_write_pin(set_low_gain_pin_, gain_value_ == GainOption::low ? 1 : 0);
 
-  // Set preamp output GPIO
-  io_expander_ptr_->cache_write_pin(preamp_out_pin_, output_value_ == OutputOption::preamp ? 1 : 0);
+  // Set line out / preamp output GPIO
+  io_expander_ptr_->cache_write_pin(preamp_out_pin_, output_mode_value_ == OutputModeOption::line_out ? 1 : 0);
 
   const bool is_bal_input = audio_input == AudioInput::bal;
-  const bool is_bal_output = output_value_ == OutputOption::bal;
+  const bool is_bal_output = output_type_value_ == OutputTypeOption::bal;
 
   // This is an expression of the look up table
   // Note: input balance is set by the audio input controler
-  const int output_bal_value = is_bal_output ? 1 : 0;
-  const int in_out_unipolar_value = is_bal_input && !is_bal_output ? 1 : 0;
-  const int in_out_bal_unipolar_value = !is_bal_input && is_bal_output ? 1 : 0;
+  const int output_bal_value = is_bal_output ? HIGH : LOW;
+  const int in_out_unipolar_value = is_bal_input && !is_bal_output ? HIGH : LOW;
+  const int in_out_bal_unipolar_value = !is_bal_input && is_bal_output ? HIGH : LOW;
 
   // Update GPIO accordingly
   io_expander_ptr_->cache_write_pin(out_bal_pin_, output_bal_value);
@@ -107,8 +107,10 @@ const char* option_to_string(const Option option)
   {
     case Option::gain:
       return "GAIN";
-    case Option::output:
+    case Option::output_mode:
       return "OUTPUT";
+    case Option::output_type:
+      return "TYPE";
     case Option::back:
       return "";
     case Option::option_enum_length:
@@ -132,17 +134,25 @@ const char* OptionController::get_option_value_string(const Option& option)
         default:
           return "ERR1";
       }
-    case Option::output:
-      switch (output_value_)
+    case Option::output_mode:
+      switch (output_mode_value_)
       {
-        case OutputOption::jack:
-          return "JACK";
-        case OutputOption::bal:
-          return "BAL";
-        case OutputOption::preamp:
-          return "PREAMP";
+        case OutputModeOption::phones:
+          return "PHONES";
+        case OutputModeOption::line_out:
+          return "LINE OUT";
         default:
           return "ERR2";
+      }
+    case Option::output_type:
+      switch (output_type_value_)
+      {
+        case OutputTypeOption::se:
+          return "SE";
+        case OutputTypeOption::bal:
+          return "BAL";
+        default:
+          return "ERR3";
       }
     case Option::back:
       return "";
@@ -174,8 +184,12 @@ bool OptionController::update_selection()
       increment_enum(GainOption::enum_length, gain_value_);
       update_gpio();
       break;
-    case Option::output:
-      increment_enum(OutputOption::enum_length, output_value_);
+    case Option::output_mode:
+      increment_enum(OutputModeOption::enum_length, output_mode_value_);
+      update_gpio();
+      break;
+    case Option::output_type:
+      increment_enum(OutputTypeOption::enum_length, output_type_value_);
       update_gpio();
       break;
     case Option::back:

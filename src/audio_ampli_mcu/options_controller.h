@@ -16,7 +16,8 @@
 enum class Option : uint8_t
 {
   gain = 0,
-  output,
+  output_mode,
+  output_type,
   back,
   option_enum_length
 };
@@ -27,11 +28,17 @@ enum class GainOption : uint8_t
   enum_length
 };
 
-enum class OutputOption : uint8_t
+enum class OutputModeOption : uint8_t
 {
-  jack = 0,
+  phones = 0,
+  line_out,
+  enum_length
+};
+
+enum class OutputTypeOption : uint8_t
+{
+  se = 0,
   bal,
-  preamp,
   enum_length
 };
 const char* option_to_string(const Option option);
@@ -100,8 +107,9 @@ private:
   // Selected option
   Option selected_option_{Option::back};
   // Option value:
-  GainOption gain_value_{GainOption::low};                             // TODO set in constructor
-  OutputOption output_value_{OutputOption::jack};                      // TODO set in constructor
+  GainOption gain_value_{GainOption::low};                        // TODO set in constructor
+  OutputModeOption output_mode_value_{OutputModeOption::phones};  // TODO set in constructor
+  OutputTypeOption output_type_value_{OutputTypeOption::se};      // TODO set in constructor
 };
 
 #endif  // OPTIONS_CTRL_GUARD_H_
