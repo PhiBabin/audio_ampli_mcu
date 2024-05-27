@@ -7,11 +7,13 @@ VolumeController::VolumeController(
   const std::array<pin_size_t, 6> gpio_pin_vol_select,
   PioEncoder* vol_encoder_ptr,
   const int mute_button_pin,
+  const int set_mute_pin,
   const int32_t startup_volume_db,
   const int32_t total_tick_for_63db)
   : state_machine_ptr_(state_machine_ptr)
   , gpio_pin_vol_select_(gpio_pin_vol_select)
   , mute_button_pin_(mute_button_pin)
+  , set_mute_pin_(set_mute_pin)
   , volume_(map(startup_volume_db, -63, 1, 0, total_tick_for_63db))
   , prev_encoder_count_(0)
   , total_tick_for_63db_(total_tick_for_63db)
@@ -22,6 +24,10 @@ VolumeController::VolumeController(
 void VolumeController::init()
 {
   mute_button_.setup(mute_button_pin_, BUTTON_DEBOUNCE_DELAY, InputDebounce::PIM_INT_PULL_UP_RES);
+
+  pinMode(set_mute_pin_, OUTPUT);
+  digitalWrite(set_mute_pin_, is_muted() ? LOW : HIGH);  // Mute is active low
+
   for (const auto& pin : gpio_pin_vol_select_)
   {
     pinMode(pin, OUTPUT);
@@ -82,7 +88,12 @@ bool VolumeController::update_mute()
   const bool prev_mute_state = mute_button_.get_state();
   unsigned long now = millis();
   mute_button_.process(now);
-  return mute_button_.get_state() != prev_mute_state;
+  const bool has_changed = mute_button_.get_state() != prev_mute_state;
+  if (has_changed)
+  {
+    digitalWrite(set_mute_pin_, is_muted() ? LOW : HIGH);  // Mute is active low
+  }
+  return has_changed;
 }
 
 bool VolumeController::update()

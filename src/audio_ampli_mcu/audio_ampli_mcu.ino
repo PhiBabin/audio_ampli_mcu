@@ -35,10 +35,11 @@ PioEncoder menu_select_encoder(20);       // GP20 and GP21 are the encoder's pin
 const pin_size_t mute_button_pin = 16;    // Button for the volume encoder
 const pin_size_t select_button_pin = 17;  // Button for the menu select encoder
 IoExpander io_expander(7);                // GP7 is the chip select of the IO expander
+const pin_size_t set_mute_pin = 27;       // Output pin that mute / unmute
 
 // 6bit output to control the volume
 const std::array<pin_size_t, 6> volume_gpio_pins = {22, 4, 5, 9, 10, 11};
-// IO expander pins for the audio input selection. AUX 1, AUX 2, AUX 3 and BAL respectively
+// IO expander pins for the audio input selection. BAL, RCA 1, RCA 2 and RCA 3   respectively
 const std::array<pin_size_t, 4> audio_input_iox_gpio_pins = {0, 1, 2, 3};  // GPA0, GPA1, GPA2 & GPA3
 
 // Option pins
@@ -50,7 +51,13 @@ const int preamp_out_pin = 10;          // GPB2
 
 StateMachine state_machine;
 VolumeController volume_ctrl(
-  &state_machine, volume_gpio_pins, &volume_encoder, mute_button_pin, STARTUP_VOLUME_DB, TOTAL_TICK_FOR_FULL_VOLUME);
+  &state_machine,
+  volume_gpio_pins,
+  &volume_encoder,
+  mute_button_pin,
+  set_mute_pin,
+  STARTUP_VOLUME_DB,
+  TOTAL_TICK_FOR_FULL_VOLUME);
 AudioInputController audio_input_ctrl(
   &state_machine, &menu_select_encoder, &io_expander, audio_input_iox_gpio_pins, AudioInput::rca_3, TICK_PER_AUDIO_IN);
 OptionController option_ctrl(

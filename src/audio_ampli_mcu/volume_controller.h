@@ -22,6 +22,7 @@ public:
     const std::array<pin_size_t, 6> gpio_pin_vol_select,
     PioEncoder* vol_encoder_ptr,
     const int mute_button_pin,
+    const int set_mute_pin,
     const int32_t startup_volume_db,
     const int32_t total_tick_for_63db);
 
@@ -57,6 +58,8 @@ private:
   std::array<pin_size_t, 6> gpio_pin_vol_select_;
   // Pin for the mute toggle button
   pin_size_t mute_button_pin_;
+  // Output pin to mute / unmute
+  pin_size_t set_mute_pin_;
   /// Volume as a wrap around integer
   int32_t volume_;
   /// Previous count of the encoder
