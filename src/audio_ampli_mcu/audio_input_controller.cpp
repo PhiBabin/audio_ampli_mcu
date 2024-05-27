@@ -36,15 +36,16 @@ AudioInputController::AudioInputController(
 
 void AudioInputController::init()
 {
-  for (const auto pin : iox_gpio_pin_audio_in_select_)
-  {
-    const bool result = io_expander_ptr_->pinMode1(pin, 0); // 0 => OUTPUT
-    if (!result)
-    {
-      Serial.println("Failed to set input/output mode of the io expander");
-      return;
-    }
-  }
+  // io_expander_ptr_->pinMode8(0, 0);
+  // for (const auto pin : iox_gpio_pin_audio_in_select_)
+  // {
+  //   const bool result = io_expander_ptr_->pinMode1(pin, 0); // 0 => OUTPUT
+  //   if (!result)
+  //   {
+  //     Serial.println("Failed to set input/output mode of the io expander");
+  //     return;
+  //   }
+  // }
   set_gpio();
 }
 
@@ -93,16 +94,22 @@ bool AudioInputController::update()
 void AudioInputController::set_gpio()
 {
   Serial.println("Setting GPIO");
-  for (uint8_t i = 0; i < iox_gpio_pin_audio_in_select_.size(); ++i)
-  {
-    const auto& pin = iox_gpio_pin_audio_in_select_[i];
-    const bool is_selected = i == static_cast<uint8_t>(audio_input_);
-    const bool result = io_expander_ptr_->write1(pin, is_selected ? 1 : 0);
-    if (!result)
-    {
-      Serial.println("Failed to write to the io expander");
-      return;
-    }
-  }
+  
+  // io_expander_ptr_->write8(0, 0b00111);
+  // Serial.println(1 << static_cast<uint8_t>(audio_input_));
+  io_expander_ptr_->pinMode8(0, 0);
+  io_expander_ptr_->write8(0,  1 << static_cast<uint8_t>(audio_input_));
+  // for (uint8_t i = 0; i < iox_gpio_pin_audio_in_select_.size(); ++i)
+  // {
+  //   const auto& pin = iox_gpio_pin_audio_in_select_[i];
+  //   const bool is_selected = i == static_cast<uint8_t>(audio_input_);
+  //   bool result = io_expander_ptr_->pinMode1(pin, 0);
+  //   result = io_expander_ptr_->write1(pin, is_selected ? 1 : 0);
+  //   if (!result)
+  //   {
+  //     Serial.println("Failed to write to the io expander");
+  //     return;
+  //   }
+  // }
 
 }

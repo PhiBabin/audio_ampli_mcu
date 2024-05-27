@@ -245,15 +245,16 @@ void setup()
   Serial.begin(115200);
   Serial.println("Starting up...");
 
-  volume_encoder.begin();
-  menu_select_encoder.begin();
 
   Config_Init(); // initialize SPI
-  auto result = io_expander.begin();
+  auto result = io_expander.begin(false);
   if (!result)
   {
     Serial.println("Failed to initialize io expander communication");
   }
+  
+  volume_encoder.begin();
+  menu_select_encoder.begin();
 
   volume_ctrl.init();
   audio_input_ctrl.init();

@@ -14,10 +14,10 @@
 
 enum class AudioInput : uint8_t
 {
-  AUX_1 = 0,
+  BAL = 0,
+  AUX_1,
   AUX_2,
   AUX_3,
-  BAL,
   audio_input_enum_length
 };
 
