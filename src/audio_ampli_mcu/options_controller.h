@@ -12,35 +12,9 @@
 #include "audio_input_controller.h"
 #include "io_expander.h"
 #include "state_machine.h"
+#include "option_enums.h"
+#include "persistent_data.h"
 
-enum class Option : uint8_t
-{
-  gain = 0,
-  output_mode,
-  output_type,
-  back,
-  option_enum_length
-};
-enum class GainOption : uint8_t
-{
-  low = 0,
-  high,
-  enum_length
-};
-
-enum class OutputModeOption : uint8_t
-{
-  phones = 0,
-  line_out,
-  enum_length
-};
-
-enum class OutputTypeOption : uint8_t
-{
-  se = 0,
-  bal,
-  enum_length
-};
 const char* option_to_string(const Option option);
 
 class OptionController
@@ -49,7 +23,7 @@ public:
   // Construtor
   OptionController(
     StateMachine* state_machine_ptr,
-    AudioInputController* audio_input_ctrl_ptr,
+    PersistentData* persistent_data_ptr,
     PioEncoder* option_encoder_ptr,
     IoExpander* io_expander_ptr,
     const int select_button_pin,
@@ -80,8 +54,8 @@ private:
 
   // Non-owning pointer to the state machine
   StateMachine* state_machine_ptr_;
-  // Non-owning pointer to the audio input controler
-  AudioInputController* audio_input_ctrl_ptr_;
+  // Non-owning pointer to the persistent data
+  PersistentData* persistent_data_ptr_;
   /// Previous count of the encoder
   int32_t prev_encoder_count_;
   /// Number of encoder tick per audio in
@@ -107,9 +81,9 @@ private:
   // Selected option
   Option selected_option_{Option::back};
   // Option value:
-  GainOption gain_value_{GainOption::low};                        // TODO set in constructor
-  OutputModeOption output_mode_value_{OutputModeOption::phones};  // TODO set in constructor
-  OutputTypeOption output_type_value_{OutputTypeOption::se};      // TODO set in constructor
+  // GainOption gain_value_{GainOption::low};                        // TODO set in constructor
+  // OutputModeOption output_mode_value_{OutputModeOption::phones};  // TODO set in constructor
+  // OutputTypeOption output_type_value_{OutputTypeOption::se};      // TODO set in constructor
 };
 
 #endif  // OPTIONS_CTRL_GUARD_H_

@@ -4,17 +4,18 @@
 
 VolumeController::VolumeController(
   StateMachine* state_machine_ptr,
+  PersistentData* persistent_data_ptr,
   const std::array<pin_size_t, 6> gpio_pin_vol_select,
   PioEncoder* vol_encoder_ptr,
   const int mute_button_pin,
   const int set_mute_pin,
-  const int32_t startup_volume_db,
   const int32_t total_tick_for_63db)
   : state_machine_ptr_(state_machine_ptr)
+  , persistent_data_ptr_(persistent_data_ptr)
   , gpio_pin_vol_select_(gpio_pin_vol_select)
   , mute_button_pin_(mute_button_pin)
   , set_mute_pin_(set_mute_pin)
-  , volume_(map(startup_volume_db, -63, 1, 0, total_tick_for_63db))
+  , volume_(0)
   , prev_encoder_count_(0)
   , total_tick_for_63db_(total_tick_for_63db)
   , vol_encoder_ptr_(vol_encoder_ptr)
@@ -28,12 +29,29 @@ void VolumeController::init()
   pinMode(set_mute_pin_, OUTPUT);
   digitalWrite(set_mute_pin_, is_muted() ? LOW : HIGH);  // Mute is active low
 
+  // Restore the volume db from the flash
+  reset_volume_tick_count_based_volume_db();
+
   for (const auto& pin : gpio_pin_vol_select_)
   {
     pinMode(pin, OUTPUT);
   }
   set_gpio_based_on_volume();
 }
+
+
+void VolumeController::on_audio_input_change()
+{
+  reset_volume_tick_count_based_volume_db();
+  set_gpio_based_on_volume();
+}
+
+
+void VolumeController::reset_volume_tick_count_based_volume_db()
+{
+  volume_ = map(persistent_data_ptr_->get_volume_db(), -63, 1, 0, total_tick_for_63db_);
+}
+
 
 void VolumeController::set_gpio_based_on_volume()
 {
@@ -53,11 +71,7 @@ bool VolumeController::is_muted() const
 
 int32_t VolumeController::get_volume_db() const
 {
-  if (volume_ < 0)
-  {
-    return 0;
-  }
-  return map(volume_, 0, total_tick_for_63db_, -63, 1);
+  return persistent_data_ptr_->get_volume_db();
 }
 
 bool VolumeController::update_volume()
@@ -75,10 +89,12 @@ bool VolumeController::update_volume()
   }
   // Apply volume change
   volume_ += current_count - prev_encoder_count_;
-  // Wrap arround
+  // Count cannot increase beyond the -63 to 0 range
   volume_ = constrain(volume_, 0, total_tick_for_63db_ - 1);
   prev_encoder_count_ = current_count;
 
+  // Update volume DB in the persistent data
+  persistent_data_ptr_->get_volume_db_mutable() = map(volume_, 0, total_tick_for_63db_, -63, 1);
   set_gpio_based_on_volume();
   return true;
 }

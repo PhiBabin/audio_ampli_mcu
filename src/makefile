@@ -31,6 +31,7 @@ COMMON_SRC = sim/LCD_Driver.cpp \
       sim/arduino.cpp \
 	  audio_ampli_mcu/audio_ampli_mcu.ino \
 	  audio_ampli_mcu/fonts.cpp \
+	  audio_ampli_mcu/persistent_data.cpp \
 	  audio_ampli_mcu/options_controller.cpp \
 	  audio_ampli_mcu/io_expander.cpp \
 	  audio_ampli_mcu/volume_controller.cpp \

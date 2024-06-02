@@ -9,17 +9,10 @@
 
 #include "io_expander.h"
 #include "state_machine.h"
+#include "audio_input_enums.h"
+#include "persistent_data.h"
 
 #include <array>
-
-enum class AudioInput : uint8_t
-{
-  bal = 0,
-  rca_1,
-  rca_2,
-  rca_3,
-  audio_input_enum_length
-};
 
 const char* audio_input_to_string(const AudioInput audio_in);
 
@@ -29,10 +22,10 @@ public:
   // Construtor
   AudioInputController(
     StateMachine* state_machine_ptr,
+    PersistentData* persistent_data_ptr,
     PioEncoder* audio_in_encoder_ptr,
     IoExpander* io_expander_ptr,
     const std::array<pin_size_t, 4> iox_gpio_pin_audio_in_select,
-    const AudioInput startup_audio_in,
     const int32_t tick_per_audio_in);
 
   // Init GPIO pins
@@ -51,10 +44,12 @@ private:
 
   // Non-owning pointer to the state machine
   StateMachine* state_machine_ptr_;
+  // Non-owning pointer to the persistent data
+  PersistentData* persistent_data_ptr_;
   // IO expander GPIO pins for each of the AUX 1, AUX 2, AUX 3 and BAL
   std::array<pin_size_t, 4> iox_gpio_pin_audio_in_select_;
   // Current audio input state
-  AudioInput audio_input_;
+  // AudioInput audio_input_;
   /// Previous count of the encoder
   int32_t prev_encoder_count_;
   /// Number of encoder tick per audio in

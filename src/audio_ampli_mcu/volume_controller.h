@@ -10,6 +10,7 @@
 #endif
 
 #include "state_machine.h"
+#include "persistent_data.h"
 
 #include <array>
 
@@ -19,11 +20,11 @@ public:
   // Construtor
   VolumeController(
     StateMachine* state_machine_ptr,
+    PersistentData* persistent_data_ptr,
     const std::array<pin_size_t, 6> gpio_pin_vol_select,
     PioEncoder* vol_encoder_ptr,
     const int mute_button_pin,
     const int set_mute_pin,
-    const int32_t startup_volume_db,
     const int32_t total_tick_for_63db);
 
   // Init GPIO pins
@@ -42,6 +43,9 @@ public:
   // return true on change in volume or mute status
   bool update();
 
+  // When audio input change, the volume is changed
+  void on_audio_input_change();
+
 private:
   // Read encoder, update state and set GPIO pin that set the volume.
   bool update_volume();
@@ -52,8 +56,13 @@ private:
   // Set GPIO based on current volume
   void set_gpio_based_on_volume();
 
+  // Read current volume db on the current audio input and reset the volume tick count
+  void reset_volume_tick_count_based_volume_db();
+
   // Non-owning pointer to the state machine
   StateMachine* state_machine_ptr_;
+  // Non-owning pointer to the persistent data
+  PersistentData* persistent_data_ptr_;
   // GPIO pin for each of the 6 bit of the volume
   std::array<pin_size_t, 6> gpio_pin_vol_select_;
   // Pin for the mute toggle button

@@ -31,7 +31,7 @@ void decrement_enum(const T& max_enum_value, T& enum_value_out)
 
 OptionController::OptionController(
   StateMachine* state_machine_ptr,
-  AudioInputController* audio_input_ctrl_ptr,
+  PersistentData* persistent_data_ptr,
   PioEncoder* option_encoder_ptr,
   IoExpander* io_expander_ptr,
   const int select_button_pin,
@@ -42,7 +42,7 @@ OptionController::OptionController(
   const int out_bal_pin,
   const int preamp_out_pin)
   : state_machine_ptr_(state_machine_ptr)
-  , audio_input_ctrl_ptr_(audio_input_ctrl_ptr)
+  , persistent_data_ptr_(persistent_data_ptr)
   , prev_encoder_count_(0)
   , tick_per_option_(tick_per_option)
   , option_encoder_ptr_(option_encoder_ptr)
@@ -65,16 +65,15 @@ void OptionController::init()
 
 void OptionController::update_gpio()
 {
-  auto audio_input = audio_input_ctrl_ptr_->get_audio_input();
 
   // Set Low gain GPIO
-  io_expander_ptr_->cache_write_pin(set_low_gain_pin_, gain_value_ == GainOption::low ? 1 : 0);
+  io_expander_ptr_->cache_write_pin(set_low_gain_pin_, persistent_data_ptr_->get_gain() == GainOption::low ? HIGH : LOW);
 
   // Set line out / preamp output GPIO
-  io_expander_ptr_->cache_write_pin(preamp_out_pin_, output_mode_value_ == OutputModeOption::line_out ? 1 : 0);
+  io_expander_ptr_->cache_write_pin(preamp_out_pin_, persistent_data_ptr_->output_mode_value == OutputModeOption::line_out ? HIGH : LOW);
 
-  const bool is_bal_input = audio_input == AudioInput::bal;
-  const bool is_bal_output = output_type_value_ == OutputTypeOption::bal;
+  const bool is_bal_input = persistent_data_ptr_->selected_audio_input == AudioInput::bal;
+  const bool is_bal_output = persistent_data_ptr_->output_type_value == OutputTypeOption::bal;
 
   // This is an expression of the look up table
   // Note: input balance is set by the audio input controler
@@ -125,7 +124,7 @@ const char* OptionController::get_option_value_string(const Option& option)
   switch (option)
   {
     case Option::gain:
-      switch (gain_value_)
+      switch (persistent_data_ptr_->get_gain())
       {
         case GainOption::low:
           return "LOW";
@@ -135,7 +134,7 @@ const char* OptionController::get_option_value_string(const Option& option)
           return "ERR1";
       }
     case Option::output_mode:
-      switch (output_mode_value_)
+      switch (persistent_data_ptr_->output_mode_value)
       {
         case OutputModeOption::phones:
           return "PHONES";
@@ -145,7 +144,7 @@ const char* OptionController::get_option_value_string(const Option& option)
           return "ERR2";
       }
     case Option::output_type:
-      switch (output_type_value_)
+      switch (persistent_data_ptr_->output_type_value)
       {
         case OutputTypeOption::se:
           return "SE";
@@ -181,15 +180,15 @@ bool OptionController::update_selection()
   switch (selected_option_)
   {
     case Option::gain:
-      increment_enum(GainOption::enum_length, gain_value_);
+      increment_enum(GainOption::enum_length, persistent_data_ptr_->get_gain_mutable());
       update_gpio();
       break;
     case Option::output_mode:
-      increment_enum(OutputModeOption::enum_length, output_mode_value_);
+      increment_enum(OutputModeOption::enum_length, persistent_data_ptr_->output_mode_value);
       update_gpio();
       break;
     case Option::output_type:
-      increment_enum(OutputTypeOption::enum_length, output_type_value_);
+      increment_enum(OutputTypeOption::enum_length, persistent_data_ptr_->output_type_value);
       update_gpio();
       break;
     case Option::back:

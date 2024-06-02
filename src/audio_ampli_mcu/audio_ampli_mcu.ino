@@ -23,12 +23,10 @@
 #include "pio_encoder.h"
 #endif
 
+#include "config.h"
+
 #include <algorithm>
 
-#define STARTUP_VOLUME_DB 0
-#define ENCODER_TICK_PER_ROTATION 24
-#define TOTAL_TICK_FOR_FULL_VOLUME (9 * ENCODER_TICK_PER_ROTATION)
-#define TICK_PER_AUDIO_IN (ENCODER_TICK_PER_ROTATION / 4)
 
 PioEncoder volume_encoder(18);            // GP18 and GP19 are the encoder's pins
 PioEncoder menu_select_encoder(20);       // GP20 and GP21 are the encoder's pins
@@ -49,20 +47,22 @@ const int set_low_gain_pin = 8;         // GPB0
 const int out_bal_pin = 9;              // GPB1
 const int preamp_out_pin = 10;          // GPB2
 
+PersistentData persistent_data{};
+PersistentDataFlasher persistent_data_flasher;
 StateMachine state_machine;
 VolumeController volume_ctrl(
   &state_machine,
+  &persistent_data,
   volume_gpio_pins,
   &volume_encoder,
   mute_button_pin,
   set_mute_pin,
-  STARTUP_VOLUME_DB,
   TOTAL_TICK_FOR_FULL_VOLUME);
 AudioInputController audio_input_ctrl(
-  &state_machine, &menu_select_encoder, &io_expander, audio_input_iox_gpio_pins, AudioInput::rca_3, TICK_PER_AUDIO_IN);
+  &state_machine, &persistent_data, &menu_select_encoder, &io_expander, audio_input_iox_gpio_pins, TICK_PER_AUDIO_IN);
 OptionController option_ctrl(
   &state_machine,
-  &audio_input_ctrl,
+  &persistent_data,
   &menu_select_encoder,
   &io_expander,
   select_button_pin,
@@ -271,6 +271,16 @@ void setup()
   Serial.begin(115200);
   Serial.println("Starting up...");
 
+  if (persistent_data_flasher.maybe_load_data(persistent_data))
+  {
+    Serial.println("Load data from flash");
+  }
+  else
+  {
+    Serial.println("No data found in flash, using default settings.");
+    persistent_data_flasher.force_save(persistent_data);
+  }
+
   Config_Init();  // initialize SPI
   io_expander.begin();
 
@@ -306,6 +316,7 @@ void loop()
   if (audio_input_change)
   {
     option_ctrl.on_audio_input_change();
+    volume_ctrl.on_audio_input_change();
   }
   if (audio_input_change || state_changed)
   {
@@ -313,9 +324,11 @@ void loop()
     draw_audio_inputs(state_changed);
   }
   bool has_changed = volume_ctrl.update();
-  if (has_changed || state_changed)
+  if (has_changed || state_changed || audio_input_change)
   {
     Serial.println("update volume");
     draw_volume(state_changed);
   }
+
+  persistent_data_flasher.save(persistent_data);
 }
