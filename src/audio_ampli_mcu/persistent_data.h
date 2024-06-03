@@ -32,20 +32,27 @@ struct PersistentData
   int32_t& get_volume_db_mutable();
   const GainOption& get_gain() const;
   GainOption& get_gain_mutable();
+
+  bool operator==(const PersistentData& rhs) const;
+  bool operator!=(const PersistentData& rhs) const;
 };
+
 
 class PersistentDataFlasher
 {
 public:
+  void init();
   bool maybe_load_data(PersistentData& data_out);
   void save(const PersistentData& curr_data);
   void force_save(const PersistentData& curr_data);
 
 private:
+  // Data at the last call of save.
+  std::optional<PersistentData> maybe_changed_data_;
   // Maybe the last saved data
   std::optional<PersistentData> maybe_last_saved_data_;
   // Time since last change in data
-  std::optional<unsigned long> maybe_millis_when_data_has_last_changed_;
+  std::optional<unsigned long> maybe_time_since_last_change_to_data_;
 };
 
 #endif  // FLASH_DATA_GUARD_H_

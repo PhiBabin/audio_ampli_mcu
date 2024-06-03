@@ -14,6 +14,7 @@
 #include "options_controller.h"
 #include "state_machine.h"
 #include "volume_controller.h"
+#include "persistent_data.h"
 
 #ifdef SIM
 #include "sim/LCD_Driver.h"
@@ -271,9 +272,10 @@ void setup()
   Serial.begin(115200);
   Serial.println("Starting up...");
 
+  persistent_data_flasher.init();
   if (persistent_data_flasher.maybe_load_data(persistent_data))
   {
-    Serial.println("Load data from flash");
+    Serial.println("Data from flash loaded");
   }
   else
   {

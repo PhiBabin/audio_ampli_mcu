@@ -35,5 +35,44 @@ public:
   void println(const int32_t number);
   void println(const uint32_t number);
 };
+
+class EEPROMClass
+{
+public:
+  void begin(size_t size);
+  uint8_t read(int const address);
+  bool commit();
+  ~EEPROMClass();
+
+  template<typename T>
+    T &get(int const address, T &t) {
+        if (address < 0 || address + sizeof(T) > _size) {
+            return t;
+        }
+
+        memcpy((uint8_t*) &t, _data + address, sizeof(T));
+        return t;
+    }
+
+    template<typename T>
+    const T &put(int const address, const T &t) {
+        if (address < 0 || address + sizeof(T) > _size)
+        {
+            return t;
+        }
+        if (memcmp(_data + address, (const uint8_t*)&t, sizeof(T)) != 0)
+        {
+          memcpy(_data + address, (const uint8_t*)&t, sizeof(T));
+        }
+
+        return t;
+    }
+private:
+
+    uint8_t* _data = nullptr;
+    size_t _size = 0;
+};
+
 extern SerialObject Serial;
+extern EEPROMClass EEPROM;
 #endif
