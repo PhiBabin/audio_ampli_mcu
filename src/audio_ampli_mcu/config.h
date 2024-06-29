@@ -4,7 +4,7 @@
 #include "audio_input_enums.h"
 
 // Default volume
-#define STARTUP_VOLUME_DB -40
+#define STARTUP_VOLUME_DB -20
 
 // Number of tick per rotation of the encoder
 #define ENCODER_TICK_PER_ROTATION 24

@@ -3,6 +3,7 @@
 /// - rp2040-encoder-library: 0.1.1
 /// - InputDebounce: 1.6.0
 /// - MCP23S17: 0.5.1
+/// - RP2040_PWM: 1.7.0
 
 #include "audio_input_controller.h"
 #include "digit_font.h"
@@ -12,9 +13,9 @@
 #include "io_expander.h"
 #include "mute_image.h"
 #include "options_controller.h"
+#include "persistent_data.h"
 #include "state_machine.h"
 #include "volume_controller.h"
-#include "persistent_data.h"
 
 #ifdef SIM
 #include "sim/LCD_Driver.h"
@@ -27,7 +28,6 @@
 #include "config.h"
 
 #include <algorithm>
-
 
 PioEncoder volume_encoder(18);            // GP18 and GP19 are the encoder's pins
 PioEncoder menu_select_encoder(20);       // GP20 and GP21 are the encoder's pins
@@ -66,6 +66,7 @@ OptionController option_ctrl(
   &persistent_data,
   &menu_select_encoder,
   &io_expander,
+  &volume_ctrl,
   select_button_pin,
   TICK_PER_AUDIO_IN,
   in_out_unipolar_pin,
@@ -283,7 +284,7 @@ void setup()
     persistent_data_flasher.force_save(persistent_data);
   }
 
-  Config_Init();  // initialize SPI
+  LCD_GPIO_Init();
   io_expander.begin();
 
   volume_encoder.begin();

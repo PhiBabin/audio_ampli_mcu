@@ -24,7 +24,7 @@ void LCD_hook_sdl(SDL_Surface* surface, std::function<void(void)> funct)
   blip_sdl_window_callback = funct;
 }
 
-void Config_Init()
+void LCD_GPIO_Init()
 {
 }
 
@@ -32,7 +32,7 @@ void LCD_Init(void)
 {
 }
 
-void LCD_SetBackLight(UWORD Value)
+void LCD_SetBackLight(uint16_t Value)
 {
 }
 
@@ -41,7 +41,7 @@ void LCD_Clear_12bitRGB(uint32_t color_12bit)
   LCD_ClearWindow_12bitRGB(0, 0, LCD_WIDTH, LCD_HEIGHT, color_12bit);
 }
 
-void LCD_SetWindow(UWORD Xstart, UWORD Ystart, UWORD Xend, UWORD Yend)
+void LCD_SetWindow(uint16_t Xstart, uint16_t Ystart, uint16_t Xend, uint16_t Yend)
 {
   assert(Xstart <= Xend);
   assert(Ystart <= Yend);
@@ -73,7 +73,7 @@ std::tuple<uint8_t, uint8_t, uint8_t> rgb444_to_rgb888(const uint32_t color_12bi
   return std::make_tuple(r, g, b);
 }
 
-void LCD_ClearWindow_12bitRGB(UWORD Xstart, UWORD Ystart, UWORD Xend, UWORD Yend, uint32_t color_12bit)
+void LCD_ClearWindow_12bitRGB(uint16_t Xstart, uint16_t Ystart, uint16_t Xend, uint16_t Yend, uint32_t color_12bit)
 {
   assert(global_surface != nullptr);
   const auto [r, g, b] = rgb444_to_rgb888(color_12bit);

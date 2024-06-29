@@ -28,6 +28,36 @@
 #
 ******************************************************************************/
 #include "LCD_Driver.h"
+
+// #include "pico/stdlib.h"
+// #include "hardware/pwm.h"
+
+#include "RP2040_PWM.h"
+
+RP2040_PWM* PWM_Instance;
+void LCD_GPIO_Init(void)
+{
+
+  pinMode(DEV_CS_PIN, OUTPUT);
+  pinMode(DEV_RST_PIN, OUTPUT);
+  pinMode(DEV_DC_PIN, OUTPUT);
+  pinMode(DEV_BL_PIN, OUTPUT);
+  pinMode(DEV_DIN_PIN, OUTPUT);
+  pinMode(DEV_DOUT_PIN, INPUT);
+
+  // Frequency high enough to be filter out by the ampli
+  constexpr uint32_t pwm_frequency = 20000;
+  PWM_Instance = new RP2040_PWM(DEV_BL_PIN, pwm_frequency, LCD_BACKLIGHT);
+  PWM_Instance->setPWM();
+  // gpio_set_function(DEV_BL_PIN, GPIO_FUNC_PWM);
+
+  SPI.setSCK(DEV_CLK_PIN);
+  SPI.setCS(DEV_CS_PIN);
+  SPI.setRX(DEV_DOUT_PIN);
+  SPI.setTX(DEV_DIN_PIN);
+  SPI.begin(/*hwCS = */ false);
+}
+
 /*******************************************************************************
 function:
   Hardware reset
@@ -45,14 +75,14 @@ static void LCD_Reset(void)
 function:
     Write data and commands
 *******************************************************************************/
-static void LCD_Write_Command(UBYTE data)
+static void LCD_Write_Command(uint8_t data)
 {
   DEV_Digital_Write(DEV_CS_PIN, 0);
   DEV_Digital_Write(DEV_DC_PIN, 0);
   DEV_SPI_WRITE(data);
 }
 
-static void LCD_WriteData_Byte(UBYTE data)
+static void LCD_WriteData_Byte(uint8_t data)
 {
   DEV_Digital_Write(DEV_CS_PIN, 0);
   DEV_Digital_Write(DEV_DC_PIN, 1);
@@ -60,7 +90,7 @@ static void LCD_WriteData_Byte(UBYTE data)
   DEV_Digital_Write(DEV_CS_PIN, 1);
 }
 
-void LCD_WriteData_Word(UWORD data)
+void LCD_WriteData_Word(uint16_t data)
 {
   DEV_Digital_Write(DEV_CS_PIN, 0);
   DEV_Digital_Write(DEV_DC_PIN, 1);
@@ -167,19 +197,19 @@ void LCD_Init(void)
   LCD_Write_Command(0x11);  //  (11h): Sleep Out
 
   LCD_Write_Command(0x29);  //  (29h): Display On
-  
+
   DEV_SPI_END_TRANS;
 }
 
 /******************************************************************************
 function:	Set the cursor position
 parameter	:
-    Xstart: 	Start UWORD x coordinate
-    Ystart:	Start UWORD y coordinate
-    Xend  :	End UWORD coordinates
-    Yend  :	End UWORD coordinatesen
+    Xstart: 	Start uint16_t x coordinate
+    Ystart:	Start uint16_t y coordinate
+    Xend  :	End uint16_t coordinates
+    Yend  :	End uint16_t coordinatesen
 ******************************************************************************/
-void LCD_SetWindow(UWORD Xstart, UWORD Ystart, UWORD Xend, UWORD Yend)
+void LCD_SetWindow(uint16_t Xstart, uint16_t Ystart, uint16_t Xend, uint16_t Yend)
 {
   LCD_Write_Command(0x2a);
   LCD_WriteData_Byte(Xstart >> 8);
@@ -196,13 +226,12 @@ void LCD_SetWindow(UWORD Xstart, UWORD Ystart, UWORD Xend, UWORD Yend)
   LCD_Write_Command(0x2C);
 }
 
-
 void LCD_Clear_12bitRGB(uint32_t color_12bit)
 {
   LCD_ClearWindow_12bitRGB(0, 0, LCD_WIDTH, LCD_HEIGHT, color_12bit);
 }
 
-void LCD_ClearWindow_12bitRGB(UWORD Xstart, UWORD Ystart, UWORD Xend, UWORD Yend, uint32_t color_12bit)
+void LCD_ClearWindow_12bitRGB(uint16_t Xstart, uint16_t Ystart, uint16_t Xend, uint16_t Yend, uint32_t color_12bit)
 {
   unsigned int i, j;
   if ((Xend - Xstart) % 2 != 0)

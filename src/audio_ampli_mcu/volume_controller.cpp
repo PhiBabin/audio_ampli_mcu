@@ -39,24 +39,25 @@ void VolumeController::init()
   set_gpio_based_on_volume();
 }
 
-
 void VolumeController::on_audio_input_change()
 {
   reset_volume_tick_count_based_volume_db();
   set_gpio_based_on_volume();
 }
 
-
 void VolumeController::reset_volume_tick_count_based_volume_db()
 {
-  volume_ = map(persistent_data_ptr_->get_volume_db(), -63, 1, 0, total_tick_for_63db_);
+  set_volume_db(persistent_data_ptr_->get_volume_db());
 }
-
 
 void VolumeController::set_gpio_based_on_volume()
 {
-  // Map volume to 6 bit (64 state)
-  const uint8_t vol_6bit = static_cast<uint8_t>(map(volume_, 0, total_tick_for_63db_, 0, 64));
+  uint8_t vol_6bit = 0;
+  if (!is_muted())
+  {
+    // Map volume to 6 bit (64 state)
+    vol_6bit = static_cast<uint8_t>(map(volume_, 0, total_tick_for_63db_, 0, 64));
+  }
   for (size_t i = 0; i < gpio_pin_vol_select_.size(); ++i)
   {
     const auto& pin = gpio_pin_vol_select_[i];
@@ -72,6 +73,17 @@ bool VolumeController::is_muted() const
 int32_t VolumeController::get_volume_db() const
 {
   return persistent_data_ptr_->get_volume_db();
+}
+
+void VolumeController::set_volume_db(const int32_t new_volume_db)
+{
+  const auto constraint_volume_db = constrain(new_volume_db, -63, 1);
+  volume_ = map(constraint_volume_db, -63, 1, 0, total_tick_for_63db_);
+  set_gpio_based_on_volume();
+
+  // Update volume DB in the persistent data
+  persistent_data_ptr_->get_volume_db_mutable() = constraint_volume_db;
+  latched_volume_updated_ = true;
 }
 
 bool VolumeController::update_volume()
@@ -93,8 +105,9 @@ bool VolumeController::update_volume()
   volume_ = constrain(volume_, 0, total_tick_for_63db_ - 1);
   prev_encoder_count_ = current_count;
 
-  // Update volume DB in the persistent data
-  persistent_data_ptr_->get_volume_db_mutable() = map(volume_, 0, total_tick_for_63db_, -63, 1);
+  // Apply volume to GPIO and persistent data
+  const auto new_volume_db = map(volume_, 0, total_tick_for_63db_, -63, 1);
+  persistent_data_ptr_->get_volume_db_mutable() = new_volume_db;
   set_gpio_based_on_volume();
   return true;
 }
@@ -108,6 +121,7 @@ bool VolumeController::update_mute()
   if (has_changed)
   {
     digitalWrite(set_mute_pin_, is_muted() ? LOW : HIGH);  // Mute is active low
+    set_gpio_based_on_volume();
   }
   return has_changed;
 }
@@ -115,7 +129,13 @@ bool VolumeController::update_mute()
 bool VolumeController::update()
 {
   bool change = false;
+  change |= latched_volume_updated_;
   change |= update_volume();
   change |= update_mute();
+
+  if (latched_volume_updated_)
+  {
+    latched_volume_updated_ = false;
+  }
   return change;
 }

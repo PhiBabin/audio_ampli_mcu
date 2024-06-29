@@ -11,9 +11,10 @@
 
 #include "audio_input_controller.h"
 #include "io_expander.h"
-#include "state_machine.h"
 #include "option_enums.h"
 #include "persistent_data.h"
+#include "state_machine.h"
+#include "volume_controller.h"
 
 const char* option_to_string(const Option option);
 
@@ -26,6 +27,7 @@ public:
     PersistentData* persistent_data_ptr,
     PioEncoder* option_encoder_ptr,
     IoExpander* io_expander_ptr,
+    VolumeController* volume_ctrl_ptr,
     const int select_button_pin,
     const int32_t tick_per_option,
     const int in_out_unipolar_pin,
@@ -78,12 +80,15 @@ private:
   /// Non-owning pointer to the io expander
   IoExpander* io_expander_ptr_;
 
+  /// Non-owning pointer to the volume controler
+  VolumeController* volume_ctrl_ptr_;
+
   // Selected option
   Option selected_option_{Option::back};
-  // Option value:
-  // GainOption gain_value_{GainOption::low};                        // TODO set in constructor
-  // OutputModeOption output_mode_value_{OutputModeOption::phones};  // TODO set in constructor
-  // OutputTypeOption output_type_value_{OutputTypeOption::se};      // TODO set in constructor
+
+  /// When the gain is set from low to high, reduce the volume by 20db. This flag make sure that this
+  /// happens only once.
+  bool flag_has_reduce_volume_after_set_gain_to_low_{false};
 };
 
 #endif  // OPTIONS_CTRL_GUARD_H_

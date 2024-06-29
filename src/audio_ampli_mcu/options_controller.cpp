@@ -34,6 +34,7 @@ OptionController::OptionController(
   PersistentData* persistent_data_ptr,
   PioEncoder* option_encoder_ptr,
   IoExpander* io_expander_ptr,
+  VolumeController* volume_ctrl_ptr,
   const int select_button_pin,
   const int32_t tick_per_option,
   const int in_out_unipolar_pin,
@@ -53,6 +54,7 @@ OptionController::OptionController(
   , out_bal_pin_(out_bal_pin)
   , preamp_out_pin_(preamp_out_pin)
   , io_expander_ptr_(io_expander_ptr)
+  , volume_ctrl_ptr_(volume_ctrl_ptr)
 {
 }
 
@@ -67,10 +69,12 @@ void OptionController::update_gpio()
 {
 
   // Set Low gain GPIO
-  io_expander_ptr_->cache_write_pin(set_low_gain_pin_, persistent_data_ptr_->get_gain() == GainOption::low ? HIGH : LOW);
+  io_expander_ptr_->cache_write_pin(
+    set_low_gain_pin_, persistent_data_ptr_->get_gain() == GainOption::low ? HIGH : LOW);
 
   // Set line out / preamp output GPIO
-  io_expander_ptr_->cache_write_pin(preamp_out_pin_, persistent_data_ptr_->output_mode_value == OutputModeOption::line_out ? HIGH : LOW);
+  io_expander_ptr_->cache_write_pin(
+    preamp_out_pin_, persistent_data_ptr_->output_mode_value == OutputModeOption::line_out ? HIGH : LOW);
 
   const bool is_bal_input = persistent_data_ptr_->selected_audio_input == AudioInput::bal;
   const bool is_bal_output = persistent_data_ptr_->output_type_value == OutputTypeOption::bal;
@@ -180,6 +184,12 @@ bool OptionController::update_selection()
   switch (selected_option_)
   {
     case Option::gain:
+      // When the gain is set from low to high, reduce the volume by 20db.
+      if (persistent_data_ptr_->get_gain_mutable() == GainOption::low && !flag_has_reduce_volume_after_set_gain_to_low_)
+      {
+        volume_ctrl_ptr_->set_volume_db(volume_ctrl_ptr_->get_volume_db() - 20);
+        flag_has_reduce_volume_after_set_gain_to_low_ = true;
+      }
       increment_enum(GainOption::enum_length, persistent_data_ptr_->get_gain_mutable());
       update_gpio();
       break;
@@ -217,6 +227,7 @@ bool OptionController::update_encoder()
   if (state_machine_ptr_->get_state() == State::main_menu)
   {
     prev_encoder_count_ = current_count;
+    // flag_has_reduce_volume_after_set_gain_to_low_ = false;
     return false;
   }
 

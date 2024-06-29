@@ -7,10 +7,10 @@
 #include "pio_encoder.h"
 #endif
 
-#include "io_expander.h"
-#include "state_machine.h"
 #include "audio_input_enums.h"
+#include "io_expander.h"
 #include "persistent_data.h"
+#include "state_machine.h"
 
 #include <array>
 

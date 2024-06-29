@@ -9,8 +9,8 @@
 #include "toggle_button.h"
 #endif
 
-#include "state_machine.h"
 #include "persistent_data.h"
+#include "state_machine.h"
 
 #include <array>
 
@@ -32,6 +32,9 @@ public:
 
   // Return current volume as a value in the 0-63 db range
   int32_t get_volume_db() const;
+
+  // Update current volume in db
+  void set_volume_db(const int32_t new_volume_db);
 
   // Return whether we're muted
   bool is_muted() const;
@@ -79,6 +82,8 @@ private:
   PioEncoder* vol_encoder_ptr_;
   /// Toggle button for the mutting
   ToggleButton mute_button_;
+  /// If the volume/mute is change outside of the update_XX(), this keep latch the update
+  bool latched_volume_updated_{false};
 };
 
 #endif  // VOL_CTRL_GUARD_H_
