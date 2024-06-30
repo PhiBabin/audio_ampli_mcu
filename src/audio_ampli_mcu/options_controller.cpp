@@ -187,7 +187,7 @@ bool OptionController::update_selection()
       // When the gain is set from low to high, reduce the volume by 20db.
       if (persistent_data_ptr_->get_gain_mutable() == GainOption::low && !flag_has_reduce_volume_after_set_gain_to_low_)
       {
-        volume_ctrl_ptr_->set_volume_db(volume_ctrl_ptr_->get_volume_db() - 20);
+        volume_ctrl_ptr_->set_volume_db(volume_ctrl_ptr_->get_volume_db() - 14);
         flag_has_reduce_volume_after_set_gain_to_low_ = true;
       }
       increment_enum(GainOption::enum_length, persistent_data_ptr_->get_gain_mutable());
