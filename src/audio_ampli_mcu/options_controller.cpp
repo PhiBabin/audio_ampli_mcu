@@ -181,14 +181,19 @@ bool OptionController::update_selection()
     state_machine_ptr_->change_state(State::option_menu);
     return true;
   }
+  constexpr auto volume_change = 14;
   switch (selected_option_)
   {
     case Option::gain:
       // When the gain is set from low to high, reduce the volume by 20db.
-      if (persistent_data_ptr_->get_gain_mutable() == GainOption::low && !flag_has_reduce_volume_after_set_gain_to_low_)
+      if (persistent_data_ptr_->get_gain_mutable() == GainOption::low)
       {
-        volume_ctrl_ptr_->set_volume_db(volume_ctrl_ptr_->get_volume_db() - 14);
-        flag_has_reduce_volume_after_set_gain_to_low_ = true;
+        volume_ctrl_ptr_->set_volume_db(volume_ctrl_ptr_->get_volume_db() - volume_change);
+      }
+      else
+      {
+        volume_ctrl_ptr_->set_volume_db(volume_ctrl_ptr_->get_volume_db() + volume_change);
+
       }
       increment_enum(GainOption::enum_length, persistent_data_ptr_->get_gain_mutable());
       update_gpio();
@@ -227,7 +232,6 @@ bool OptionController::update_encoder()
   if (state_machine_ptr_->get_state() == State::main_menu)
   {
     prev_encoder_count_ = current_count;
-    // flag_has_reduce_volume_after_set_gain_to_low_ = false;
     return false;
   }
 

@@ -34,7 +34,9 @@
 
 #include "RP2040_PWM.h"
 
+/// PWM instance to control backlight
 RP2040_PWM* PWM_Instance;
+
 void LCD_GPIO_Init(void)
 {
 
@@ -48,8 +50,7 @@ void LCD_GPIO_Init(void)
   // Frequency high enough to be filter out by the ampli
   constexpr uint32_t pwm_frequency = 20000;
   PWM_Instance = new RP2040_PWM(DEV_BL_PIN, pwm_frequency, LCD_BACKLIGHT);
-  PWM_Instance->setPWM();
-  // gpio_set_function(DEV_BL_PIN, GPIO_FUNC_PWM);
+  PWM_Instance->setPWM(DEV_BL_PIN, pwm_frequency, LCD_BACKLIGHT);
 
   SPI.setSCK(DEV_CLK_PIN);
   SPI.setCS(DEV_CS_PIN);

@@ -35,7 +35,7 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#define LCD_BACKLIGHT 140  // Between 0-256
+#define LCD_BACKLIGHT 57  // Between 0-256 for 0 to 100% brightness
 
 #define LCD_WIDTH 320   // LCD width
 #define LCD_HEIGHT 240  // LCD height

@@ -85,10 +85,6 @@ private:
 
   // Selected option
   Option selected_option_{Option::back};
-
-  /// When the gain is set from low to high, reduce the volume by 20db. This flag make sure that this
-  /// happens only once.
-  bool flag_has_reduce_volume_after_set_gain_to_low_{false};
 };
 
 #endif  // OPTIONS_CTRL_GUARD_H_
