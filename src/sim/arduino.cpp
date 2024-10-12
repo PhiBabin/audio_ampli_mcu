@@ -1,8 +1,8 @@
 #include "sim/arduino.h"
 
 #include <SDL.h>
-#include <iostream>
 #include <fstream>
+#include <iostream>
 
 SerialObject Serial;
 EEPROMClass EEPROM;
@@ -42,6 +42,7 @@ void SerialObject::print(const int32_t number)
 {
   std::cout << std::to_string(number) << std::flush;
 }
+
 void SerialObject::println(const uint32_t number)
 {
   std::cout << std::to_string(number) << std::endl;
@@ -57,7 +58,7 @@ void SerialObject::println(const char* text)
   std::cout << text << std::endl;
 }
 
-void EEPROMClass::begin(size_t size) 
+void EEPROMClass::begin(size_t size)
 {
   if (_data != nullptr)
   {
@@ -72,17 +73,19 @@ void EEPROMClass::begin(size_t size)
   fs.close();
 }
 
-uint8_t EEPROMClass::read(int const address) {
-    if (address < 0 || (size_t)address >= _size) {
-        return 0;
-    }
-    if (!_data) {
-        return 0;
-    }
+uint8_t EEPROMClass::read(int const address)
+{
+  if (address < 0 || (size_t)address >= _size)
+  {
+    return 0;
+  }
+  if (!_data)
+  {
+    return 0;
+  }
 
-    return _data[address];
+  return _data[address];
 }
-
 
 bool EEPROMClass::commit()
 {

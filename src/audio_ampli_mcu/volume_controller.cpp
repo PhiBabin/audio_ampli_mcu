@@ -26,8 +26,8 @@ void VolumeController::init()
 {
   mute_button_.setup(mute_button_pin_, BUTTON_DEBOUNCE_DELAY, InputDebounce::PIM_INT_PULL_UP_RES);
 
-  pinMode(set_mute_pin_, OUTPUT);
-  digitalWrite(set_mute_pin_, is_muted() ? LOW : HIGH);  // Mute is active low
+  // pinMode(set_mute_pin_, OUTPUT);
+  // digitalWrite(set_mute_pin_, is_muted() ? LOW : HIGH);  // Mute is active low
 
   // Restore the volume db from the flash
   reset_volume_tick_count_based_volume_db();
@@ -120,7 +120,7 @@ bool VolumeController::update_mute()
   const bool has_changed = mute_button_.get_state() != prev_mute_state;
   if (has_changed)
   {
-    digitalWrite(set_mute_pin_, is_muted() ? LOW : HIGH);  // Mute is active low
+    // digitalWrite(set_mute_pin_, is_muted() ? LOW : HIGH);  // Mute is active low
     set_gpio_based_on_volume();
   }
   return has_changed;

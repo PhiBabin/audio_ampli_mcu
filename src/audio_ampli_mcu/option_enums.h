@@ -8,6 +8,7 @@ enum class Option : uint8_t
   gain = 0,
   output_mode,
   output_type,
+  bias,
   back,
   option_enum_length
 };

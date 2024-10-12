@@ -28,6 +28,7 @@ COMMON_SRC = sim/LCD_Driver.cpp \
       sim/pio_encoder.cpp \
       sim/MCP23S17.cpp \
       sim/toggle_button.cpp \
+      sim/RP2040_PWM.cpp \
       sim/arduino.cpp \
 	  audio_ampli_mcu/audio_ampli_mcu.ino \
 	  audio_ampli_mcu/fonts.cpp \

@@ -4,9 +4,11 @@
 #ifdef SIM
 #include "sim/pio_encoder.h"
 #include "sim/toggle_button.h"
+#include "sim/RP2040_PWM.h"
 #else
 #include "pio_encoder.h"
 #include "toggle_button.h"
+#include "RP2040_PWM.h"
 #endif
 
 #include "audio_input_controller.h"
@@ -34,7 +36,8 @@ public:
     const int in_out_bal_unipolar_pin,
     const int set_low_gain_pin,
     const int out_bal_pin,
-    const int preamp_out_pin);
+    const int preamp_out_pin,
+    const int bias_out_pin);
 
   // Init GPIO pins
   void init();
@@ -76,6 +79,7 @@ private:
   const int set_low_gain_pin_;
   const int out_bal_pin_;
   const int preamp_out_pin_;
+  const int bias_out_pin_;
 
   /// Non-owning pointer to the io expander
   IoExpander* io_expander_ptr_;
@@ -83,8 +87,16 @@ private:
   /// Non-owning pointer to the volume controler
   VolumeController* volume_ctrl_ptr_;
 
+  RP2040_PWM* PWM_Instance_;
+
   // Selected option
   Option selected_option_{Option::back};
+
+  uint8_t bias_{0};
+
+  char bias_str_buffer_[10];
+
+  bool enabled_bias_scrolling_{false};
 };
 
 #endif  // OPTIONS_CTRL_GUARD_H_

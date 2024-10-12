@@ -35,6 +35,7 @@ const pin_size_t mute_button_pin = 16;    // Button for the volume encoder
 const pin_size_t select_button_pin = 17;  // Button for the menu select encoder
 IoExpander io_expander(7);                // GP7 is the chip select of the IO expander
 const pin_size_t set_mute_pin = 27;       // Output pin that mute / unmute
+const pin_size_t bias_pwm_pin = 27;       // Output pin that mute / unmute
 
 // 6bit output to control the volume
 const std::array<pin_size_t, 6> volume_gpio_pins = {22, 4, 5, 9, 10, 11};
@@ -73,7 +74,8 @@ OptionController option_ctrl(
   in_out_bal_unipolar_pin,
   set_low_gain_pin,
   out_bal_pin,
-  preamp_out_pin);
+  preamp_out_pin,
+  bias_pwm_pin);
 
 LvFontWrapper digit_lt_superior_font(&lt_superior_mono, true);
 LvFontWrapper digit_droid_sans_font(&droid_sans_mono, true);

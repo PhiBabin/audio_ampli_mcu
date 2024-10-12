@@ -4,6 +4,9 @@
 
 #define BUTTON_DEBOUNCE_DELAY 20  // [ms]
 
+// Frequency high enough to be filter out by the ampli
+constexpr uint32_t pwm_frequency = 20000;
+
 template <typename T>
 void increment_enum(const T& max_enum_value, T& enum_value_out)
 {
@@ -41,7 +44,8 @@ OptionController::OptionController(
   const int in_out_bal_unipolar_pin,
   const int set_low_gain_pin,
   const int out_bal_pin,
-  const int preamp_out_pin)
+  const int preamp_out_pin,
+  const int bias_out_pin)
   : state_machine_ptr_(state_machine_ptr)
   , persistent_data_ptr_(persistent_data_ptr)
   , prev_encoder_count_(0)
@@ -53,9 +57,12 @@ OptionController::OptionController(
   , set_low_gain_pin_(set_low_gain_pin)
   , out_bal_pin_(out_bal_pin)
   , preamp_out_pin_(preamp_out_pin)
+  , bias_out_pin_(bias_out_pin)
   , io_expander_ptr_(io_expander_ptr)
   , volume_ctrl_ptr_(volume_ctrl_ptr)
 {
+  PWM_Instance_ = new RP2040_PWM(bias_out_pin_, pwm_frequency, bias_);
+  PWM_Instance_->setPWM(bias_out_pin_, pwm_frequency, bias_);
 }
 
 void OptionController::init()
@@ -92,6 +99,9 @@ void OptionController::update_gpio()
 
   // Actually apply the change to the GPIOs
   io_expander_ptr_->apply_write();
+
+  // Set PWM for bias
+  PWM_Instance_->setPWM(bias_out_pin_, pwm_frequency, bias_);
 }
 
 void OptionController::on_audio_input_change()
@@ -114,6 +124,8 @@ const char* option_to_string(const Option option)
       return "OUTPUT";
     case Option::output_type:
       return "TYPE";
+    case Option::bias:
+      return "BIAS";
     case Option::back:
       return "";
     case Option::option_enum_length:
@@ -157,6 +169,19 @@ const char* OptionController::get_option_value_string(const Option& option)
         default:
           return "ERR3";
       }
+    case Option::bias:
+    {
+      if (enabled_bias_scrolling_)
+      {
+        sprintf(bias_str_buffer_, "<%d>", bias_);
+      }
+      else
+      {
+        sprintf(bias_str_buffer_, " %d ", bias_);
+      }
+
+      return bias_str_buffer_;
+    }
     case Option::back:
       return "";
     case Option::option_enum_length:
@@ -185,7 +210,7 @@ bool OptionController::update_selection()
   switch (selected_option_)
   {
     case Option::gain:
-      // When the gain is set from low to high, reduce the volume by 20db.
+      // When the gain is set from low to high, reduce the volume by 14db.
       if (persistent_data_ptr_->get_gain_mutable() == GainOption::low)
       {
         volume_ctrl_ptr_->set_volume_db(volume_ctrl_ptr_->get_volume_db() - volume_change);
@@ -193,7 +218,6 @@ bool OptionController::update_selection()
       else
       {
         volume_ctrl_ptr_->set_volume_db(volume_ctrl_ptr_->get_volume_db() + volume_change);
-
       }
       increment_enum(GainOption::enum_length, persistent_data_ptr_->get_gain_mutable());
       update_gpio();
@@ -205,6 +229,9 @@ bool OptionController::update_selection()
     case Option::output_type:
       increment_enum(OutputTypeOption::enum_length, persistent_data_ptr_->output_type_value);
       update_gpio();
+      break;
+    case Option::bias:
+      enabled_bias_scrolling_ = !enabled_bias_scrolling_;
       break;
     case Option::back:
       state_machine_ptr_->change_state(State::main_menu);
@@ -227,6 +254,7 @@ bool OptionController::update()
 
 bool OptionController::update_encoder()
 {
+  constexpr uint8_t bias_increment = 10;
   const int32_t current_count = option_encoder_ptr_->getCount();
 
   if (state_machine_ptr_->get_state() == State::main_menu)
@@ -235,15 +263,33 @@ bool OptionController::update_encoder()
     return false;
   }
 
+  const bool is_scroll_for_bias = selected_option_ == Option::bias && enabled_bias_scrolling_;
+
   if (current_count - prev_encoder_count_ > tick_per_option_)
   {
-    decrement_enum(Option::option_enum_length, selected_option_);
+    if (is_scroll_for_bias)
+    {
+      bias_ -= bias_increment;
+      update_gpio();
+    }
+    else
+    {
+      decrement_enum(Option::option_enum_length, selected_option_);
+    }
     prev_encoder_count_ = current_count;
     return true;
   }
   if (-tick_per_option_ > current_count - prev_encoder_count_)
   {
-    increment_enum(Option::option_enum_length, selected_option_);
+    if (is_scroll_for_bias)
+    {
+      bias_ += bias_increment;
+      update_gpio();
+    }
+    else
+    {
+      increment_enum(Option::option_enum_length, selected_option_);
+    }
     prev_encoder_count_ = current_count;
     return true;
   }
