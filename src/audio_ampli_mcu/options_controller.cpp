@@ -254,7 +254,7 @@ bool OptionController::update()
 
 bool OptionController::update_encoder()
 {
-  constexpr uint8_t bias_increment = 10;
+  constexpr uint8_t bias_increment = 5;
   const int32_t current_count = option_encoder_ptr_->getCount();
 
   if (state_machine_ptr_->get_state() == State::main_menu)
@@ -269,7 +269,11 @@ bool OptionController::update_encoder()
   {
     if (is_scroll_for_bias)
     {
-      bias_ -= bias_increment;
+      bias_ += bias_increment;
+      if (bias_ > 100)
+      {
+        bias_ = 100;
+      } 
       update_gpio();
     }
     else
@@ -283,7 +287,14 @@ bool OptionController::update_encoder()
   {
     if (is_scroll_for_bias)
     {
-      bias_ += bias_increment;
+      if (bias_ < bias_increment)
+      {
+        bias_ = 0;
+      }
+      else
+      {
+        bias_ -= bias_increment;
+      }
       update_gpio();
     }
     else
