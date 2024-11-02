@@ -52,17 +52,50 @@ void VolumeController::reset_volume_tick_count_based_volume_db()
 
 void VolumeController::set_gpio_based_on_volume()
 {
+  constexpr uint32_t relay_0_to_1_transition_time_us = 800;
+  constexpr uint32_t relay_1_to_0_transition_time_us = 1500;
   uint8_t vol_6bit = 0;
   if (!is_muted())
   {
     // Map volume to 6 bit (64 state)
     vol_6bit = static_cast<uint8_t>(map(volume_, 0, total_tick_for_63db_, 0, 64));
   }
+
+  // Changing a relay from 0 -> 1 (~0.8ms) is must faster than 1 -> 0 (~1.5ms), so to make it look like all the relay
+  // are changing at the same time we need to set the GPIO in two stages.
+
+  // 1) Apply all 1 -> 0 changes
+
   for (size_t i = 0; i < gpio_pin_vol_select_.size(); ++i)
   {
-    const auto& pin = gpio_pin_vol_select_[i];
-    digitalWrite(pin, ((vol_6bit >> i) & 1) ? HIGH : LOW);
+    const auto was_set = ((prev_vol_6bit_set_on_gpio_ >> i) & 1) == 1;
+    const auto is_set = ((vol_6bit >> i) & 1) == 1;
+    if (was_set && !is_set)
+    {
+      const auto& pin = gpio_pin_vol_select_[i];
+      digitalWrite(pin, is_set ? HIGH : LOW);
+    }
   }
+
+  // 2) Wait ~0.7ms (1.5ms - 0.8ms)
+
+  constexpr auto wait_time_us = relay_1_to_0_transition_time_us - relay_0_to_1_transition_time_us;
+  delayMicroseconds(wait_time_us);
+
+  // 3) Apply all 0 -> 1 changes (also apply no-op  0 -> 0 and 1 -> 1)
+
+  for (size_t i = 0; i < gpio_pin_vol_select_.size(); ++i)
+  {
+    const auto was_set = ((prev_vol_6bit_set_on_gpio_ >> i) & 1) == 1;
+    const auto is_set = ((vol_6bit >> i) & 1) == 1;
+    if (!(was_set && !is_set))
+    {
+      const auto& pin = gpio_pin_vol_select_[i];
+      digitalWrite(pin, is_set ? HIGH : LOW);
+    }
+  }
+
+  prev_vol_6bit_set_on_gpio_ = vol_6bit;
 }
 
 bool VolumeController::is_muted() const

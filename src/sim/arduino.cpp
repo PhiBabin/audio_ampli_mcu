@@ -58,6 +58,10 @@ void SerialObject::println(const char* text)
   std::cout << text << std::endl;
 }
 
+void delayMicroseconds(const unsigned us)
+{
+}
+
 void EEPROMClass::begin(size_t size)
 {
   if (_data != nullptr)

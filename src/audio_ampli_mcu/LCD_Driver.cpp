@@ -29,9 +29,6 @@
 ******************************************************************************/
 #include "LCD_Driver.h"
 
-// #include "pico/stdlib.h"
-// #include "hardware/pwm.h"
-
 #include "RP2040_PWM.h"
 
 /// PWM instance to control backlight

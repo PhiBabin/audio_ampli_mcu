@@ -84,6 +84,8 @@ private:
   ToggleButton mute_button_;
   /// If the volume/mute is change outside of the update_XX(), this keep latch the update
   bool latched_volume_updated_{false};
+  /// When set_gpio_based_on_volume() is called we need to know what was previous value of the GPIOs
+  uint8_t prev_vol_6bit_set_on_gpio_{0};
 };
 
 #endif  // VOL_CTRL_GUARD_H_

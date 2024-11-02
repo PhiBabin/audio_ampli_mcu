@@ -15,6 +15,7 @@ long map(long x, long in_min, long in_max, long out_min, long out_max);
 
 void pinMode(int pin, int input_output);
 void digitalWrite(int pin, int input_output);
+void delayMicroseconds(const unsigned us);
 
 unsigned long millis();
 
@@ -44,33 +45,36 @@ public:
   bool commit();
   ~EEPROMClass();
 
-  template<typename T>
-    T &get(int const address, T &t) {
-        if (address < 0 || address + sizeof(T) > _size) {
-            return t;
-        }
-
-        memcpy((uint8_t*) &t, _data + address, sizeof(T));
-        return t;
+  template <typename T>
+  T& get(int const address, T& t)
+  {
+    if (address < 0 || address + sizeof(T) > _size)
+    {
+      return t;
     }
 
-    template<typename T>
-    const T &put(int const address, const T &t) {
-        if (address < 0 || address + sizeof(T) > _size)
-        {
-            return t;
-        }
-        if (memcmp(_data + address, (const uint8_t*)&t, sizeof(T)) != 0)
-        {
-          memcpy(_data + address, (const uint8_t*)&t, sizeof(T));
-        }
+    memcpy((uint8_t*)&t, _data + address, sizeof(T));
+    return t;
+  }
 
-        return t;
+  template <typename T>
+  const T& put(int const address, const T& t)
+  {
+    if (address < 0 || address + sizeof(T) > _size)
+    {
+      return t;
     }
+    if (memcmp(_data + address, (const uint8_t*)&t, sizeof(T)) != 0)
+    {
+      memcpy(_data + address, (const uint8_t*)&t, sizeof(T));
+    }
+
+    return t;
+  }
+
 private:
-
-    uint8_t* _data = nullptr;
-    size_t _size = 0;
+  uint8_t* _data = nullptr;
+  size_t _size = 0;
 };
 
 extern SerialObject Serial;
