@@ -4,31 +4,26 @@
 #ifdef SIM
 #include "sim/arduino.h"
 #else
-#include <EEPROM.h>
 #include <Arduino.h>
+#include <EEPROM.h>
 #endif
-
 
 #define DELAY_UNTIL_CHANGES_ARE_WRITTEN_TO_FLASH 15000  // [ms]
 
-
 bool PersistentData::operator==(const PersistentData& rhs) const
 {
-  if (magic_num != rhs.magic_num
-  || version_num != rhs.version_num
-  || is_muted != rhs.is_muted
-  || selected_audio_input != rhs.selected_audio_input
-  || output_mode_value != rhs.output_mode_value
-  || output_mode_value != rhs.output_mode_value
-  )
+  if (
+    magic_num != rhs.magic_num || version_num != rhs.version_num || is_muted != rhs.is_muted ||
+    selected_audio_input != rhs.selected_audio_input || output_mode_value != rhs.output_mode_value ||
+    output_mode_value != rhs.output_mode_value || output_type_value != rhs.output_type_value)
   {
     return false;
   }
-  for (size_t i = 0; i < NUM_AUDIO_INPUT; ++i)
+  for (size_t i = 0; i < NUM_INPUT_OUTPUT_PERMUTATION; ++i)
   {
-    if (per_audio_input_data[i].volume_db != rhs.per_audio_input_data[i].volume_db
-    || per_audio_input_data[i].gain_value != rhs.per_audio_input_data[i].gain_value
-    )
+    if (
+      per_audio_input_output_data[i].volume_db != rhs.per_audio_input_output_data[i].volume_db ||
+      per_audio_input_output_data[i].gain_value != rhs.per_audio_input_output_data[i].gain_value)
     {
       return false;
     }
@@ -41,21 +36,27 @@ bool PersistentData::operator!=(const PersistentData& rhs) const
   return !(*this == rhs);
 }
 
-PersistentData::PerAudioInputData& PersistentData::get_per_audio_input_data_mutable()
+size_t PersistentData::current_input_output_pair_index() const
 {
-  return per_audio_input_data[static_cast<uint8_t>(selected_audio_input)];
+  return static_cast<size_t>(selected_audio_input) * NUM_OUTPUT_MODE * NUM_OUTPUT_TYPE +
+         static_cast<size_t>(output_mode_value) * NUM_OUTPUT_TYPE + static_cast<size_t>(output_type_value);
 }
-const PersistentData::PerAudioInputData& PersistentData::get_per_audio_input_data() const
+
+PersistentData::PerAudioInputOutputData& PersistentData::get_per_audio_input_output_data_mutable()
 {
-  return per_audio_input_data[static_cast<uint8_t>(selected_audio_input)];
+  return per_audio_input_output_data[current_input_output_pair_index()];
+}
+const PersistentData::PerAudioInputOutputData& PersistentData::get_per_audio_input_output_data() const
+{
+  return per_audio_input_output_data[current_input_output_pair_index()];
 }
 int32_t& PersistentData::get_volume_db_mutable()
 {
-  return get_per_audio_input_data_mutable().volume_db;
+  return get_per_audio_input_output_data_mutable().volume_db;
 }
 GainOption& PersistentData::get_gain_mutable()
 {
-  return get_per_audio_input_data_mutable().gain_value;
+  return get_per_audio_input_output_data_mutable().gain_value;
 }
 
 void PersistentDataFlasher::init()
@@ -65,11 +66,11 @@ void PersistentDataFlasher::init()
 
 const int32_t& PersistentData::get_volume_db() const
 {
-  return get_per_audio_input_data().volume_db;
+  return get_per_audio_input_output_data().volume_db;
 }
 const GainOption& PersistentData::get_gain() const
 {
-  return get_per_audio_input_data().gain_value;
+  return get_per_audio_input_output_data().gain_value;
 }
 
 bool PersistentDataFlasher::maybe_load_data(PersistentData& data_out)

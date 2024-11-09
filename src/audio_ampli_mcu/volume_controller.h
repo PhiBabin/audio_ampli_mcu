@@ -49,6 +49,9 @@ public:
   // When audio input change, the volume is changed
   void on_audio_input_change();
 
+  // When selected options change, the volume is changed
+  void on_option_change();
+
 private:
   // Read encoder, update state and set GPIO pin that set the volume.
   bool update_volume();

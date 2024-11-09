@@ -32,4 +32,6 @@ enum class OutputTypeOption : uint8_t
   bal,
   enum_length
 };
+constexpr uint8_t NUM_OUTPUT_MODE = static_cast<uint8_t>(OutputModeOption::enum_length);
+constexpr uint8_t NUM_OUTPUT_TYPE = static_cast<uint8_t>(OutputTypeOption::enum_length);
 #endif  // OPTIONS_ENUM_GUARD_H_

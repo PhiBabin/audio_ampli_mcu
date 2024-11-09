@@ -311,6 +311,7 @@ void loop()
   {
     Serial.println("update options");
     draw_options();
+    volume_ctrl.on_option_change();
   }
   const auto state_changed = state_machine.update();
   if (state_changed && state_machine.get_state() == State::main_menu)
@@ -329,7 +330,7 @@ void loop()
     draw_audio_inputs(state_changed);
   }
   bool has_changed = volume_ctrl.update();
-  if (has_changed || state_changed || audio_input_change)
+  if (has_changed || state_changed || audio_input_change || option_change)
   {
     Serial.println("update volume");
     draw_volume(state_changed);

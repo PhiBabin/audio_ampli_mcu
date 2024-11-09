@@ -45,6 +45,12 @@ void VolumeController::on_audio_input_change()
   set_gpio_based_on_volume();
 }
 
+void VolumeController::on_option_change()
+{
+  reset_volume_tick_count_based_volume_db();
+  set_gpio_based_on_volume();
+}
+
 void VolumeController::reset_volume_tick_count_based_volume_db()
 {
   set_volume_db(persistent_data_ptr_->get_volume_db());

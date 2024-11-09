@@ -2,32 +2,35 @@
 #define FLASH_DATA_GUARD_H_
 
 #include "audio_input_enums.h"
-#include "option_enums.h"
 #include "config.h"
+#include "option_enums.h"
 
 #include <optional>
+
+constexpr uint8_t NUM_INPUT_OUTPUT_PERMUTATION = NUM_AUDIO_INPUT * NUM_OUTPUT_MODE * NUM_OUTPUT_TYPE;
 
 // Internal data that will be saved to the flash
 struct PersistentData
 {
-  // Each audio input have their own volume and gain setting
-  struct PerAudioInputData
+public:
+  // Each audio input and audio output pair have their own volume and gain setting
+  struct PerAudioInputOutputData
   {
     int32_t volume_db{STARTUP_VOLUME_DB};
-    GainOption gain_value{GainOption::low};  
+    GainOption gain_value{GainOption::low};
   };
 
   uint16_t magic_num{0xCAFE};
   uint8_t version_num{VERSION_NUMBER};
   bool is_muted{false};
   AudioInput selected_audio_input{AudioInput::rca_1};
-  PerAudioInputData per_audio_input_data[NUM_AUDIO_INPUT];
+  PerAudioInputOutputData per_audio_input_output_data[NUM_INPUT_OUTPUT_PERMUTATION];
   OutputModeOption output_mode_value{OutputModeOption::phones};
   OutputTypeOption output_type_value{OutputTypeOption::se};
 
   // Getters
-  const PerAudioInputData& get_per_audio_input_data() const;
-  PerAudioInputData& get_per_audio_input_data_mutable();
+  const PerAudioInputOutputData& get_per_audio_input_output_data() const;
+  PerAudioInputOutputData& get_per_audio_input_output_data_mutable();
   const int32_t& get_volume_db() const;
   int32_t& get_volume_db_mutable();
   const GainOption& get_gain() const;
@@ -35,8 +38,12 @@ struct PersistentData
 
   bool operator==(const PersistentData& rhs) const;
   bool operator!=(const PersistentData& rhs) const;
-};
 
+private:
+  /// There are 4 audio inputs, 2 output modes and 2 output types, which mean 16 possible combinaisons. This helper
+  /// function returns the current offset in the @c per_audio_input_output_data array.
+  size_t current_input_output_pair_index() const;
+};
 
 class PersistentDataFlasher
 {
