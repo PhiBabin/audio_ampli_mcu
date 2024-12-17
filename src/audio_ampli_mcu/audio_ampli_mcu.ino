@@ -29,6 +29,11 @@
 
 #include <algorithm>
 
+// Convention for GPIO names:
+// GPX -> X pin on the PI Pico
+// GPAX -> X pin on port A of the IO expander
+// GPBX -> X pin on port B of the IO expander
+
 PioEncoder volume_encoder(18);            // GP18 and GP19 are the encoder's pins
 PioEncoder menu_select_encoder(20);       // GP20 and GP21 are the encoder's pins
 const pin_size_t mute_button_pin = 16;    // Button for the volume encoder
@@ -283,6 +288,7 @@ void setup()
   else
   {
     Serial.println("No data found in flash, using default settings.");
+    persistent_data = PersistentData{};
     persistent_data_flasher.force_save(persistent_data);
   }
 

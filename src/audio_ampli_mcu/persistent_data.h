@@ -20,6 +20,7 @@ public:
     GainOption gain_value{GainOption::low};
   };
 
+  uint16_t checksum{0};
   uint16_t magic_num{0xCAFE};
   uint8_t version_num{VERSION_NUMBER};
   bool is_muted{false};
@@ -35,6 +36,9 @@ public:
   int32_t& get_volume_db_mutable();
   const GainOption& get_gain() const;
   GainOption& get_gain_mutable();
+
+  /// Compute checksum of the persistent data.
+  uint8_t compute_checksum() const;
 
   bool operator==(const PersistentData& rhs) const;
   bool operator!=(const PersistentData& rhs) const;

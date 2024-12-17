@@ -16,6 +16,6 @@
 #define TICK_PER_AUDIO_IN (ENCODER_TICK_PER_ROTATION / NUM_AUDIO_INPUT)
 
 // Changing the version will make previously saved settings unusable
-#define VERSION_NUMBER 1
+#define VERSION_NUMBER 3
 
-#endif  //CONFIG_OPTION_GUARD_H_
+#endif  // CONFIG_OPTION_GUARD_H_

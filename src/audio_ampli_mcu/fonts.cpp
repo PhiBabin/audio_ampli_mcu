@@ -92,21 +92,22 @@ void draw_string_fast(
     }
     ++str_temp;
   }
-  text_width_px += (strlen(str) - 1) * font.get_spacing_px();
+  text_width_px +=
+    (strlen(str) - 1) * font.get_spacing_px();  // This kind of assumes that every character in string has a glyph
   const auto end_y = start_y + font.get_height_px();
   const int32_t middle_x = static_cast<int32_t>((end_x - start_x) / 2 + start_x);
   const uint32_t start_text_x = static_cast<uint32_t>(MAX(0L, middle_x - static_cast<int32_t>(text_width_px / 2)));
   const auto end_text_x = middle_x + text_width_px / 2;
 
-  //   Serial.print("start_x=");
-  //   Serial.print(start_x);
-  //   Serial.print("start_text_x=");
-  //   Serial.print(start_text_x);
-  //   Serial.print("end_text_x=");
-  //   Serial.print(end_text_x);
-  //   Serial.print("end_x=");
-  //   Serial.print(end_x);
-  //   Serial.println("");
+  // Serial.print("start_x=");
+  // Serial.print(start_x);
+  // Serial.print("start_text_x=");
+  // Serial.print(start_text_x);
+  // Serial.print("end_text_x=");
+  // Serial.print(end_text_x);
+  // Serial.print("end_x=");
+  // Serial.print(end_x);
+  // Serial.println("");
 
   if (start_x < start_text_x && clear_side)
   {

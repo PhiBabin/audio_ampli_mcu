@@ -27,6 +27,11 @@
 # THE SOFTWARE.
 #
 ******************************************************************************/
+
+/// This is the driver to communicate with the ST7789V screen display controler.
+/// A 3-Line Serial Interface II is used to push data to the display controler, this is really slow, so everything is
+/// drawn in 12bit/pixel (RGB444).
+
 #ifndef __LCD_DRIVER_H
 #define __LCD_DRIVER_H
 

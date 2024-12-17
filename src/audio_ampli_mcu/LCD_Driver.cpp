@@ -209,19 +209,19 @@ parameter	:
 ******************************************************************************/
 void LCD_SetWindow(uint16_t Xstart, uint16_t Ystart, uint16_t Xend, uint16_t Yend)
 {
-  LCD_Write_Command(0x2a);
+  LCD_Write_Command(0x2a);  // (2Ah): Column Address Set
   LCD_WriteData_Byte(Xstart >> 8);
   LCD_WriteData_Byte(Xstart & 0xff);
   LCD_WriteData_Byte((Xend - 1) >> 8);
   LCD_WriteData_Byte((Xend - 1) & 0xff);
 
-  LCD_Write_Command(0x2b);
+  LCD_Write_Command(0x2b);  // (2Bh): Row Address Set
   LCD_WriteData_Byte(Ystart >> 8);
   LCD_WriteData_Byte(Ystart & 0xff);
   LCD_WriteData_Byte((Yend - 1) >> 8);
   LCD_WriteData_Byte((Yend - 1) & 0xff);
 
-  LCD_Write_Command(0x2C);
+  LCD_Write_Command(0x2C);  // (2Ch): Memory write
 }
 
 void LCD_Clear_12bitRGB(uint32_t color_12bit)

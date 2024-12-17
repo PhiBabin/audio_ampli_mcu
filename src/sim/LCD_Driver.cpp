@@ -2,6 +2,7 @@
 
 #include <SDL.h>
 #include <cassert>
+#include <iostream>
 #include <tuple>
 
 /// It's around 1333ms/px in theory with 20MHz, 10bit per bytes and 2 px per 3 bytes
@@ -46,7 +47,8 @@ void LCD_SetWindow(uint16_t Xstart, uint16_t Ystart, uint16_t Xend, uint16_t Yen
   assert(Xstart <= Xend);
   assert(Ystart <= Yend);
   assert(Xstart <= LCD_WIDTH);
-  assert(Xend <= LCD_WIDTH);
+  // assert(Xend <= LCD_WIDTH); // Need to support drawing a odd number of columns before we can make sure that this is
+  // respected
   assert(Ystart <= LCD_HEIGHT);
   assert(Yend <= LCD_HEIGHT);
 
@@ -75,21 +77,20 @@ std::tuple<uint8_t, uint8_t, uint8_t> rgb444_to_rgb888(const uint32_t color_12bi
 
 void LCD_ClearWindow_12bitRGB(uint16_t Xstart, uint16_t Ystart, uint16_t Xend, uint16_t Yend, uint32_t color_12bit)
 {
-  assert(global_surface != nullptr);
-  const auto [r, g, b] = rgb444_to_rgb888(color_12bit);
-  SDL_Rect rect;
-  rect.x = Xstart;
-  rect.y = Ystart;
-  rect.w = Xend - Xstart;
-  rect.h = Yend - Ystart;
-  SDL_FillRect(global_surface, &rect, SDL_MapRGB(global_surface->format, r, g, b));
-
-  pixel_count += rect.w * rect.h;
-  if (pixel_count > ms_per_pixel)
+  unsigned int i, j;
+  assert(Xstart <= Xend);
+  if ((Xend - Xstart) % 2 != 0)
   {
-    SDL_Delay(pixel_count / ms_per_pixel);
-    pixel_count = 0;
-    blip_sdl_window_callback();
+    ++Xend;
+  }
+  LCD_SetWindow(Xstart, Ystart, Xend, Yend);
+  unsigned int half_width = (Xend - Xstart) / 2;
+  for (j = Ystart; j < Yend; ++j)
+  {
+    for (i = 0; i < half_width; ++i)
+    {
+      LCD_write_2pixel_color(color_12bit | (color_12bit << 12));
+    }
   }
 }
 

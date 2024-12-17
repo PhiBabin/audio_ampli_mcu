@@ -73,14 +73,31 @@ const GainOption& PersistentData::get_gain() const
   return get_per_audio_input_output_data().gain_value;
 }
 
+uint8_t PersistentData::compute_checksum() const
+{
+  uint8_t checksum = 0;
+  const uint8_t* data_out_ptr = reinterpret_cast<const uint8_t*>(this);
+  // Skip checksum bits
+  for (size_t i = 2; i < sizeof(PersistentData); ++i)
+  {
+    checksum += data_out_ptr[i];
+  }
+  return checksum;
+}
+
 bool PersistentDataFlasher::maybe_load_data(PersistentData& data_out)
 {
-  if (EEPROM.read(0) != 0xFE || EEPROM.read(1) != 0xCA || EEPROM.read(2) != VERSION_NUMBER)
+  EEPROM.get(0, data_out);
+  if (data_out.checksum != data_out.compute_checksum())
+  {
+    Serial.println("Data in flash has the wrong checksum. It won't be restored.");
+    return false;
+  }
+  if (data_out.magic_num != 0xCAFE || data_out.version_num != VERSION_NUMBER)
   {
     Serial.println("Data in flash is either corrupted or invalid. It won't be restored.");
     return false;
   }
-  EEPROM.get(0, data_out);
 
   // Copy what we loaded
   maybe_last_saved_data_ = data_out;
@@ -114,12 +131,17 @@ void PersistentDataFlasher::save(const PersistentData& curr_data)
 
 void PersistentDataFlasher::force_save(const PersistentData& curr_data)
 {
+  auto curr_data_copy = curr_data;
   Serial.println("Saving data to flash...");
   Serial.print("volume=");
-  Serial.println(curr_data.get_volume_db());
-  EEPROM.put(0, curr_data);
+  Serial.println(curr_data_copy.get_volume_db());
+
+  // Update checksum
+  curr_data_copy.checksum = curr_data_copy.compute_checksum();
+
+  EEPROM.put(0, curr_data_copy);
   EEPROM.commit();
-  maybe_last_saved_data_ = curr_data;
+  maybe_last_saved_data_ = curr_data_copy;
   maybe_changed_data_ = {};
   maybe_time_since_last_change_to_data_ = {};
 }
