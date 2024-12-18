@@ -16,14 +16,25 @@ public:
     unsigned long pressed_duration = 0);
   virtual ~ToggleButton() = default;
 
+  virtual unsigned long process(unsigned long now) final;
+
   // Get current state of the toggle button
   bool get_state() const;
+  // Was there a long press detected since the last call to process() ?
+  bool is_long_press() const;
+  // Was there a short press detected since the last call to process() ?
+  bool is_short_press() const;
 
 protected:
-  virtual void pressed();
+  virtual void pressed() final;
+  virtual void pressedDuration(unsigned long duration) final;
+  virtual void releasedDuration(unsigned long duration) final;
 
 private:
   bool state_;
+  bool flag_short_pressed_{false};
+  bool flag_long_pressed_{false};
+  bool was_released{true};
 };
 
 #endif  // TOG_BUTTON_GUARD_H_

@@ -228,10 +228,16 @@ uint32_t LvFontWrapper::get_spacing_px() const
   return font_->spacing_px;
 }
 
+
 void draw_image(const lv_img_dsc_t& img, const uint32_t center_x, const uint32_t center_y)
 {
   const uint32_t start_x = center_x - img.w_px / 2;
   const uint32_t start_y = center_y - img.h_px / 2;
+  draw_image_from_top_left(img, start_x, start_y);
+}
+
+void draw_image_from_top_left(const lv_img_dsc_t& img, const uint32_t start_x, const uint32_t start_y)
+{
   uint32_t end_x = start_x + img.w_px;
   const uint32_t end_y = start_y + img.h_px;
 
@@ -247,6 +253,7 @@ void draw_image(const lv_img_dsc_t& img, const uint32_t center_x, const uint32_t
   //   Serial.println("");
   DEV_SPI_BEGIN_TRANS;
   LCD_SetWindow(start_x, start_y, end_x, end_y + 1);
+  const uint32_t span = img.has_alpha ? 4 : 3;
   for (uint32_t y = 0; y < end_y - start_y; ++y)
   {
     uint8_t px_count = 0;
@@ -258,7 +265,7 @@ void draw_image(const lv_img_dsc_t& img, const uint32_t center_x, const uint32_t
       uint32_t b = 0;
       if (x < img.w_px && y < img.h_px)
       {
-        const auto offset = (img.w_px % 2 == 0) ? y * img.w_px * 3 + x * 3 : y * (img.w_px + 1) * 3 + x * 3;
+        const auto offset = (img.w_px % 2 == 0) ? y * img.w_px * span + x * span : y * (img.w_px + 1) * span + x * span;
         // Due to little endianness it's BGR, not RGB
         b = img.data[offset];
         g = img.data[offset + 1];

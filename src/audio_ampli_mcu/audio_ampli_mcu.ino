@@ -7,6 +7,7 @@
 /// - IRemote: 4.4.1
 
 #include "audio_input_controller.h"
+#include "cat_sleep_img.h"
 #include "digit_font.h"
 #include "digit_font_droid_sans_mono.h"
 #include "digit_font_lt_superior_mono.h"
@@ -91,6 +92,10 @@ LvFontWrapper regular_bold_font(&dmsans_36pt_extrabold);
 
 void draw_volume(const bool has_state_changed = true)
 {
+  if (state_machine.get_state() == State::standby)
+  {
+    return;
+  }
   const int max_time_since_last_change = 5000;
   static auto prev_volume = volume_ctrl.get_volume_db();
   static int time_since_last_change = -max_time_since_last_change;
@@ -153,6 +158,49 @@ void draw_volume(const bool has_state_changed = true)
     draw_string_fast(buffer, min_x, start_y, max_x, font);
   }
   // prev_state = state_machine.get_state();
+}
+
+void draw_standby(const bool has_state_changed = true)
+{
+  constexpr int wait_time_between_drawing_ZZZ = 2000;
+  constexpr int number_of_ZZZ = 4;
+  static int timer = 0;
+  static int zzz_count = 0;
+  if (state_machine.get_state() != State::standby)
+  {
+    return;
+  }
+  // We just switch to standby
+  if (has_state_changed)
+  {
+    LCD_Clear_12bitRGB(BLACK_COLOR);
+    draw_image_from_top_left(cat_sleep_image, LCD_WIDTH - cat_sleep_image.w_px - 1,  LCD_HEIGHT - cat_sleep_image.h_px -1);
+    timer = millis();
+    zzz_count = 1;
+  }
+
+  if (has_state_changed || millis() - timer > wait_time_between_drawing_ZZZ)
+  {
+    timer = millis();
+
+    const auto& font = regular_bold_font;
+    constexpr int16_t start_x = 220;
+    constexpr int16_t top_y = 120;
+    const auto maybe_z_glyph = font.get_glyph('Z');
+    const int16_t spacing_x = maybe_z_glyph ? maybe_z_glyph.value()->width_px + font.get_spacing_px() + 2 : 20;
+
+    if (zzz_count > number_of_ZZZ)
+    {
+      zzz_count = 1;
+      LCD_ClearWindow_12bitRGB(
+        start_x, top_y, start_x + number_of_ZZZ * spacing_x, top_y + font.get_height_px(), BLACK_COLOR);
+    }
+    for (int i = 0; i < zzz_count; ++i)
+    {
+      draw_string_fast("Z", start_x + i * spacing_x, top_y, start_x + (i + 1) * spacing_x, font);
+    }
+    ++zzz_count;
+  }
 }
 
 void draw_audio_inputs(const bool has_state_changed = true)
@@ -328,6 +376,7 @@ void loop()
   {
     LCD_Clear_12bitRGB(BLACK_COLOR);
   }
+  draw_standby(state_changed);
   const auto audio_input_change = audio_input_ctrl.update();
   if (audio_input_change || remote_change)
   {

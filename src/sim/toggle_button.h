@@ -21,7 +21,8 @@ public:
   };
 };
 
-void toggle_button(const uint8_t pin);
+void button_pressed(const uint8_t pin, const bool is_repeat);
+void button_released(const uint8_t pin);
 
 class ToggleButton : public InputDebounce
 {
@@ -43,10 +44,16 @@ public:
   // Get current state of the toggle button
   bool get_state() const;
   void process(unsigned long);
+  // Was there a long press detected since the last call to process() ?
+  bool is_long_press() const;
+  // Was there a short press detected since the last call to process() ?
+  bool is_short_press() const;
 
 private:
   bool state_{false};
   int8_t pin_in_;
+  bool flag_short_pressed_{false};
+  bool flag_long_pressed_{false};
 };
 
 #endif  // TOG_BUTTON_GUARD_H_

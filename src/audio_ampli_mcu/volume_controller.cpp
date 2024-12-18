@@ -106,7 +106,7 @@ void VolumeController::set_gpio_based_on_volume()
 
 bool VolumeController::is_muted() const
 {
-  return mute_button_.get_state();
+  return is_muted_;
 }
 
 int32_t VolumeController::get_volume_db() const
@@ -153,16 +153,28 @@ bool VolumeController::update_volume()
 
 bool VolumeController::update_mute()
 {
-  const bool prev_mute_state = mute_button_.get_state();
   unsigned long now = millis();
   mute_button_.process(now);
-  const bool has_changed = mute_button_.get_state() != prev_mute_state;
-  if (has_changed)
+  if (mute_button_.is_short_press())
   {
+    Serial.println("Short press");
+    is_muted_ = !is_muted_;
     // digitalWrite(set_mute_pin_, is_muted() ? LOW : HIGH);  // Mute is active low
     set_gpio_based_on_volume();
   }
-  return has_changed;
+  else if (mute_button_.is_long_press())
+  {
+    Serial.println("Long press");
+    if (state_machine_ptr_->get_state() != State::standby)
+    {
+      state_machine_ptr_->change_state(State::standby);
+    }
+    else
+    {
+      state_machine_ptr_->change_state(State::main_menu);
+    }
+  }
+  return mute_button_.is_short_press() || mute_button_.is_long_press();
 }
 
 bool VolumeController::update()

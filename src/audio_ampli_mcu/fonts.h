@@ -83,9 +83,11 @@ struct lv_img_dsc_t
   uint32_t w_px;
   uint32_t h_px;
   const uint8_t* data;
+  bool has_alpha;
 };
 
 void draw_image(const lv_img_dsc_t& img, const uint32_t center_x, const uint32_t center_y);
+void draw_image_from_top_left(const lv_img_dsc_t& img, const uint32_t start_x, const uint32_t start_y);
 
 void draw_rounded_rectangle(
   const uint32_t start_x,

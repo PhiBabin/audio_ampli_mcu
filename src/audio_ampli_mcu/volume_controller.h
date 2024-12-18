@@ -85,6 +85,8 @@ private:
   PioEncoder* vol_encoder_ptr_;
   /// Toggle button for the mutting
   ToggleButton mute_button_;
+  /// Is the device muted?
+  bool is_muted_{false};
   /// If the volume/mute is change outside of the update_XX(), this keep latch the update
   bool latched_volume_updated_{false};
   /// When set_gpio_based_on_volume() is called we need to know what was previous value of the GPIOs

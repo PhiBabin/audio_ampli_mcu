@@ -164,4 +164,5 @@ const lv_img_dsc_t mute_image = {
   .w_px = 188,
   .h_px = 149,
   .data = mute_image_bitmap,
+  .has_alpha = false
 };

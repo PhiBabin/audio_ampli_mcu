@@ -65,10 +65,23 @@ int main(int argc, char* args[])
                 increment_encoder(18, 3);
                 break;
               case SDLK_m:
-                toggle_button(16);
+                button_pressed(16, event.key.repeat != 0);
                 break;
               case SDLK_e:
-                toggle_button(17);
+                button_pressed(17, event.key.repeat != 0);
+                break;
+              default:
+                break;
+            }
+            break;
+          case SDL_KEYUP:
+            switch (event.key.keysym.sym)
+            {
+              case SDLK_m:
+                button_released(16);
+                break;
+              case SDLK_e:
+                button_released(17);
                 break;
               default:
                 break;

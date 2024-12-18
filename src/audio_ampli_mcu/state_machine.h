@@ -6,7 +6,8 @@
 enum class State : uint8_t
 {
   main_menu = 0,
-  option_menu
+  option_menu,
+  standby
 };
 
 class StateMachine
