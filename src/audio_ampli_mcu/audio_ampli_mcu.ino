@@ -4,6 +4,7 @@
 /// - InputDebounce: 1.6.0
 /// - MCP23S17: 0.5.1
 /// - RP2040_PWM: 1.7.0
+/// - IRemote: 4.4.1
 
 #include "audio_input_controller.h"
 #include "digit_font.h"
@@ -15,7 +16,6 @@
 #include "options_controller.h"
 #include "persistent_data.h"
 #include "state_machine.h"
-#include "volume_controller.h"
 
 #ifdef SIM
 #include "sim/LCD_Driver.h"
@@ -26,6 +26,7 @@
 #endif
 
 #include "config.h"
+#include "remote_controller.h"
 
 #include <algorithm>
 
@@ -81,6 +82,7 @@ OptionController option_ctrl(
   out_bal_pin,
   preamp_out_pin,
   bias_pwm_pin);
+RemoteController remote_ctrl(&state_machine, &option_ctrl, &audio_input_ctrl, &volume_ctrl);
 
 LvFontWrapper digit_lt_superior_font(&lt_superior_mono, true);
 LvFontWrapper digit_droid_sans_font(&droid_sans_mono, true);
@@ -301,6 +303,7 @@ void setup()
   volume_ctrl.init();
   audio_input_ctrl.init();
   option_ctrl.init();
+  remote_ctrl.init();
 
   LCD_Init();
   LCD_Clear_12bitRGB(BLACK_COLOR);
@@ -312,8 +315,9 @@ void setup()
 
 void loop()
 {
+  const auto remote_change = remote_ctrl.decode_command();
   const auto option_change = option_ctrl.update();
-  if (option_change)
+  if (option_change || remote_change)
   {
     Serial.println("update options");
     draw_options();
@@ -325,18 +329,18 @@ void loop()
     LCD_Clear_12bitRGB(BLACK_COLOR);
   }
   const auto audio_input_change = audio_input_ctrl.update();
-  if (audio_input_change)
+  if (audio_input_change || remote_change)
   {
     option_ctrl.on_audio_input_change();
     volume_ctrl.on_audio_input_change();
   }
-  if (audio_input_change || state_changed)
+  if (audio_input_change || state_changed || remote_change)
   {
     Serial.println("update audio input");
     draw_audio_inputs(state_changed);
   }
   bool has_changed = volume_ctrl.update();
-  if (has_changed || state_changed || audio_input_change || option_change)
+  if (has_changed || state_changed || audio_input_change || option_change || remote_change)
   {
     Serial.println("update volume");
     draw_volume(state_changed);

@@ -4,11 +4,9 @@
 #ifdef SIM
 #include "sim/pio_encoder.h"
 #include "sim/toggle_button.h"
-#include "sim/RP2040_PWM.h"
 #else
 #include "pio_encoder.h"
 #include "toggle_button.h"
-#include "RP2040_PWM.h"
 #endif
 
 #include "audio_input_controller.h"
@@ -18,6 +16,10 @@
 #include "state_machine.h"
 #include "volume_controller.h"
 
+// Forward declaration
+class RP2040_PWM;
+
+/// Convert option to a human readable string.
 const char* option_to_string(const Option option);
 
 class OptionController
@@ -52,6 +54,10 @@ public:
 
   void update_gpio();
   void on_audio_input_change();
+
+  bool on_menu_press();
+  void menu_up();
+  void menu_down();
 
 private:
   bool update_selection();

@@ -38,6 +38,9 @@ public:
   // return true on change in audio input
   bool update();
 
+  void menu_up();
+  void menu_down();
+
 private:
   // Set GPIO based on state
   void set_gpio();

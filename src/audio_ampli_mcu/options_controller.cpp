@@ -1,5 +1,11 @@
 #include "options_controller.h"
 
+#ifdef SIM
+#include "sim/RP2040_PWM.h"
+#else
+#include "RP2040_PWM.h"
+#endif
+
 #include <type_traits>
 
 #define BUTTON_DEBOUNCE_DELAY 20  // [ms]
@@ -191,16 +197,8 @@ const char* OptionController::get_option_value_string(const Option& option)
   };
 }
 
-bool OptionController::update_selection()
+bool OptionController::on_menu_press()
 {
-  const bool prev_select_state = select_button_.get_state();
-  unsigned long now = millis();
-  select_button_.process(now);
-  if (select_button_.get_state() == prev_select_state)
-  {
-    return false;
-  }
-
   if (state_machine_ptr_->get_state() == State::main_menu)
   {
     state_machine_ptr_->change_state(State::option_menu);
@@ -245,11 +243,33 @@ bool OptionController::update_selection()
   return true;
 }
 
+bool OptionController::update_selection()
+{
+  const bool prev_select_state = select_button_.get_state();
+  unsigned long now = millis();
+  select_button_.process(now);
+  if (select_button_.get_state() == prev_select_state)
+  {
+    return false;
+  }
+
+  return on_menu_press();
+}
+
 bool OptionController::update()
 {
   bool has_changed = update_selection();
   has_changed |= update_encoder();
   return has_changed;
+}
+
+void OptionController::menu_up()
+{
+  increment_enum(Option::option_enum_length, selected_option_);
+}
+void OptionController::menu_down()
+{
+  decrement_enum(Option::option_enum_length, selected_option_);
 }
 
 bool OptionController::update_encoder()
@@ -273,7 +293,7 @@ bool OptionController::update_encoder()
       if (bias_ > 100)
       {
         bias_ = 100;
-      } 
+      }
       update_gpio();
     }
     else

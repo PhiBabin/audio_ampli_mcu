@@ -39,6 +39,32 @@ void AudioInputController::init()
   set_gpio();
 }
 
+void AudioInputController::menu_up()
+{
+  auto& audio_input = persistent_data_ptr_->selected_audio_input;
+  const auto max_enum_value = static_cast<uint8_t>(AudioInput::audio_input_enum_length);
+  auto audio_input_int = static_cast<uint8_t>(audio_input);
+  audio_input = static_cast<AudioInput>((audio_input_int + 1) % max_enum_value);
+  set_gpio();
+}
+
+void AudioInputController::menu_down()
+{
+  auto& audio_input = persistent_data_ptr_->selected_audio_input;
+  const auto max_enum_value = static_cast<uint8_t>(AudioInput::audio_input_enum_length);
+  auto audio_input_int = static_cast<uint8_t>(audio_input);
+  if (audio_input_int == 0)
+  {
+    audio_input_int = max_enum_value - 1;
+  }
+  else
+  {
+    --audio_input_int;
+  }
+  audio_input = static_cast<AudioInput>(audio_input_int);
+  set_gpio();
+}
+
 AudioInput AudioInputController::get_audio_input() const
 {
   return persistent_data_ptr_->selected_audio_input;
@@ -46,7 +72,6 @@ AudioInput AudioInputController::get_audio_input() const
 
 bool AudioInputController::update()
 {
-  auto& audio_input = persistent_data_ptr_->selected_audio_input;
   const int32_t current_count = audio_in_encoder_ptr_->getCount();
   if (state_machine_ptr_->get_state() == State::option_menu)
   {
@@ -54,28 +79,16 @@ bool AudioInputController::update()
     return false;
   }
 
-  const auto max_enum_value = static_cast<uint8_t>(AudioInput::audio_input_enum_length);
-  auto audio_input_int = static_cast<uint8_t>(audio_input);
   if (current_count - prev_encoder_count_ > tick_per_audio_in_)
   {
-    audio_input = static_cast<AudioInput>((audio_input_int + 1) % max_enum_value);
     prev_encoder_count_ = current_count;
-    set_gpio();
+    menu_up();
     return true;
   }
   if (-tick_per_audio_in_ > current_count - prev_encoder_count_)
   {
-    if (audio_input_int == 0)
-    {
-      audio_input_int = max_enum_value - 1;
-    }
-    else
-    {
-      --audio_input_int;
-    }
-    audio_input = static_cast<AudioInput>(audio_input_int);
     prev_encoder_count_ = current_count;
-    set_gpio();
+    menu_down();
     return true;
   }
   return false;
