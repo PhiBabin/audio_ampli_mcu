@@ -16,6 +16,7 @@ public:
     unsigned long pressed_duration = 0);
   virtual ~ToggleButton() = default;
 
+  // Overload of the process() method, this overload just clear out the flags.
   virtual unsigned long process(unsigned long now) final;
 
   // Get current state of the toggle button
@@ -34,7 +35,7 @@ private:
   bool state_;
   bool flag_short_pressed_{false};
   bool flag_long_pressed_{false};
-  bool was_released{true};
+  bool was_flag_long_pressed_triggered_{true};
 };
 
 #endif  // TOG_BUTTON_GUARD_H_

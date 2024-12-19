@@ -22,7 +22,6 @@ void LCD_write_2pixel_color(const uint32_t color_2pixels);
 void LCD_SetWindow(uint16_t Xstart, uint16_t Ystart, uint16_t Xend, uint16_t Yend);
 
 void LCD_Init(void);
-void LCD_SetBackLight(uint16_t Value);
 
 void LCD_Clear_12bitRGB(uint32_t color_12bit);
 void LCD_ClearWindow_12bitRGB(uint16_t Xstart, uint16_t Ystart, uint16_t Xend, uint16_t Yend, uint32_t color_12bit);

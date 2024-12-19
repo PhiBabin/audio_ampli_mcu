@@ -80,6 +80,27 @@
  **/
 #define DEV_Set_PWM(_Value) analogWrite(DEV_BL_PIN, _Value)
 
+#define FRAME_BUFFER_LEN (LCD_WIDTH * LCD_HEIGHT * 3 / 2)
+
+class Display
+{
+public:
+  void gpio_init();
+  void init();
+  void set_backlight(uint16_t value);
+
+  void blip_framebuffer();
+
+  void clear_screen(const uint32_t color_12bit);
+  void set_pixel(uint16_t x, uint16_t y, const uint32_t color_12bit);
+
+private:
+  void set_window(uint16_t Xstart, uint16_t Ystart, uint16_t Xend, uint16_t Yend);
+
+  uint8_t frame_buffer_[FRAME_BUFFER_LEN] = {0};
+  bool has_screen_changed{true};
+};
+
 void LCD_GPIO_Init(void);
 
 void LCD_Init(void);
@@ -91,6 +112,7 @@ void LCD_write_2pixel_color(const uint32_t color_2pixels);
 void LCD_SetBackLight(uint16_t Value);
 
 void LCD_Clear_12bitRGB(uint32_t color_12bit);
+void LCD_Clear_12bitRGB_async(uint32_t color_12bit);
 void LCD_ClearWindow_12bitRGB(uint16_t Xstart, uint16_t Ystart, uint16_t Xend, uint16_t Yend, uint32_t color_12bit);
 
 #endif

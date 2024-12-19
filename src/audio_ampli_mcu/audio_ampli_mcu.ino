@@ -85,6 +85,8 @@ OptionController option_ctrl(
   bias_pwm_pin);
 RemoteController remote_ctrl(&state_machine, &option_ctrl, &audio_input_ctrl, &volume_ctrl);
 
+Display display;
+
 LvFontWrapper digit_lt_superior_font(&lt_superior_mono, true);
 LvFontWrapper digit_droid_sans_font(&droid_sans_mono, true);
 LvFontWrapper digit_light_font(&dmsans_36pt_light, true);
@@ -174,7 +176,8 @@ void draw_standby(const bool has_state_changed = true)
   if (has_state_changed)
   {
     LCD_Clear_12bitRGB(BLACK_COLOR);
-    draw_image_from_top_left(cat_sleep_image, LCD_WIDTH - cat_sleep_image.w_px - 1,  LCD_HEIGHT - cat_sleep_image.h_px -1);
+    draw_image_from_top_left(
+      cat_sleep_image, LCD_WIDTH - cat_sleep_image.w_px - 1, LCD_HEIGHT - cat_sleep_image.h_px - 1);
     timer = millis();
     zzz_count = 1;
   }
@@ -342,7 +345,8 @@ void setup()
     persistent_data_flasher.force_save(persistent_data);
   }
 
-  LCD_GPIO_Init();
+  // LCD_GPIO_Init();
+  display.gpio_init();
   io_expander.begin();
 
   volume_encoder.begin();
@@ -353,12 +357,41 @@ void setup()
   option_ctrl.init();
   remote_ctrl.init();
 
-  LCD_Init();
-  LCD_Clear_12bitRGB(BLACK_COLOR);
+  display.init();
+  display.clear_screen(BLACK_COLOR);
+  display.blip_framebuffer();
+  // LCD_Init();
+  // LCD_Clear_12bitRGB(BLACK_COLOR);
 
   draw_options();
   draw_audio_inputs();
   draw_volume();
+}
+
+void test_draw_speed()
+{
+  const auto N = 10;
+  display.clear_screen(BLACK_COLOR);
+  const auto start = millis();
+  for (int i = 0; i < N; ++i)
+  {
+    for (uint16_t y = 0; y < LCD_HEIGHT; ++y)
+    {
+      for (uint16_t x = 0; x < LCD_WIDTH; ++x)
+      {
+        display.set_pixel(x, y, (x ^ y) % 9 == 0 ? WHITE_COLOR : BLACK_COLOR);
+      }
+    }
+
+    // LCD_Clear_12bitRGB_async(i % 2 == 0 ? BLACK_COLOR : WHITE_COLOR);
+    display.blip_framebuffer();
+  }
+  const auto end = millis();
+  Serial.print("Took total: ");
+  Serial.print(end - start);
+  Serial.print("ms or ");
+  Serial.print(static_cast<float>(end - start) / static_cast<float>(N));
+  Serial.println("ms/frame");
 }
 
 void loop()

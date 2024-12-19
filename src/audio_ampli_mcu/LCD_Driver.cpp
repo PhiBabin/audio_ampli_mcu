@@ -262,3 +262,78 @@ void LCD_write_2pixel_color(const uint32_t color_2pixels)
   DEV_SPI_WRITE(color_2pixels & 0xff);
   DEV_Digital_Write(DEV_CS_PIN, 1);
 }
+
+void Display::gpio_init()
+{
+  LCD_GPIO_Init();
+}
+
+void Display::init()
+{
+  LCD_Init();
+}
+
+void Display::set_backlight(uint16_t value)
+{
+  // TODO
+}
+
+void Display::blip_framebuffer()
+{
+  DEV_SPI_BEGIN_TRANS;
+  set_window(0, 0, LCD_WIDTH, LCD_HEIGHT);
+  DEV_Digital_Write(DEV_CS_PIN, 0);
+  DEV_Digital_Write(DEV_DC_PIN, 1);
+  SPI.transfer(frame_buffer_, nullptr, FRAME_BUFFER_LEN);
+  DEV_Digital_Write(DEV_CS_PIN, 1);
+  DEV_SPI_END_TRANS;
+}
+
+void Display::clear_screen(const uint32_t color_12bit)
+{
+  const uint8_t byte0 = (color_12bit >> 4) & 0xff;                                   // 8 MSb
+  const uint8_t byte1 = ((color_12bit & 0xf) << 4) | ((color_12bit & 0x0f00) >> 8);  // 4 LSb + 4 MSb
+  const uint8_t byte2 = color_12bit & 0xff;                                          // 8 LSb
+  // Optimization: if all bytes are the same, just use memset. In most case, we are writing all black anyway.
+  if (byte0 == byte1 && byte1 == byte2)
+  {
+    memset(frame_buffer_, byte0, FRAME_BUFFER_LEN);
+  }
+  else
+  {
+    assert(FRAME_BUFFER_LEN % 3 == 0);  // TODO: handle case where the number of pixel is not a multiple of 3
+    for (uint32_t i = 0; i < FRAME_BUFFER_LEN; i += 3)
+    {
+      frame_buffer_[i] = byte0;
+      frame_buffer_[i + 1] = byte1;
+      frame_buffer_[i + 2] = byte2;
+    }
+  }
+}
+void Display::set_pixel(uint16_t x, uint16_t y, const uint32_t color_12bit)
+{
+  if (x >= LCD_WIDTH || y >= LCD_HEIGHT)
+  {
+    return;
+  }
+  const uint32_t px_offset = static_cast<uint32_t>(y) * LCD_WIDTH + x;
+  const uint32_t bytes_offset = px_offset * 3 / 2;
+  // Because pixels take 1.5bytes, we need to handle the case where the pixel is at the start of a byte or at the end
+  if ((px_offset & 1) == 0)
+  {
+    frame_buffer_[bytes_offset] = (color_12bit >> 4) & 0xff;  // 8 MSb
+    frame_buffer_[bytes_offset + 1] =
+      ((color_12bit & 0xf) << 4) | (frame_buffer_[bytes_offset + 1] & 0x0f);  // 4 LSb + next pixel's 4 MSb;
+  }
+  else
+  {
+    frame_buffer_[bytes_offset] =
+      (frame_buffer_[bytes_offset] & 0xf0) | ((color_12bit & 0xf0) >> 4);  // previous pixel's 4 LSb + 4 MSb
+    frame_buffer_[bytes_offset + 1] = color_12bit & 0xff;                  // 8 LSb
+  }
+}
+
+void Display::set_window(const uint16_t x_start, const uint16_t y_start, const uint16_t x_end, const uint16_t y_end)
+{
+  LCD_SetWindow(x_start, y_start, x_end, y_end);
+}

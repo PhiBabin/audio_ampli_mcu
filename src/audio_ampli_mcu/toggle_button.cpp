@@ -19,10 +19,10 @@ unsigned long ToggleButton::process(unsigned long now)
 
 void ToggleButton::pressedDuration(unsigned long duration)
 {
-  if (duration > LONG_PRESS_MS && was_released)
+  if (duration > LONG_PRESS_MS && was_flag_long_pressed_triggered_)
   {
     flag_long_pressed_ = true;
-    was_released = false;
+    was_flag_long_pressed_triggered_ = false;
   }
 }
 
@@ -38,7 +38,7 @@ void ToggleButton::releasedDuration(unsigned long duration)
   {
     flag_short_pressed_ = true;
   }
-  was_released = true;
+  was_flag_long_pressed_triggered_ = true;
 }
 
 bool ToggleButton::is_long_press() const
