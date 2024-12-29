@@ -14,10 +14,12 @@ long map(long x, long in_min, long in_max, long out_min, long out_max);
 #define constrain(amt, low, high) ((amt) < (low) ? (low) : ((amt) > (high) ? (high) : (amt)))
 
 void pinMode(int pin, int input_output);
+int digitalRead(int pin);
 void digitalWrite(int pin, int input_output);
 void delayMicroseconds(const unsigned us);
 
 unsigned long millis();
+void delay(const int ms);
 
 #define HIGH 0x1
 #define LOW 0x0
@@ -30,11 +32,11 @@ class SerialObject
 public:
   bool begin(int baudrate);
   void print(const char* text);
-  void print(const int32_t number);
-  void print(const uint32_t number);
+  void print(const int number);
+  // void print(const uint32_t number);
   void println(const char* text);
-  void println(const int32_t number);
-  void println(const uint32_t number);
+  void println(const int number);
+  // void println(const uint32_t number);
 };
 
 class EEPROMClass

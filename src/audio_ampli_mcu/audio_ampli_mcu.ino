@@ -6,6 +6,7 @@
 /// - RP2040_PWM: 1.7.0
 /// - IRemote: 4.4.1
 
+#include "LCD_Driver.h"
 #include "audio_input_controller.h"
 #include "cat_sleep_img.h"
 #include "digit_font.h"
@@ -19,10 +20,8 @@
 #include "state_machine.h"
 
 #ifdef SIM
-#include "sim/LCD_Driver.h"
 #include "sim/pio_encoder.h"
 #else
-#include "LCD_Driver.h"
 #include "pio_encoder.h"
 #endif
 
@@ -114,7 +113,8 @@ void draw_volume(const bool has_state_changed = true)
     const uint32_t y_text_top = (y_end - regular_bold_font.get_height_px()) / 2;
     if (has_state_changed)
     {
-      LCD_ClearWindow_12bitRGB(0, 0, LCD_WIDTH, y_end, BLACK_COLOR);
+      // LCD_ClearWindow_12bitRGB(
+      display.set_rectangle(0, 0, LCD_WIDTH, y_end, BLACK_COLOR);
     }
     // prev_state = state_machine.get_state();
     if (millis() - time_since_last_change >= max_time_since_last_change)
@@ -131,7 +131,7 @@ void draw_volume(const bool has_state_changed = true)
     {
       sprintf(option_buffer, "Vol: %ddB", volume_ctrl.get_volume_db());
     }
-    draw_string_fast(option_buffer, 0, y_text_top, LCD_WIDTH, regular_bold_font);
+    draw_string_fast(display, option_buffer, 0, y_text_top, LCD_WIDTH, regular_bold_font);
     return;
   }
   static bool prev_mute_state = volume_ctrl.is_muted();
@@ -147,17 +147,18 @@ void draw_volume(const bool has_state_changed = true)
 
   if (prev_mute_state != volume_ctrl.is_muted())
   {
-    LCD_ClearWindow_12bitRGB(min_x, 0, max_x, LCD_HEIGHT, BLACK_COLOR);
+    // LCD_ClearWindow_12bitRGB(
+    display.set_rectangle(min_x, 0, max_x, LCD_HEIGHT, BLACK_COLOR);
     prev_mute_state = volume_ctrl.is_muted();
   }
 
   if (volume_ctrl.is_muted())
   {
-    draw_image(mute_image, (max_x - min_x) / 2 + min_x + 3, middle_y);
+    draw_image(display, mute_image, (max_x - min_x) / 2 + min_x + 3, middle_y);
   }
   else
   {
-    draw_string_fast(buffer, min_x, start_y, max_x, font);
+    draw_string_fast(display, buffer, min_x, start_y, max_x, font);
   }
   // prev_state = state_machine.get_state();
 }
@@ -175,9 +176,9 @@ void draw_standby(const bool has_state_changed = true)
   // We just switch to standby
   if (has_state_changed)
   {
-    LCD_Clear_12bitRGB(BLACK_COLOR);
+    display.clear_screen(BLACK_COLOR);
     draw_image_from_top_left(
-      cat_sleep_image, LCD_WIDTH - cat_sleep_image.w_px - 1, LCD_HEIGHT - cat_sleep_image.h_px - 1);
+      display, cat_sleep_image, LCD_WIDTH - cat_sleep_image.w_px - 1, LCD_HEIGHT - cat_sleep_image.h_px - 1);
     timer = millis();
     zzz_count = 1;
   }
@@ -195,12 +196,14 @@ void draw_standby(const bool has_state_changed = true)
     if (zzz_count > number_of_ZZZ)
     {
       zzz_count = 1;
-      LCD_ClearWindow_12bitRGB(
+      // LCD_ClearWindow_12bitRGB(
+
+      display.set_rectangle(
         start_x, top_y, start_x + number_of_ZZZ * spacing_x, top_y + font.get_height_px(), BLACK_COLOR);
     }
     for (int i = 0; i < zzz_count; ++i)
     {
-      draw_string_fast("Z", start_x + i * spacing_x, top_y, start_x + (i + 1) * spacing_x, font);
+      draw_string_fast(display, "Z", start_x + i * spacing_x, top_y, start_x + (i + 1) * spacing_x, font);
     }
     ++zzz_count;
   }
@@ -224,7 +227,8 @@ void draw_audio_inputs(const bool has_state_changed = true)
 
   if (has_state_changed)
   {
-    LCD_ClearWindow_12bitRGB(0, 0, tab_width_px + 1, LCD_HEIGHT, BLACK_COLOR);
+    // LCD_ClearWindow_12bitRGB(
+    display.set_rectangle(0, 0, tab_width_px + 1, LCD_HEIGHT, BLACK_COLOR);
   }
   else if (prev_audio_input == audio_input_ctrl.get_audio_input())
   {
@@ -244,6 +248,7 @@ void draw_audio_inputs(const bool has_state_changed = true)
     if (is_selected)
     {
       draw_rounded_rectangle(
+        display,
         0,
         curr_option_box_top_y,
         tab_width_px,
@@ -254,13 +259,21 @@ void draw_audio_inputs(const bool has_state_changed = true)
     }
     else if (was_previously_selected)
     {
-      LCD_ClearWindow_12bitRGB(
+      // LCD_ClearWindow_12bitRGB(
+      display.set_rectangle(
         0, curr_option_box_top_y, tab_width_px, curr_option_box_top_y + tab_height_px + 1, BLACK_COLOR);
     }
     if (is_selected || was_previously_selected || has_state_changed)
     {
       draw_string_fast(
-        audio_input_to_string(audio_input), 0, curr_option_text_top_y, tab_width_px, font, !is_selected, false);
+        display,
+        audio_input_to_string(audio_input),
+        0,
+        curr_option_text_top_y,
+        tab_width_px,
+        font,
+        !is_selected,
+        false);
     }
   }
   prev_audio_input = audio_input_ctrl.get_audio_input();
@@ -283,7 +296,9 @@ void draw_options()
 
   if (prev_state != state_machine.get_state())
   {
-    LCD_ClearWindow_12bitRGB(0, 0, LCD_WIDTH, LCD_HEIGHT, BLACK_COLOR);
+    // LCD_ClearWindow_12bitRGB(0, 0, LCD_WIDTH, LCD_HEIGHT, BLACK_COLOR);
+
+    display.clear_screen(BLACK_COLOR);
   }
 
   for (uint8_t enum_value = 0; enum_value < max_enum_value; ++enum_value)
@@ -298,7 +313,9 @@ void draw_options()
     if (is_selected || is_prev_selected_option)
     {
       const auto curr_option_box_top_y = curr_option_center_y - ver_spacing / 2;
-      LCD_ClearWindow_12bitRGB(
+
+      // LCD_ClearWindow_12bitRGB(
+      display.set_rectangle(
         0,
         curr_option_box_top_y,
         LCD_WIDTH,
@@ -309,12 +326,14 @@ void draw_options()
     // Back is centered
     if (option == Option::back)
     {
-      draw_string_fast("BACK", 0, curr_option_text_top_y, LCD_WIDTH, font, !is_selected, false);
+      draw_string_fast(display, "BACK", 0, curr_option_text_top_y, LCD_WIDTH, font, !is_selected, false);
     }  // Other option have a field name and values
     else
     {
-      draw_string_fast(option_to_string(option), 0, curr_option_text_top_y, LCD_WIDTH / 2, font, !is_selected, false);
       draw_string_fast(
+        display, option_to_string(option), 0, curr_option_text_top_y, LCD_WIDTH / 2, font, !is_selected, false);
+      draw_string_fast(
+        display,
         option_ctrl.get_option_value_string(option),
         LCD_WIDTH / 2,
         curr_option_text_top_y,
@@ -326,6 +345,56 @@ void draw_options()
   }
   prev_state = state_machine.get_state();
   prev_selected_option = option_ctrl.get_selected_option();
+}
+
+void test_draw_speed()
+{
+  const auto N = 10;
+  display.clear_screen(BLACK_COLOR);
+  const auto start = millis();
+  for (int i = 0; i < N; ++i)
+  {
+    for (uint16_t y = 0; y < LCD_HEIGHT; ++y)
+    {
+      for (uint16_t x = 0; x < LCD_WIDTH; ++x)
+      {
+        display.set_pixel(x, y, (x ^ y) % 9 == 0 ? WHITE_COLOR : BLACK_COLOR);
+      }
+    }
+
+    // LCD_Clear_12bitRGB_async(i % 2 == 0 ? BLACK_COLOR : WHITE_COLOR);
+    display.blip_framebuffer();
+  }
+  const auto end = millis();
+  Serial.print("Took total: ");
+  Serial.print(end - start);
+  Serial.print("ms or ");
+  Serial.print(static_cast<float>(end - start) / static_cast<float>(N));
+  Serial.println("ms/frame");
+}
+
+void test_clear_rectangle()
+{
+  const auto N = 5;
+  display.clear_screen(BLACK_COLOR);
+
+  Serial.println("---------------------------------------");
+  // display.set_rectangle(10, 20, 20, 30, WHITE_COLOR);
+  for (int i = 0; i < N; ++i)
+  {
+    Serial.println("+++++++++++++++++++++++++++++++++++++");
+    int x_start = 10 + i;
+    for (int width = 1; width < 10; ++width)
+    {
+      display.set_rectangle(x_start, 10 + 34 * i, x_start + width, 30 + 34 * i, WHITE_COLOR);
+      x_start += width + 5;
+    }
+  }
+  display.blip_framebuffer();
+  Serial.println("ms/frame");
+  while (true)
+  {
+  }
 }
 
 void setup()
@@ -368,34 +437,10 @@ void setup()
   draw_volume();
 }
 
-void test_draw_speed()
-{
-  const auto N = 10;
-  display.clear_screen(BLACK_COLOR);
-  const auto start = millis();
-  for (int i = 0; i < N; ++i)
-  {
-    for (uint16_t y = 0; y < LCD_HEIGHT; ++y)
-    {
-      for (uint16_t x = 0; x < LCD_WIDTH; ++x)
-      {
-        display.set_pixel(x, y, (x ^ y) % 9 == 0 ? WHITE_COLOR : BLACK_COLOR);
-      }
-    }
-
-    // LCD_Clear_12bitRGB_async(i % 2 == 0 ? BLACK_COLOR : WHITE_COLOR);
-    display.blip_framebuffer();
-  }
-  const auto end = millis();
-  Serial.print("Took total: ");
-  Serial.print(end - start);
-  Serial.print("ms or ");
-  Serial.print(static_cast<float>(end - start) / static_cast<float>(N));
-  Serial.println("ms/frame");
-}
-
 void loop()
 {
+  // test_clear_rectangle();
+  // return;
   const auto remote_change = remote_ctrl.decode_command();
   const auto option_change = option_ctrl.update();
   if (option_change || remote_change)
@@ -407,7 +452,7 @@ void loop()
   const auto state_changed = state_machine.update();
   if (state_changed && state_machine.get_state() == State::main_menu)
   {
-    LCD_Clear_12bitRGB(BLACK_COLOR);
+    display.clear_screen(BLACK_COLOR);
   }
   draw_standby(state_changed);
   const auto audio_input_change = audio_input_ctrl.update();
@@ -429,4 +474,5 @@ void loop()
   }
 
   persistent_data_flasher.save(persistent_data);
+  display.blip_framebuffer();
 }

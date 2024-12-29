@@ -2,9 +2,15 @@
 #ifndef __FONTS_H
 #define __FONTS_H
 
+#include "LCD_Driver.h"
+
 #include <optional>
 #include <stdint.h>
 #include <unordered_map>
+#ifdef SIM
+#include "sim/arduino.h"
+#else
+#endif
 
 const uint32_t WHITE_COLOR = 0xfff;
 const uint32_t BLACK_COLOR = 0x0;
@@ -67,9 +73,14 @@ private:
 };
 
 void draw_character_fast(
-  const LvFontWrapper::LvGlyph* glyph, const uint32_t start_x, const uint32_t start_y, bool is_white_on_black = true);
+  Display& display,
+  const LvFontWrapper::LvGlyph* glyph,
+  const uint32_t start_x,
+  const uint32_t start_y,
+  bool is_white_on_black = true);
 
 void draw_string_fast(
+  Display& display,
   const char* str,
   const uint32_t start_x,
   const uint32_t start_y,
@@ -86,10 +97,12 @@ struct lv_img_dsc_t
   bool has_alpha;
 };
 
-void draw_image(const lv_img_dsc_t& img, const uint32_t center_x, const uint32_t center_y);
-void draw_image_from_top_left(const lv_img_dsc_t& img, const uint32_t start_x, const uint32_t start_y);
+void draw_image(Display& display, const lv_img_dsc_t& img, const uint32_t center_x, const uint32_t center_y);
+void draw_image_from_top_left(
+  Display& display, const lv_img_dsc_t& img, const uint32_t start_x, const uint32_t start_y);
 
 void draw_rounded_rectangle(
+  Display& display,
   const uint32_t start_x,
   const uint32_t start_y,
   uint32_t end_x,

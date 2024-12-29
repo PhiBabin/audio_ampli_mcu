@@ -36,9 +36,13 @@
 #define __LCD_DRIVER_H
 
 #include <SPI.h>
-#include <avr/pgmspace.h>
 #include <stdint.h>
 #include <stdio.h>
+
+#ifdef SIM
+#include "sim/arduino.h"
+#else
+#endif
 
 #define LCD_BACKLIGHT 57  // Between 0-256 for 0 to 100% brightness
 
@@ -58,6 +62,14 @@
 #define DEV_DOUT_PIN 0
 
 /**
+ * Registers
+ */
+
+#define LCD_REG_COL_ADDR_SET 0x2a
+#define LCD_REG_ROW_ADDR_SET 0x2b
+#define LCD_REG_MEM_WRITE 0x2C
+
+/**
  * GPIO read and write
  **/
 #define DEV_Digital_Write(_pin, _value) digitalWrite(_pin, _value == 0 ? LOW : HIGH)
@@ -69,11 +81,6 @@
  * SPI
  **/
 #define DEV_SPI_WRITE(_dat) SPI.transfer(_dat)
-
-/**
- * delay x ms
- **/
-#define DEV_Delay_ms(__xms) delay(__xms)
 
 /**
  * PWM_BL
@@ -92,27 +99,20 @@ public:
   void blip_framebuffer();
 
   void clear_screen(const uint32_t color_12bit);
-  void set_pixel(uint16_t x, uint16_t y, const uint32_t color_12bit);
+  void set_rectangle(
+    const uint16_t x_start_,
+    const uint16_t y_start_,
+    const uint16_t x_end_,
+    const uint16_t y_end_,
+    const uint32_t color_12bit);
+  void set_pixel(const uint16_t x, const uint16_t y, const uint32_t color_12bit);
+  void set_pixel_unsafe(const uint16_t x, const uint16_t y, const uint32_t color_12bit);
 
 private:
-  void set_window(uint16_t Xstart, uint16_t Ystart, uint16_t Xend, uint16_t Yend);
+  void set_window(const uint16_t x_start, const uint16_t y_start, const uint16_t x_end, const uint16_t y_end);
 
   uint8_t frame_buffer_[FRAME_BUFFER_LEN] = {0};
   bool has_screen_changed{true};
 };
-
-void LCD_GPIO_Init(void);
-
-void LCD_Init(void);
-
-void LCD_SetWindow(uint16_t Xstart, uint16_t Ystart, uint16_t Xend, uint16_t Yend);
-
-void LCD_write_2pixel_color(const uint32_t color_2pixels);
-
-void LCD_SetBackLight(uint16_t Value);
-
-void LCD_Clear_12bitRGB(uint32_t color_12bit);
-void LCD_Clear_12bitRGB_async(uint32_t color_12bit);
-void LCD_ClearWindow_12bitRGB(uint16_t Xstart, uint16_t Ystart, uint16_t Xend, uint16_t Yend, uint32_t color_12bit);
 
 #endif

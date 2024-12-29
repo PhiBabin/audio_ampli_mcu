@@ -1,4 +1,5 @@
-#include "sim/LCD_Driver.h"
+#include "audio_ampli_mcu/LCD_Driver.h"
+#include "sim/lcd_simulator.h"
 #include "sim/pio_encoder.h"
 #include "sim/toggle_button.h"
 

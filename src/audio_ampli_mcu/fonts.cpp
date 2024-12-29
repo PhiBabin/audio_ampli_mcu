@@ -3,19 +3,13 @@
 #include <algorithm>
 #include <cstring>
 
-#ifdef SIM
-#include "sim/LCD_Driver.h"
-#include "sim/arduino.h"
-#else
-#include "LCD_Driver.h"
-#endif
-
 #ifdef MAX
 #undef MAX
 #endif
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
 void draw_character_fast(
+  Display& display,
   const LvFontWrapper::LvGlyph* glyph,
   const uint32_t start_x,
   const uint32_t start_y,
@@ -37,13 +31,10 @@ void draw_character_fast(
   //   Serial.print("end_x=");
   //   Serial.print(end_x);
   //   Serial.println("");
-  // LCD will auto increment the row when we reach columns == end_x
-  DEV_SPI_BEGIN_TRANS;
-  LCD_SetWindow(start_x, start_y, end_x, end_y + 1);
+
   for (uint32_t y = 0; y < end_y - start_y; ++y)
   {
-    uint8_t px_count = 0;
-    uint32_t color_2pixels = 0;
+    uint32_t rgb444_color = 0;
     for (uint32_t x = 0; x < end_x - start_x; ++x)
     {
       auto color_4bit = glyph->get_color(x, y);
@@ -52,20 +43,41 @@ void draw_character_fast(
         color_4bit = 0xf - (color_4bit & 0xf);
       }
       // Convert 4bit grayscale to four 4bit RGB
-      color_2pixels = (color_2pixels << 12) | (color_4bit << 8 | color_4bit << 4 | color_4bit);
-      ++px_count;
-      if (px_count == 2)
-      {
-        LCD_write_2pixel_color(color_2pixels);
-        px_count = 0;
-        color_2pixels = 0;
-      }
+      rgb444_color = (color_4bit << 8 | color_4bit << 4 | color_4bit);
+      display.set_pixel_unsafe(x + start_x, y + start_y, rgb444_color);
     }
   }
-  DEV_SPI_END_TRANS;
+
+  // LCD will auto increment the row when we reach columns == end_x
+  // DEV_SPI_BEGIN_TRANS;
+  // LCD_SetWindow(start_x, start_y, end_x, end_y + 1);
+  // for (uint32_t y = 0; y < end_y - start_y; ++y)
+  // {
+  //   uint8_t px_count = 0;
+  //   uint32_t color_2pixels = 0;
+  //   for (uint32_t x = 0; x < end_x - start_x; ++x)
+  //   {
+  //     auto color_4bit = glyph->get_color(x, y);
+  //     if (!is_white_on_black)
+  //     {
+  //       color_4bit = 0xf - (color_4bit & 0xf);
+  //     }
+  //     // Convert 4bit grayscale to four 4bit RGB
+  //     color_2pixels = (color_2pixels << 12) | (color_4bit << 8 | color_4bit << 4 | color_4bit);
+  //     ++px_count;
+  //     if (px_count == 2)
+  //     {
+  //       LCD_write_2pixel_color(color_2pixels);
+  //       px_count = 0;
+  //       color_2pixels = 0;
+  //     }
+  //   }
+  // }
+  // DEV_SPI_END_TRANS;
 }
 
 void draw_string_fast(
+  Display& display,
   const char* str,
   const uint32_t start_x,
   const uint32_t start_y,
@@ -112,12 +124,14 @@ void draw_string_fast(
   if (start_x < start_text_x && clear_side)
   {
     // whiteout
-    LCD_ClearWindow_12bitRGB(start_x, start_y, start_text_x + 1, end_y, is_white_on_black ? BLACK_COLOR : WHITE_COLOR);
+    // LCD_ClearWindow_12bitRGB(
+    display.set_rectangle(start_x, start_y, start_text_x + 1, end_y, is_white_on_black ? BLACK_COLOR : WHITE_COLOR);
   }
   if (end_text_x < end_x && clear_side)
   {
     // whiteout
-    LCD_ClearWindow_12bitRGB(end_text_x, start_y, end_x + 1, end_y, is_white_on_black ? BLACK_COLOR : WHITE_COLOR);
+    // LCD_ClearWindow_12bitRGB(
+    display.set_rectangle(end_text_x, start_y, end_x + 1, end_y, is_white_on_black ? BLACK_COLOR : WHITE_COLOR);
   }
   str_temp = str;
   auto current_text_x = start_text_x;
@@ -127,7 +141,7 @@ void draw_string_fast(
     {
       // If next character is null byte, we reach end of string
       const bool do_draw_spacing = str_temp[1] != '\0';
-      draw_character_fast(*maybe_glyph, current_text_x, start_y, is_white_on_black, do_draw_spacing);
+      draw_character_fast(display, *maybe_glyph, current_text_x, start_y, is_white_on_black, do_draw_spacing);
       current_text_x += maybe_glyph.value()->width_px + font.get_spacing_px();
     }
     ++str_temp;
@@ -228,15 +242,14 @@ uint32_t LvFontWrapper::get_spacing_px() const
   return font_->spacing_px;
 }
 
-
-void draw_image(const lv_img_dsc_t& img, const uint32_t center_x, const uint32_t center_y)
+void draw_image(Display& display, const lv_img_dsc_t& img, const uint32_t center_x, const uint32_t center_y)
 {
   const uint32_t start_x = center_x - img.w_px / 2;
   const uint32_t start_y = center_y - img.h_px / 2;
-  draw_image_from_top_left(img, start_x, start_y);
+  draw_image_from_top_left(display, img, start_x, start_y);
 }
 
-void draw_image_from_top_left(const lv_img_dsc_t& img, const uint32_t start_x, const uint32_t start_y)
+void draw_image_from_top_left(Display& display, const lv_img_dsc_t& img, const uint32_t start_x, const uint32_t start_y)
 {
   uint32_t end_x = start_x + img.w_px;
   const uint32_t end_y = start_y + img.h_px;
@@ -251,13 +264,11 @@ void draw_image_from_top_left(const lv_img_dsc_t& img, const uint32_t start_x, c
   //   Serial.print("end_x=");
   //   Serial.print(end_x);
   //   Serial.println("");
-  DEV_SPI_BEGIN_TRANS;
-  LCD_SetWindow(start_x, start_y, end_x, end_y + 1);
+
   const uint32_t span = img.has_alpha ? 4 : 3;
   for (uint32_t y = 0; y < end_y - start_y; ++y)
   {
-    uint8_t px_count = 0;
-    uint32_t color_2pixels = 0;
+    uint32_t rgb444_color = 0;
     for (uint32_t x = 0; x < end_x - start_x; ++x)
     {
       uint32_t r = 0;
@@ -276,20 +287,59 @@ void draw_image_from_top_left(const lv_img_dsc_t& img, const uint32_t start_x, c
       g >>= 4;
       b >>= 4;
       // Convert 4bit grayscale to four 4bit RGB
-      color_2pixels = (color_2pixels << 12) | ((r << 8) | (g << 4) | b);
-      ++px_count;
-      if (px_count == 2)
-      {
-        LCD_write_2pixel_color(color_2pixels);
-        px_count = 0;
-        color_2pixels = 0;
-      }
+      rgb444_color = ((r << 8) | (g << 4) | b);
+      display.set_pixel_unsafe(x + start_x, y + start_y, rgb444_color);
+      // color_2pixels = (color_2pixels << 12) | ((r << 8) | (g << 4) | b);
+      // ++px_count;
+      // if (px_count == 2)
+      // {
+      //   LCD_write_2pixel_color(color_2pixels);
+      //   px_count = 0;
+      //   color_2pixels = 0;
+      // }
     }
   }
-  DEV_SPI_END_TRANS;
+  // DEV_SPI_BEGIN_TRANS;
+  // LCD_SetWindow(start_x, start_y, end_x, end_y + 1);
+  // const uint32_t span = img.has_alpha ? 4 : 3;
+  // for (uint32_t y = 0; y < end_y - start_y; ++y)
+  // {
+  //   uint8_t px_count = 0;
+  //   uint32_t color_2pixels = 0;
+  //   for (uint32_t x = 0; x < end_x - start_x; ++x)
+  //   {
+  //     uint32_t r = 0;
+  //     uint32_t g = 0;
+  //     uint32_t b = 0;
+  //     if (x < img.w_px && y < img.h_px)
+  //     {
+  //       const auto offset = (img.w_px % 2 == 0) ? y * img.w_px * span + x * span : y * (img.w_px + 1) * span + x *
+  //       span;
+  //       // Due to little endianness it's BGR, not RGB
+  //       b = img.data[offset];
+  //       g = img.data[offset + 1];
+  //       r = img.data[offset + 2];
+  //     }
+  //     // 8 bit -> 4bit
+  //     r >>= 4;
+  //     g >>= 4;
+  //     b >>= 4;
+  //     // Convert 4bit grayscale to four 4bit RGB
+  //     color_2pixels = (color_2pixels << 12) | ((r << 8) | (g << 4) | b);
+  //     ++px_count;
+  //     if (px_count == 2)
+  //     {
+  //       LCD_write_2pixel_color(color_2pixels);
+  //       px_count = 0;
+  //       color_2pixels = 0;
+  //     }
+  //   }
+  // }
+  // DEV_SPI_END_TRANS;
 }
 
 void draw_rounded_rectangle(
+  Display& display,
   const uint32_t start_x,
   const uint32_t start_y,
   uint32_t end_x,
@@ -313,13 +363,8 @@ void draw_rounded_rectangle(
   //   Serial.print("end_x=");
   //   Serial.print(end_x);
   //   Serial.println("");
-  // LCD will auto increment the row when we reach columns == end_x
-  DEV_SPI_BEGIN_TRANS;
-  LCD_SetWindow(start_x, start_y, end_x, end_y + 1);
   for (uint32_t y = 0; y < height_px; ++y)
   {
-    uint8_t px_count = 0;
-    uint32_t color_2pixels = 0;
     for (uint32_t x = 0; x < width_px; ++x)
     {
       bool is_fill = true;
@@ -333,17 +378,44 @@ void draw_rounded_rectangle(
         is_fill = corner_x + corner_y > 3 && (corner_x != 0 || corner_y > 4);
       }
 
-      auto color_4bit = (is_fill && is_white_on_black) || (!is_fill && !is_white_on_black) ? WHITE_COLOR : BLACK_COLOR;
-      // Convert 4bit grayscale to four 4bit RGB
-      color_2pixels = (color_2pixels << 12) | (color_4bit << 8 | color_4bit << 4 | color_4bit);
-      ++px_count;
-      if (px_count == 2)
-      {
-        LCD_write_2pixel_color(color_2pixels);
-        px_count = 0;
-        color_2pixels = 0;
-      }
+      auto rgb444_color =
+        (is_fill && is_white_on_black) || (!is_fill && !is_white_on_black) ? WHITE_COLOR : BLACK_COLOR;
+      display.set_pixel_unsafe(x + start_x, y + start_y, rgb444_color);
+      // color_2pixels = (color_2pixels << 12) | (color_4bit << 8 | color_4bit << 4 | color_4bit);
     }
   }
-  DEV_SPI_END_TRANS;
+  // LCD will auto increment the row when we reach columns == end_x
+  // DEV_SPI_BEGIN_TRANS;
+  // LCD_SetWindow(start_x, start_y, end_x, end_y + 1);
+  // for (uint32_t y = 0; y < height_px; ++y)
+  // {
+  //   uint8_t px_count = 0;
+  //   uint32_t color_2pixels = 0;
+  //   for (uint32_t x = 0; x < width_px; ++x)
+  //   {
+  //     bool is_fill = true;
+  //     if ((x < width_px / 2 && rounded_left) || (x >= width_px / 2 && rounded_right))
+  //     {
+  //       // Convert x/y to corner coordinate (origin is the closest corner)
+  //       const auto corner_x = x < width_px / 2 ? x : width_px - x - 1;
+  //       const auto corner_y = y < height_px / 2 ? y : height_px - y - 1;
+
+  //       // Rounded corner conditions
+  //       is_fill = corner_x + corner_y > 3 && (corner_x != 0 || corner_y > 4);
+  //     }
+
+  //     auto color_4bit = (is_fill && is_white_on_black) || (!is_fill && !is_white_on_black) ? WHITE_COLOR :
+  //     BLACK_COLOR;
+  //     // Convert 4bit grayscale to four 4bit RGB
+  //     color_2pixels = (color_2pixels << 12) | (color_4bit << 8 | color_4bit << 4 | color_4bit);
+  //     ++px_count;
+  //     if (px_count == 2)
+  //     {
+  //       LCD_write_2pixel_color(color_2pixels);
+  //       px_count = 0;
+  //       color_2pixels = 0;
+  //     }
+  //   }
+  // }
+  // DEV_SPI_END_TRANS;
 }

@@ -4,8 +4,18 @@
 #include <fstream>
 #include <iostream>
 
+#define GPIO_COUNT 28
+
 SerialObject Serial;
 EEPROMClass EEPROM;
+
+struct Gpio
+{
+  int direction{INPUT};
+  int value{LOW};
+};
+
+Gpio gpios[GPIO_COUNT] = {};
 
 long map(long x, long in_min, long in_max, long out_min, long out_max)
 {
@@ -14,15 +24,37 @@ long map(long x, long in_min, long in_max, long out_min, long out_max)
 
 void pinMode(int pin, int input_output)
 {
+  if (pin >= 0 && pin < GPIO_COUNT)
+  {
+    gpios[pin].direction = input_output;
+  }
 }
 
 void digitalWrite(int pin, int input_output)
 {
+  if (pin >= 0 && pin < GPIO_COUNT)
+  {
+    gpios[pin].value = input_output;
+  }
+}
+
+int digitalRead(int pin)
+{
+  if (pin >= 0 && pin < GPIO_COUNT)
+  {
+    return gpios[pin].value;
+  }
+  return 0;
 }
 
 unsigned long millis()
 {
   return static_cast<unsigned long>(SDL_GetTicks());
+}
+
+void delay(const int ms)
+{
+  SDL_Delay(ms);
 }
 
 bool SerialObject::begin(int baudrate)
@@ -33,22 +65,22 @@ void SerialObject::print(const char* text)
 {
   std::cout << text << std::flush;
 }
-void SerialObject::print(const uint32_t number)
+void SerialObject::print(const int number)
 {
   std::cout << std::to_string(number) << std::flush;
 }
 
-void SerialObject::print(const int32_t number)
-{
-  std::cout << std::to_string(number) << std::flush;
-}
+// void SerialObject::print(const int32_t number)
+// {
+//   std::cout << std::to_string(number) << std::flush;
+// }
 
-void SerialObject::println(const uint32_t number)
-{
-  std::cout << std::to_string(number) << std::endl;
-}
+// void SerialObject::println(const uint32_t number)
+// {
+//   std::cout << std::to_string(number) << std::endl;
+// }
 
-void SerialObject::println(const int32_t number)
+void SerialObject::println(const int number)
 {
   std::cout << std::to_string(number) << std::endl;
 }

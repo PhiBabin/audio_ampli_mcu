@@ -24,15 +24,17 @@ GIF_GENERATOR_BIN = $(BIN_DIR)/gif_generator
 SIMULATOR_SRC = sim/main_simulator.cpp
 GIF_GENERATOR_SRC = sim/main_gif_generator.cpp
 
-COMMON_SRC = sim/LCD_Driver.cpp \
+COMMON_SRC = sim/lcd_simulator.cpp \
       sim/pio_encoder.cpp \
       sim/MCP23S17.cpp \
       sim/TinyIRReceiver.cpp \
       sim/toggle_button.cpp \
       sim/RP2040_PWM.cpp \
       sim/arduino.cpp \
+      sim/SPI.cpp \
 	  audio_ampli_mcu/audio_ampli_mcu.ino \
 	  audio_ampli_mcu/fonts.cpp \
+	  audio_ampli_mcu/LCD_Driver.cpp \
 	  audio_ampli_mcu/persistent_data.cpp \
 	  audio_ampli_mcu/options_controller.cpp \
 	  audio_ampli_mcu/io_expander.cpp \

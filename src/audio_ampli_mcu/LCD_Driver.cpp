@@ -31,6 +31,8 @@
 
 #include "RP2040_PWM.h"
 
+#include <cassert>
+
 /// PWM instance to control backlight
 RP2040_PWM* PWM_Instance;
 
@@ -62,11 +64,11 @@ function:
 *******************************************************************************/
 static void LCD_Reset(void)
 {
-  DEV_Delay_ms(200);
+  delay(200);
   DEV_Digital_Write(DEV_RST_PIN, 0);
-  DEV_Delay_ms(200);
+  delay(200);
   DEV_Digital_Write(DEV_RST_PIN, 1);
-  DEV_Delay_ms(200);
+  delay(200);
 }
 
 /*******************************************************************************
@@ -199,70 +201,6 @@ void LCD_Init(void)
   DEV_SPI_END_TRANS;
 }
 
-/******************************************************************************
-function:	Set the cursor position
-parameter	:
-    Xstart: 	Start uint16_t x coordinate
-    Ystart:	Start uint16_t y coordinate
-    Xend  :	End uint16_t coordinates
-    Yend  :	End uint16_t coordinatesen
-******************************************************************************/
-void LCD_SetWindow(uint16_t Xstart, uint16_t Ystart, uint16_t Xend, uint16_t Yend)
-{
-  LCD_Write_Command(0x2a);  // (2Ah): Column Address Set
-  LCD_WriteData_Byte(Xstart >> 8);
-  LCD_WriteData_Byte(Xstart & 0xff);
-  LCD_WriteData_Byte((Xend - 1) >> 8);
-  LCD_WriteData_Byte((Xend - 1) & 0xff);
-
-  LCD_Write_Command(0x2b);  // (2Bh): Row Address Set
-  LCD_WriteData_Byte(Ystart >> 8);
-  LCD_WriteData_Byte(Ystart & 0xff);
-  LCD_WriteData_Byte((Yend - 1) >> 8);
-  LCD_WriteData_Byte((Yend - 1) & 0xff);
-
-  LCD_Write_Command(0x2C);  // (2Ch): Memory write
-}
-
-void LCD_Clear_12bitRGB(uint32_t color_12bit)
-{
-  LCD_ClearWindow_12bitRGB(0, 0, LCD_WIDTH, LCD_HEIGHT, color_12bit);
-}
-
-void LCD_ClearWindow_12bitRGB(uint16_t Xstart, uint16_t Ystart, uint16_t Xend, uint16_t Yend, uint32_t color_12bit)
-{
-  unsigned int i, j;
-  if ((Xend - Xstart) % 2 != 0)
-  {
-    ++Xend;
-  }
-  DEV_SPI_BEGIN_TRANS;
-  LCD_SetWindow(Xstart, Ystart, Xend, Yend);
-  DEV_Digital_Write(DEV_CS_PIN, 0);
-  DEV_Digital_Write(DEV_DC_PIN, 1);
-  for (j = Ystart; j < Yend; ++j)
-  {
-    for (i = 0; i < (Xend - Xstart) / 2; ++i)
-    {
-      DEV_SPI_WRITE((color_12bit >> 4) & 0xff);                                   // 8 MSb
-      DEV_SPI_WRITE(((color_12bit & 0xf) << 4) + ((color_12bit & 0x0f00) >> 8));  // 4 LSb + 4 MSb
-      DEV_SPI_WRITE(color_12bit & 0xff);                                          // 8 LSb
-    }
-  }
-  DEV_Digital_Write(DEV_CS_PIN, 1);
-  DEV_SPI_END_TRANS;
-}
-
-void LCD_write_2pixel_color(const uint32_t color_2pixels)
-{
-  DEV_Digital_Write(DEV_CS_PIN, 0);
-  DEV_Digital_Write(DEV_DC_PIN, 1);
-  DEV_SPI_WRITE((color_2pixels >> 16) & 0xff);
-  DEV_SPI_WRITE((color_2pixels >> 8) & 0xff);
-  DEV_SPI_WRITE(color_2pixels & 0xff);
-  DEV_Digital_Write(DEV_CS_PIN, 1);
-}
-
 void Display::gpio_init()
 {
   LCD_GPIO_Init();
@@ -276,6 +214,23 @@ void Display::init()
 void Display::set_backlight(uint16_t value)
 {
   // TODO
+}
+
+void Display::set_window(const uint16_t x_start, const uint16_t y_start, const uint16_t x_end, const uint16_t y_end)
+{
+  LCD_Write_Command(LCD_REG_COL_ADDR_SET);
+  LCD_WriteData_Byte(x_start >> 8);
+  LCD_WriteData_Byte(x_start & 0xff);
+  LCD_WriteData_Byte((x_end - 1) >> 8);
+  LCD_WriteData_Byte((x_end - 1) & 0xff);
+
+  LCD_Write_Command(LCD_REG_ROW_ADDR_SET);
+  LCD_WriteData_Byte(y_start >> 8);
+  LCD_WriteData_Byte(y_start & 0xff);
+  LCD_WriteData_Byte((y_end - 1) >> 8);
+  LCD_WriteData_Byte((y_end - 1) & 0xff);
+
+  LCD_Write_Command(LCD_REG_MEM_WRITE);
 }
 
 void Display::blip_framebuffer()
@@ -310,12 +265,99 @@ void Display::clear_screen(const uint32_t color_12bit)
     }
   }
 }
-void Display::set_pixel(uint16_t x, uint16_t y, const uint32_t color_12bit)
+
+void Display::set_rectangle(
+  const uint16_t x_start_,
+  const uint16_t y_start_,
+  const uint16_t x_end_,
+  const uint16_t y_end_,
+  const uint32_t color_12bit)
 {
-  if (x >= LCD_WIDTH || y >= LCD_HEIGHT)
+  auto x_end = x_end_ > LCD_WIDTH ? LCD_WIDTH : x_end_;
+  auto x_start = x_start_ > x_end ? x_end : x_start_;
+  const auto y_end = y_end_ > LCD_HEIGHT ? LCD_HEIGHT : y_end_;
+  const auto y_start = y_start_ > y_end ? y_end : y_start_;
+
+  // Serial.print("\tx_start=");
+  // Serial.print(x_start);
+  // Serial.print(" x_end=");
+  // Serial.print(x_end);
+  // Serial.print(" y_start=");
+  // Serial.print(y_start);
+  // Serial.print(" y_end=");
+  // Serial.print(y_end);
+  // Serial.println("");
+
+  for (uint16_t y = y_start; y < y_end; ++y)
   {
-    return;
+    for (uint16_t x = x_start; x < x_end; ++x)
+    {
+      set_pixel_unsafe(x, y, color_12bit);
+    }
   }
+
+  // if x_start starts on an half bytes, set the MSB nibble first for all line
+  // const uint32_t x_start_byte_offset = x_start * 3 / 2;
+  // if ((x_start_byte_offset & 1) == 1)
+  // {
+  //   Serial.print("\tx start is offset at ");
+  //   Serial.print(x_start_byte_offset);
+  //   Serial.println("");
+  //   for (uint16_t y = y_start; y < y_end; ++y)
+  //   {
+  //     const uint32_t px_offset = static_cast<uint32_t>(y) * LCD_WIDTH + x_start;
+  //     const uint32_t bytes_offset = px_offset * 3 / 2;
+  //     frame_buffer_[bytes_offset] = (frame_buffer_[bytes_offset] & 0xf0) | ((color_12bit & 0xf0) >> 4);
+  //     frame_buffer_[bytes_offset + 1] = color_12bit & 0xff;  // 8 LSb
+  //   }
+  //   // Now we can skip the first vertical line
+  //   ++x_start;
+  // }
+  // // if x_end - 1 is on lie on a bytes, we must set all the LSB nibble for all line
+  // const uint32_t x_end_byte_offset = (x_end - 1) * 3 / 2;
+  // if ((x_end_byte_offset & 1) == 0)
+  // {
+  //   Serial.print("\tx end is offset at ");
+  //   Serial.print(x_end_byte_offset);
+  //   Serial.println("");
+  //   for (uint16_t y = y_start; y < y_end; ++y)
+  //   {
+  //     const uint32_t px_offset = static_cast<uint32_t>(y) * LCD_WIDTH + (x_end - 1);
+  //     const uint32_t bytes_offset = px_offset * 3 / 2;
+
+  //     frame_buffer_[bytes_offset] = (color_12bit >> 4) & 0xff;  // 8 MSb
+  //     frame_buffer_[bytes_offset + 1] =
+  //       ((color_12bit & 0xf) << 4) | (frame_buffer_[bytes_offset + 1] & 0x0f);  // 4 LSb + next pixel's 4 MSb;
+  //   }
+  //   // Now we can skip the last vertical line
+  //   --x_end;
+  // }
+
+  // // Now that all start and end x edge case has been taken care off, we can write all the remaining pixels
+
+  // const uint8_t byte0 = (color_12bit >> 4) & 0xff;                                   // 8 MSb
+  // const uint8_t byte1 = ((color_12bit & 0xf) << 4) | ((color_12bit & 0x0f00) >> 8);  // 4 LSb + 4 MSb
+  // const uint8_t byte2 = color_12bit & 0xff;                                          // 8 LSb
+  // for (uint32_t y = y_start; y < y_end; ++y)
+  // {
+  //   if ((x_end - x_start) % 2 != 0)
+  //   {
+  //     Serial.println("failed check");
+  //   }
+  //   // assert((x_end - x_start) % 2 == 0);  // TODO: handle case where the number of pixel is not a multiple of 3
+  //   for (uint32_t x = x_start; x < x_end; x += 2)
+  //   {
+  //     const uint32_t px_offset = y * LCD_WIDTH + x;
+  //     const uint32_t bytes_offset = px_offset * 3 / 2;
+  //     frame_buffer_[bytes_offset] = byte0;
+  //     frame_buffer_[bytes_offset + 1] = byte1;
+  //     frame_buffer_[bytes_offset + 2] = byte2;
+  //   }
+  // }
+}
+
+void Display::set_pixel_unsafe(const uint16_t x, const uint16_t y, const uint32_t color_12bit)
+{
   const uint32_t px_offset = static_cast<uint32_t>(y) * LCD_WIDTH + x;
   const uint32_t bytes_offset = px_offset * 3 / 2;
   // Because pixels take 1.5bytes, we need to handle the case where the pixel is at the start of a byte or at the end
@@ -332,8 +374,11 @@ void Display::set_pixel(uint16_t x, uint16_t y, const uint32_t color_12bit)
     frame_buffer_[bytes_offset + 1] = color_12bit & 0xff;                  // 8 LSb
   }
 }
-
-void Display::set_window(const uint16_t x_start, const uint16_t y_start, const uint16_t x_end, const uint16_t y_end)
+void Display::set_pixel(const uint16_t x, const uint16_t y, const uint32_t color_12bit)
 {
-  LCD_SetWindow(x_start, y_start, x_end, y_end);
+  if (x >= LCD_WIDTH || y >= LCD_HEIGHT)
+  {
+    return;
+  }
+  set_pixel_unsafe(x, y, color_12bit);
 }

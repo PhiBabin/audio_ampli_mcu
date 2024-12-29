@@ -1,8 +1,12 @@
-#include "sim/LCD_Driver.h"
+#include "sim/lcd_simulator.h"
+
+#include "audio_ampli_mcu/LCD_Driver.h"
+#include "sim/arduino.h"
 
 #include <SDL.h>
 #include <cassert>
 #include <iostream>
+#include <optional>
 #include <tuple>
 
 /// It's around 1333ns/px in theory with 20MHz, 10bit per bytes and 2 px per 3 bytes
@@ -25,41 +29,6 @@ void LCD_hook_sdl(SDL_Surface* surface, std::function<void(void)> funct)
   blip_sdl_window_callback = funct;
 }
 
-void LCD_GPIO_Init()
-{
-}
-
-void LCD_Init(void)
-{
-}
-
-void LCD_SetBackLight(uint16_t Value)
-{
-}
-
-void LCD_Clear_12bitRGB(uint32_t color_12bit)
-{
-  LCD_ClearWindow_12bitRGB(0, 0, LCD_WIDTH, LCD_HEIGHT, color_12bit);
-}
-
-void LCD_SetWindow(uint16_t Xstart, uint16_t Ystart, uint16_t Xend, uint16_t Yend)
-{
-  assert(Xstart <= Xend);
-  assert(Ystart <= Yend);
-  assert(Xstart <= LCD_WIDTH);
-  // assert(Xend <= LCD_WIDTH); // Need to support drawing a odd number of columns before we can make sure that this is
-  // respected
-  assert(Ystart <= LCD_HEIGHT);
-  assert(Yend <= LCD_HEIGHT);
-
-  win_start_x = Xstart;
-  win_start_y = Ystart;
-  win_end_x = Xend;
-  win_end_y = Yend;
-  win_curr_x = Xstart;
-  win_curr_y = Ystart;
-}
-
 std::tuple<uint8_t, uint8_t, uint8_t> rgb444_to_rgb888(const uint32_t color_12bit)
 {
   auto map_4b_to_8bit = [](const uint32_t v) -> uint8_t {
@@ -73,25 +42,6 @@ std::tuple<uint8_t, uint8_t, uint8_t> rgb444_to_rgb888(const uint32_t color_12bi
   const auto g = map_4b_to_8bit((color_12bit >> 4) & 0xf);
   const auto b = map_4b_to_8bit((color_12bit >> 0) & 0xf);
   return std::make_tuple(r, g, b);
-}
-
-void LCD_ClearWindow_12bitRGB(uint16_t Xstart, uint16_t Ystart, uint16_t Xend, uint16_t Yend, uint32_t color_12bit)
-{
-  unsigned int i, j;
-  assert(Xstart <= Xend);
-  if ((Xend - Xstart) % 2 != 0)
-  {
-    ++Xend;
-  }
-  LCD_SetWindow(Xstart, Ystart, Xend, Yend);
-  unsigned int half_width = (Xend - Xstart) / 2;
-  for (j = Ystart; j < Yend; ++j)
-  {
-    for (i = 0; i < half_width; ++i)
-    {
-      LCD_write_2pixel_color(color_12bit | (color_12bit << 12));
-    }
-  }
 }
 
 void LCD_write_2pixel_color(const uint32_t color_2pixels)
@@ -128,5 +78,88 @@ void LCD_write_2pixel_color(const uint32_t color_2pixels)
     SDL_Delay(pixel_count / ms_per_pixel);
     pixel_count = 0;
     blip_sdl_window_callback();
+  }
+}
+
+std::optional<uint8_t> maybe_command;
+std::vector<uint8_t> spi_data;
+
+void LCD_set_column_address()
+{
+  if (spi_data.size() != 4)
+  {
+    return;
+  }
+  win_start_x = (spi_data[0] << 8) | spi_data[1];
+  win_end_x = (spi_data[2] << 8) | spi_data[3];
+  ++win_end_x;
+  win_curr_x = win_start_x;
+
+  assert(win_start_x <= win_end_x);
+  assert(win_end_x <= LCD_WIDTH);
+}
+
+void LCD_set_row_address()
+{
+  if (spi_data.size() != 4)
+  {
+    return;
+  }
+  win_start_y = (spi_data[0] << 8) | spi_data[1];
+  win_end_y = (spi_data[2] << 8) | spi_data[3];
+  ++win_end_y;
+  win_curr_y = win_start_y;
+
+  assert(win_start_y <= win_end_y);
+  assert(win_end_y <= LCD_HEIGHT);
+}
+
+void LCD_write_mem()
+{
+  if (spi_data.size() != 3)
+  {
+    return;
+  }
+
+  const uint32_t color_2pixel = (spi_data[0] << 16) | (spi_data[1] << 8) | (spi_data[2] << 0);
+  LCD_write_2pixel_color(color_2pixel);
+  spi_data.clear();
+}
+
+void LCD_process_spi_data(const uint8_t data)
+{
+  // Skip if no chip select
+  if (digitalRead(DEV_CS_PIN) == 1)
+  {
+    return;
+  }
+
+  // Is command?
+  if (digitalRead(DEV_DC_PIN) == 0)
+  {
+    if (maybe_command && maybe_command.value() != data)
+    {
+      spi_data.clear();
+    }
+    maybe_command = data;
+    return;
+  }
+  if (!maybe_command)
+  {
+    return;
+  }
+  spi_data.push_back(data);
+  // Only process set window and write to screen commands
+  switch (maybe_command.value())
+  {
+    case LCD_REG_COL_ADDR_SET:
+      LCD_set_column_address();
+      break;
+    case LCD_REG_ROW_ADDR_SET:
+      LCD_set_row_address();
+      break;
+    case LCD_REG_MEM_WRITE:
+      LCD_write_mem();
+      break;
   }
 }
