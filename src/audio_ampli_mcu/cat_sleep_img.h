@@ -1,5 +1,5 @@
 
-#include "fonts.h"
+#include "draw_primitives.h"
 
 // clang-format off
 static const uint8_t cat_sleep_image_bitmap[] = {

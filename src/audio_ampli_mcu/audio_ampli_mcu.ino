@@ -439,8 +439,6 @@ void setup()
 
 void loop()
 {
-  // test_clear_rectangle();
-  // return;
   const auto remote_change = remote_ctrl.decode_command();
   const auto option_change = option_ctrl.update();
   if (option_change || remote_change)

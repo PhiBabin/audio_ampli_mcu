@@ -9,8 +9,8 @@
 #include <optional>
 #include <tuple>
 
-/// It's around 1333ns/px in theory with 20MHz, 10bit per bytes and 2 px per 3 bytes
-constexpr uint64_t ms_per_pixel = 1333 / 2;
+/// It's around 1.33us/px in theory with 20MHz, 10bit per bytes and 2 px per 3 bytes, in practive it's 1us/px
+constexpr uint64_t pixel_per_ms = 997;
 uint64_t pixel_count = 0;
 
 SDL_Surface* global_surface = nullptr;
@@ -23,7 +23,7 @@ uint32_t win_curr_y = 0;
 
 std::function<void(void)> blip_sdl_window_callback = nullptr;
 
-void LCD_hook_sdl(SDL_Surface* surface, std::function<void(void)> funct)
+void hook_sdl_surface_for_lcd_simulator(SDL_Surface* surface, std::function<void(void)> funct)
 {
   global_surface = surface;
   blip_sdl_window_callback = funct;
@@ -44,7 +44,7 @@ std::tuple<uint8_t, uint8_t, uint8_t> rgb444_to_rgb888(const uint32_t color_12bi
   return std::make_tuple(r, g, b);
 }
 
-void LCD_write_2pixel_color(const uint32_t color_2pixels)
+void write_2pixel_color_to_sdl_surface(const uint32_t color_2pixels)
 {
   if (win_curr_y >= win_end_y)
   {
@@ -73,14 +73,15 @@ void LCD_write_2pixel_color(const uint32_t color_2pixels)
   }
 
   pixel_count += 2;
-  if (pixel_count > ms_per_pixel)
+  if (pixel_count > pixel_per_ms)
   {
-    SDL_Delay(pixel_count / ms_per_pixel);
+    SDL_Delay(pixel_count / pixel_per_ms);
     pixel_count = 0;
     blip_sdl_window_callback();
   }
 }
 
+// State of the SPI processing
 std::optional<uint8_t> maybe_command;
 std::vector<uint8_t> spi_data;
 
@@ -122,7 +123,7 @@ void LCD_write_mem()
   }
 
   const uint32_t color_2pixel = (spi_data[0] << 16) | (spi_data[1] << 8) | (spi_data[2] << 0);
-  LCD_write_2pixel_color(color_2pixel);
+  write_2pixel_color_to_sdl_surface(color_2pixel);
   spi_data.clear();
 }
 

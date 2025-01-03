@@ -1,6 +1,6 @@
 
-#ifndef __FONTS_H
-#define __FONTS_H
+#ifndef __DRAW_PRIMITIVES_H
+#define __DRAW_PRIMITIVES_H
 
 #include "LCD_Driver.h"
 
@@ -103,12 +103,13 @@ void draw_image_from_top_left(
 
 void draw_rounded_rectangle(
   Display& display,
-  const uint32_t start_x,
-  const uint32_t start_y,
-  uint32_t end_x,
-  const uint32_t end_y,
+  const int32_t start_x,
+  const int32_t start_y,
+  int32_t end_x,
+  const int32_t end_y,
   const bool is_white_on_black,
   const bool rounded_left,
-  const bool rounded_right);
+  const bool rounded_right,
+  const int32_t corner_radius_px = 7);
 
-#endif /* __FONTS_H */
+#endif /* __DRAW_PRIMITIVES_H */

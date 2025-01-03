@@ -1,6 +1,6 @@
 bool initPCIInterruptForTinyReceiver()
 {
-  return false;
+  return true;
 }
 bool TinyReceiverDecode()
 {

@@ -7,7 +7,7 @@
 // forward declaration
 class SDL_Surface;
 
-void LCD_hook_sdl(SDL_Surface* surface, std::function<void(void)> funct);
+void hook_sdl_surface_for_lcd_simulator(SDL_Surface* surface, std::function<void(void)> funct);
 
 void LCD_process_spi_data(const uint8_t data);
 

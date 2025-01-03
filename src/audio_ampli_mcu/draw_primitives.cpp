@@ -1,6 +1,8 @@
-#include "fonts.h"
+#include "draw_primitives.h"
 
 #include <algorithm>
+#include <cassert>
+#include <cmath>
 #include <cstring>
 
 #ifdef MAX
@@ -338,84 +340,97 @@ void draw_image_from_top_left(Display& display, const lv_img_dsc_t& img, const u
   // DEV_SPI_END_TRANS;
 }
 
+/// Implementation of a fast anti-aliased rounded rectangle.
+/// Based on Fast Anti-Aliased Circle Generation". In James Arvo (ed.). Graphics Gems II.
 void draw_rounded_rectangle(
   Display& display,
-  const uint32_t start_x,
-  const uint32_t start_y,
-  uint32_t end_x,
-  const uint32_t end_y,
+  const int32_t start_x,
+  const int32_t start_y,
+  int32_t end_x,
+  const int32_t end_y,
   const bool is_white_on_black,
   const bool rounded_left,
-  const bool rounded_right)
+  const bool rounded_right,
+  const int32_t corner_radius_px)
 {
+  assert(start_x >= 0);
+  assert(start_y >= 0);
+  assert(end_x <= LCD_WIDTH);
+  assert(end_y <= LCD_HEIGHT);
+  assert(start_x <= end_x);
+  assert(start_y <= end_y);
 
-  // Make sure that we have an even number of columns, that way we don't have to worry about write call with only one
-  // column
-  if ((end_x - start_x) % 2 != 0)
-  {
-    ++end_x;
-  }
-  const uint32_t width_px = end_x - start_x;
-  const uint32_t height_px = end_y - start_y;
+  const int32_t left_corner_center_x = start_x + corner_radius_px - 1;
+  const int32_t top_corner_center_y = start_y + corner_radius_px - 1;
+  const int32_t right_corner_center_x = end_x - corner_radius_px;
+  const int32_t bot_corner_center_y = end_y - corner_radius_px;
 
-  //   Serial.print("\tstart_x=");
-  //   Serial.print(start_x);
-  //   Serial.print("end_x=");
-  //   Serial.print(end_x);
-  //   Serial.println("");
-  for (uint32_t y = 0; y < height_px; ++y)
+  auto draw_pixel_mirrored_8 = [&](int32_t x, int32_t y, uint32_t rgb444_color) {
+    const auto& left_color = rounded_left ? rgb444_color : WHITE_COLOR;
+    const auto& right_color = rounded_right ? rgb444_color : WHITE_COLOR;
+    // Top left quadrant
+    display.set_pixel_unsafe(left_corner_center_x - x, top_corner_center_y - y, left_color);
+    display.set_pixel_unsafe(left_corner_center_x - y, top_corner_center_y - x, left_color);
+    // Bottom left quadrant
+    display.set_pixel_unsafe(left_corner_center_x - x, bot_corner_center_y + y, left_color);
+    display.set_pixel_unsafe(left_corner_center_x - y, bot_corner_center_y + x, left_color);
+    // Top right quadrant
+    display.set_pixel_unsafe(right_corner_center_x + x, top_corner_center_y - y, right_color);
+    display.set_pixel_unsafe(right_corner_center_x + y, top_corner_center_y - x, right_color);
+    // Bottom right quadrant
+    display.set_pixel_unsafe(right_corner_center_x + x, bot_corner_center_y + y, right_color);
+    display.set_pixel_unsafe(right_corner_center_x + y, bot_corner_center_y + x, right_color);
+  };
+
+  int32_t x = corner_radius_px;
+  int32_t y = 0;
+
+  // The loop computes the antiliased pixels of 1/8 of a circle, because of symmetry, this 1/8 is a mirrored 8 times to
+  // make the 4 rounded corners.
+  while (x > y)
   {
-    for (uint32_t x = 0; x < width_px; ++x)
+    ++y;
+    // TODO: Should precompute all value of x's value and save it in a table.
+    constexpr int32_t precision = 0x10;
+    const int32_t x_high_precision =
+      sqrt((double)((corner_radius_px * corner_radius_px - y * y) * precision * precision));
+    x = x_high_precision / precision;
+    // Equivalent of  x - floor(x)
+    const auto color_4bit = x_high_precision & 0xf;
+
+    const auto rgb444_color = color_4bit << 8 | color_4bit << 4 | color_4bit;
+    // Draw corner's antialiased border
+    draw_pixel_mirrored_8(x, y, rgb444_color);
+    // Fill corner's interior
+    for (int32_t i = y; i < x; ++i)
     {
-      bool is_fill = true;
-      if ((x < width_px / 2 && rounded_left) || (x >= width_px / 2 && rounded_right))
-      {
-        // Convert x/y to corner coordinate (origin is the closest corner)
-        const auto corner_x = x < width_px / 2 ? x : width_px - x - 1;
-        const auto corner_y = y < height_px / 2 ? y : height_px - y - 1;
-
-        // Rounded corner conditions
-        is_fill = corner_x + corner_y > 3 && (corner_x != 0 || corner_y > 4);
-      }
-
-      auto rgb444_color =
-        (is_fill && is_white_on_black) || (!is_fill && !is_white_on_black) ? WHITE_COLOR : BLACK_COLOR;
-      display.set_pixel_unsafe(x + start_x, y + start_y, rgb444_color);
-      // color_2pixels = (color_2pixels << 12) | (color_4bit << 8 | color_4bit << 4 | color_4bit);
+      draw_pixel_mirrored_8(i, y, WHITE_COLOR);
+    }
+    // Fill corner's exterior
+    for (int32_t i = x + 1; i < corner_radius_px; ++i)
+    {
+      draw_pixel_mirrored_8(i, y, BLACK_COLOR);
     }
   }
-  // LCD will auto increment the row when we reach columns == end_x
-  // DEV_SPI_BEGIN_TRANS;
-  // LCD_SetWindow(start_x, start_y, end_x, end_y + 1);
-  // for (uint32_t y = 0; y < height_px; ++y)
-  // {
-  //   uint8_t px_count = 0;
-  //   uint32_t color_2pixels = 0;
-  //   for (uint32_t x = 0; x < width_px; ++x)
-  //   {
-  //     bool is_fill = true;
-  //     if ((x < width_px / 2 && rounded_left) || (x >= width_px / 2 && rounded_right))
-  //     {
-  //       // Convert x/y to corner coordinate (origin is the closest corner)
-  //       const auto corner_x = x < width_px / 2 ? x : width_px - x - 1;
-  //       const auto corner_y = y < height_px / 2 ? y : height_px - y - 1;
 
-  //       // Rounded corner conditions
-  //       is_fill = corner_x + corner_y > 3 && (corner_x != 0 || corner_y > 4);
-  //     }
+  // Now that the corners are drawned, we can draw the not-corners, it's basically a cross-shaped area.
 
-  //     auto color_4bit = (is_fill && is_white_on_black) || (!is_fill && !is_white_on_black) ? WHITE_COLOR :
-  //     BLACK_COLOR;
-  //     // Convert 4bit grayscale to four 4bit RGB
-  //     color_2pixels = (color_2pixels << 12) | (color_4bit << 8 | color_4bit << 4 | color_4bit);
-  //     ++px_count;
-  //     if (px_count == 2)
-  //     {
-  //       LCD_write_2pixel_color(color_2pixels);
-  //       px_count = 0;
-  //       color_2pixels = 0;
-  //     }
-  //   }
-  // }
-  // DEV_SPI_END_TRANS;
+  // Horizontal lines
+  for (int32_t j = top_corner_center_y; j <= bot_corner_center_y; ++j)
+  {
+    for (int32_t i = start_x; i < end_x; ++i)
+    {
+      display.set_pixel_unsafe(i, j, WHITE_COLOR);
+    }
+  }
+  // Vertical lines
+  for (int32_t j = 0; j < corner_radius_px; ++j)
+  {
+    for (int32_t i = left_corner_center_x; i <= right_corner_center_x; ++i)
+    {
+      // Mirror horizontally
+      display.set_pixel_unsafe(i, start_y + j, WHITE_COLOR);
+      display.set_pixel_unsafe(i, end_y - j - 1, WHITE_COLOR);
+    }
+  }
 }
