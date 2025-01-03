@@ -16,7 +16,10 @@
 #define TICK_PER_AUDIO_IN (ENCODER_TICK_PER_ROTATION / NUM_AUDIO_INPUT)
 
 // Changing the version will make previously saved settings unusable
-#define VERSION_NUMBER 3
+#define VERSION_NUMBER 4
+
+// V2 PCB has some hence features (such as power on/off, subwoofer and different volume for left/right)
+#define USE_V2_PCB
 
 // IR remote pin, the IRremote library requires this to be set via a #define
 #define IR_RECEIVE_PIN 6  // GP6

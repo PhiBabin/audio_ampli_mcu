@@ -28,6 +28,7 @@ public:
   PerAudioInputOutputData per_audio_input_output_data[NUM_INPUT_OUTPUT_PERMUTATION];
   OutputModeOption output_mode_value{OutputModeOption::phones};
   OutputTypeOption output_type_value{OutputTypeOption::se};
+  OnOffOption sufwoofer_enable_value{OnOffOption::off};
 
   // Getters
   const PerAudioInputOutputData& get_per_audio_input_output_data() const;

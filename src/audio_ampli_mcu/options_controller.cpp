@@ -44,26 +44,18 @@ OptionController::OptionController(
   PioEncoder* option_encoder_ptr,
   IoExpander* io_expander_ptr,
   VolumeController* volume_ctrl_ptr,
-  const int select_button_pin,
+  const pin_size_t select_button_pin,
+  const pin_size_t bias_out_pin,
   const int32_t tick_per_option,
-  const int in_out_unipolar_pin,
-  const int in_out_bal_unipolar_pin,
-  const int set_low_gain_pin,
-  const int out_bal_pin,
-  const int preamp_out_pin,
-  const int bias_out_pin)
+  OptionContollerPins pins)
   : state_machine_ptr_(state_machine_ptr)
   , persistent_data_ptr_(persistent_data_ptr)
   , prev_encoder_count_(0)
   , tick_per_option_(tick_per_option)
   , option_encoder_ptr_(option_encoder_ptr)
   , select_button_pin_(select_button_pin)
-  , in_out_unipolar_pin_(in_out_unipolar_pin)
-  , in_out_bal_unipolar_pin_(in_out_bal_unipolar_pin)
-  , set_low_gain_pin_(set_low_gain_pin)
-  , out_bal_pin_(out_bal_pin)
-  , preamp_out_pin_(preamp_out_pin)
   , bias_out_pin_(bias_out_pin)
+  , pins_(pins)
   , io_expander_ptr_(io_expander_ptr)
   , volume_ctrl_ptr_(volume_ctrl_ptr)
 {
@@ -80,28 +72,34 @@ void OptionController::init()
 
 void OptionController::update_gpio()
 {
-
   // Set Low gain GPIO
   io_expander_ptr_->cache_write_pin(
-    set_low_gain_pin_, persistent_data_ptr_->get_gain() == GainOption::low ? HIGH : LOW);
+    pins_.set_low_gain_pin, persistent_data_ptr_->get_gain() == GainOption::low ? HIGH : LOW);
 
   // Set line out / preamp output GPIO
   io_expander_ptr_->cache_write_pin(
-    preamp_out_pin_, persistent_data_ptr_->output_mode_value == OutputModeOption::line_out ? HIGH : LOW);
+    pins_.preamp_out_pin, persistent_data_ptr_->output_mode_value == OutputModeOption::line_out ? HIGH : LOW);
 
   const bool is_bal_input = persistent_data_ptr_->selected_audio_input == AudioInput::bal;
   const bool is_bal_output = persistent_data_ptr_->output_type_value == OutputTypeOption::bal;
+  const bool is_lfe_enable = persistent_data_ptr_->sufwoofer_enable_value == OnOffOption::on;
 
   // This is an expression of the look up table
   // Note: input balance is set by the audio input controler
   const int output_bal_value = is_bal_output ? HIGH : LOW;
+  const int output_se_value = !is_bal_output ? HIGH : LOW;
   const int in_out_unipolar_value = is_bal_input && !is_bal_output ? HIGH : LOW;
   const int in_out_bal_unipolar_value = !is_bal_input && is_bal_output ? HIGH : LOW;
+  const int out_lfe_bal = is_lfe_enable && is_bal_output ? HIGH : LOW;
+  const int out_lfe_se = is_lfe_enable && !is_bal_output ? HIGH : LOW;
 
   // Update GPIO accordingly
-  io_expander_ptr_->cache_write_pin(out_bal_pin_, output_bal_value);
-  io_expander_ptr_->cache_write_pin(in_out_unipolar_pin_, in_out_unipolar_value);
-  io_expander_ptr_->cache_write_pin(in_out_bal_unipolar_pin_, in_out_bal_unipolar_value);
+  io_expander_ptr_->cache_write_pin(pins_.out_bal_pin, output_bal_value);
+  io_expander_ptr_->cache_write_pin(pins_.out_se_pin, output_se_value);
+  io_expander_ptr_->cache_write_pin(pins_.in_out_unipolar_pin, in_out_unipolar_value);
+  io_expander_ptr_->cache_write_pin(pins_.in_out_bal_unipolar_pin, in_out_bal_unipolar_value);
+  io_expander_ptr_->cache_write_pin(pins_.out_lfe_bal_pin, out_lfe_bal);
+  io_expander_ptr_->cache_write_pin(pins_.out_lfe_se_pin, out_lfe_se);
 
   // Actually apply the change to the GPIOs
   io_expander_ptr_->apply_write();
@@ -132,6 +130,8 @@ const char* option_to_string(const Option option)
       return "TYPE";
     case Option::bias:
       return "BIAS";
+    case Option::subwoofer:
+      return "SUBWOOFER";
     case Option::back:
       return "";
     case Option::option_enum_length:
@@ -188,6 +188,16 @@ const char* OptionController::get_option_value_string(const Option& option)
 
       return bias_str_buffer_;
     }
+    case Option::subwoofer:
+      switch (persistent_data_ptr_->sufwoofer_enable_value)
+      {
+        case OnOffOption::on:
+          return "ON";
+        case OnOffOption::off:
+          return "OFF";
+        default:
+          return "ERR5";
+      }
     case Option::back:
       return "";
     case Option::option_enum_length:
@@ -230,6 +240,10 @@ bool OptionController::on_menu_press()
       break;
     case Option::bias:
       enabled_bias_scrolling_ = !enabled_bias_scrolling_;
+      break;
+    case Option::subwoofer:
+      increment_enum(OnOffOption::enum_length, persistent_data_ptr_->sufwoofer_enable_value);
+      update_gpio();
       break;
     case Option::back:
       state_machine_ptr_->change_state(State::main_menu);

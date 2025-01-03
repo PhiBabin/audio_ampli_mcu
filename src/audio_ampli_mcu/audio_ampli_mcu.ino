@@ -42,18 +42,25 @@ const pin_size_t select_button_pin = 17;  // Button for the menu select encoder
 IoExpander io_expander(7);                // GP7 is the chip select of the IO expander
 const pin_size_t set_mute_pin = 27;       // Output pin that mute / unmute
 const pin_size_t bias_pwm_pin = 27;       // Output pin that mute / unmute
+const pin_size_t power_enable_pin = 14;   // Output pin that power on / off the amplification part of the system
+const pin_size_t latch_left_vol = 28;     // Apply volume to the left side
+const pin_size_t latch_right_vol = 15;    // Apply volume to the right side
 
 // 6bit output to control the volume
 const std::array<pin_size_t, 6> volume_gpio_pins = {22, 4, 5, 9, 10, 11};
 // IO expander pins for the audio input selection. BAL, RCA 1, RCA 2 and RCA 3   respectively
 const std::array<pin_size_t, 4> audio_input_iox_gpio_pins = {0, 1, 2, 3};  // GPA0, GPA1, GPA2 & GPA3
 
-// Option pins
-const int in_out_unipolar_pin = 4;      // GPA4
-const int in_out_bal_unipolar_pin = 5;  // GPA5
-const int set_low_gain_pin = 8;         // GPB0
-const int out_bal_pin = 9;              // GPB1
-const int preamp_out_pin = 10;          // GPB2
+OptionContollerPins option_ctrl_pins{
+  .in_out_unipolar_pin = 4,      // GPA4
+  .in_out_bal_unipolar_pin = 5,  // GPA5
+  .set_low_gain_pin = 8,         // GPB0
+  .out_bal_pin = 9,              // GPB1
+  .preamp_out_pin = 10,          // GPB2
+  .out_se_pin = 11,              // GPB3
+  .out_lfe_bal_pin = 12,         // GPB4
+  .out_lfe_se_pin = 13,          // GPB5
+};
 
 PersistentData persistent_data{};
 PersistentDataFlasher persistent_data_flasher;
@@ -65,6 +72,9 @@ VolumeController volume_ctrl(
   &volume_encoder,
   mute_button_pin,
   set_mute_pin,
+  power_enable_pin,
+  latch_left_vol,
+  latch_right_vol,
   TOTAL_TICK_FOR_FULL_VOLUME);
 AudioInputController audio_input_ctrl(
   &state_machine, &persistent_data, &menu_select_encoder, &io_expander, audio_input_iox_gpio_pins, TICK_PER_AUDIO_IN);
@@ -75,13 +85,9 @@ OptionController option_ctrl(
   &io_expander,
   &volume_ctrl,
   select_button_pin,
+  bias_pwm_pin,
   TICK_PER_AUDIO_IN,
-  in_out_unipolar_pin,
-  in_out_bal_unipolar_pin,
-  set_low_gain_pin,
-  out_bal_pin,
-  preamp_out_pin,
-  bias_pwm_pin);
+  option_ctrl_pins);
 RemoteController remote_ctrl(&state_machine, &option_ctrl, &audio_input_ctrl, &volume_ctrl);
 
 Display display;
@@ -196,8 +202,6 @@ void draw_standby(const bool has_state_changed = true)
     if (zzz_count > number_of_ZZZ)
     {
       zzz_count = 1;
-      // LCD_ClearWindow_12bitRGB(
-
       display.set_rectangle(
         start_x, top_y, start_x + number_of_ZZZ * spacing_x, top_y + font.get_height_px(), BLACK_COLOR);
     }
@@ -414,7 +418,6 @@ void setup()
     persistent_data_flasher.force_save(persistent_data);
   }
 
-  // LCD_GPIO_Init();
   display.gpio_init();
   io_expander.begin();
 
@@ -429,8 +432,6 @@ void setup()
   display.init();
   display.clear_screen(BLACK_COLOR);
   display.blip_framebuffer();
-  // LCD_Init();
-  // LCD_Clear_12bitRGB(BLACK_COLOR);
 
   draw_options();
   draw_audio_inputs();

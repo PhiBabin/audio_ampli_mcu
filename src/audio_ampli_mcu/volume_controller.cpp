@@ -9,12 +9,18 @@ VolumeController::VolumeController(
   PioEncoder* vol_encoder_ptr,
   const int mute_button_pin,
   const int set_mute_pin,
+  const int power_enable_pin,
+  const int latch_left_vol,
+  const int latch_right_vol,
   const int32_t total_tick_for_63db)
   : state_machine_ptr_(state_machine_ptr)
   , persistent_data_ptr_(persistent_data_ptr)
   , gpio_pin_vol_select_(gpio_pin_vol_select)
   , mute_button_pin_(mute_button_pin)
   , set_mute_pin_(set_mute_pin)
+  , power_enable_pin_(power_enable_pin)
+  , latch_left_vol_(latch_left_vol)
+  , latch_right_vol_(latch_right_vol)
   , volume_(0)
   , prev_encoder_count_(0)
   , total_tick_for_63db_(total_tick_for_63db)
@@ -25,6 +31,11 @@ VolumeController::VolumeController(
 void VolumeController::init()
 {
   mute_button_.setup(mute_button_pin_, BUTTON_DEBOUNCE_DELAY, InputDebounce::PIM_INT_PULL_UP_RES);
+
+  pinMode(latch_left_vol_, OUTPUT);
+  pinMode(latch_right_vol_, OUTPUT);
+  digitalWrite(latch_left_vol_, LOW);
+  digitalWrite(latch_right_vol_, LOW);
 
   // pinMode(set_mute_pin_, OUTPUT);
   // digitalWrite(set_mute_pin_, is_muted() ? LOW : HIGH);  // Mute is active low
@@ -37,6 +48,9 @@ void VolumeController::init()
     pinMode(pin, OUTPUT);
   }
   set_gpio_based_on_volume();
+
+  pinMode(power_enable_pin_, OUTPUT);
+  digitalWrite(power_enable_pin_, HIGH);
 }
 
 void VolumeController::on_audio_input_change()
@@ -56,10 +70,57 @@ void VolumeController::reset_volume_tick_count_based_volume_db()
   set_volume_db(persistent_data_ptr_->get_volume_db());
 }
 
-void VolumeController::set_gpio_based_on_volume()
+void VolumeController::set_gpio_volume(const uint8_t vol_6bit, const uint8_t mask)
+{
+
+  for (size_t i = 0; i < gpio_pin_vol_select_.size(); ++i)
+  {
+    const auto should_set_it = ((mask >> i) & 1) == 1;
+    if (should_set_it)
+    {
+      const auto& pin = gpio_pin_vol_select_[i];
+      const auto is_set = ((vol_6bit >> i) & 1) == 1;
+      digitalWrite(pin, is_set ? HIGH : LOW);
+    }
+  }
+}
+
+void VolumeController::latch_volume_gpio_one_side(
+  const uint8_t prev_vol_6bit, const uint8_t vol_6bit, const pin_size_t latch_pin)
 {
   constexpr uint32_t relay_0_to_1_transition_time_us = 800;
   constexpr uint32_t relay_1_to_0_transition_time_us = 1500;
+
+  // Set GPIO to there previous value, if we don't we'll latch with the other's side volume
+  set_gpio_volume(prev_vol_6bit);
+
+  // Start latching
+  digitalWrite(latch_pin, HIGH);
+
+  // Changing a relay from 0 -> 1 (~0.8ms) is must faster than 1 -> 0 (~1.5ms), so to make it look like all the relay
+  // are changing at the same time we need to set the GPIO in two stages.
+
+  // 1) Apply all 1 -> 0 changes (also apply no-op 0 -> 0)
+  set_gpio_volume(vol_6bit, /*mask = */ ~vol_6bit);
+
+  // 2) Wait ~0.7ms (1.5ms - 0.8ms)
+  constexpr auto wait_time_us = relay_1_to_0_transition_time_us - relay_0_to_1_transition_time_us;
+  delayMicroseconds(wait_time_us);
+
+  // 3) Apply all 0 -> 1 changes (also apply no-op 1 -> 1)
+  set_gpio_volume(vol_6bit, /*mask = */ vol_6bit);
+
+  // Wait for the latching to occur
+  delayMicroseconds(1);
+
+  // Unlatch
+  digitalWrite(latch_pin, LOW);
+}
+
+void VolumeController::set_gpio_based_on_volume()
+{
+  // constexpr uint32_t relay_0_to_1_transition_time_us = 800;
+  // constexpr uint32_t relay_1_to_0_transition_time_us = 1500;
   uint8_t vol_6bit = 0;
   if (!is_muted())
   {
@@ -67,41 +128,15 @@ void VolumeController::set_gpio_based_on_volume()
     vol_6bit = static_cast<uint8_t>(map(volume_, 0, total_tick_for_63db_, 0, 64));
   }
 
-  // Changing a relay from 0 -> 1 (~0.8ms) is must faster than 1 -> 0 (~1.5ms), so to make it look like all the relay
-  // are changing at the same time we need to set the GPIO in two stages.
-
-  // 1) Apply all 1 -> 0 changes
-
-  for (size_t i = 0; i < gpio_pin_vol_select_.size(); ++i)
-  {
-    const auto was_set = ((prev_vol_6bit_set_on_gpio_ >> i) & 1) == 1;
-    const auto is_set = ((vol_6bit >> i) & 1) == 1;
-    if (was_set && !is_set)
-    {
-      const auto& pin = gpio_pin_vol_select_[i];
-      digitalWrite(pin, is_set ? HIGH : LOW);
-    }
-  }
-
-  // 2) Wait ~0.7ms (1.5ms - 0.8ms)
-
-  constexpr auto wait_time_us = relay_1_to_0_transition_time_us - relay_0_to_1_transition_time_us;
-  delayMicroseconds(wait_time_us);
-
-  // 3) Apply all 0 -> 1 changes (also apply no-op  0 -> 0 and 1 -> 1)
-
-  for (size_t i = 0; i < gpio_pin_vol_select_.size(); ++i)
-  {
-    const auto was_set = ((prev_vol_6bit_set_on_gpio_ >> i) & 1) == 1;
-    const auto is_set = ((vol_6bit >> i) & 1) == 1;
-    if (!(was_set && !is_set))
-    {
-      const auto& pin = gpio_pin_vol_select_[i];
-      digitalWrite(pin, is_set ? HIGH : LOW);
-    }
-  }
-
-  prev_vol_6bit_set_on_gpio_ = vol_6bit;
+#ifdef USE_V2_PCB
+  latch_volume_gpio_one_side(prev_vol_6bit_set_on_left_, vol_6bit, latch_left_vol_);
+  latch_volume_gpio_one_side(prev_vol_6bit_set_on_right_, vol_6bit, latch_right_vol_);
+  prev_vol_6bit_set_on_left_ = vol_6bit;
+  prev_vol_6bit_set_on_right_ = vol_6bit;
+#else
+  latch_volume_gpio_one_side(prev_vol_6bit_set_on_left_, vol_6bit, latch_left_vol_);
+  prev_vol_6bit_set_on_left_ = vol_6bit;
+#endif
 }
 
 bool VolumeController::is_muted() const
@@ -167,10 +202,12 @@ bool VolumeController::update_mute()
     Serial.println("Long press");
     if (state_machine_ptr_->get_state() != State::standby)
     {
+      digitalWrite(power_enable_pin_, HIGH);
       state_machine_ptr_->change_state(State::standby);
     }
     else
     {
+      digitalWrite(power_enable_pin_, LOW);
       state_machine_ptr_->change_state(State::main_menu);
     }
   }

@@ -25,6 +25,9 @@ public:
     PioEncoder* vol_encoder_ptr,
     const int mute_button_pin,
     const int set_mute_pin,
+    const int power_enable_pin,
+    const int latch_left_vol,
+    const int latch_right_vol,
     const int32_t total_tick_for_63db);
 
   // Init GPIO pins
@@ -59,11 +62,20 @@ private:
   // Update mute state
   bool update_mute();
 
-  // Set GPIO based on current volume
+  // Set volume of the left and right stereo by triggering the GPIOs.
   void set_gpio_based_on_volume();
 
   // Read current volume db on the current audio input and reset the volume tick count
   void reset_volume_tick_count_based_volume_db();
+
+  // Update the volume of one stereo side.
+  // Since relays don't take the same time to change from 0 -> 1 than to 1 -> 0, so delay logic is applied.
+  void latch_volume_gpio_one_side(const uint8_t prev_vol_6bit, const uint8_t vol_6bit, const pin_size_t latch_pin);
+
+  /// Update the GPIOs pins of the volume based on @c vol_6bit.
+  /// @param[in] vol_6bit Values of the GPIOs
+  /// @param[in] mask Only the (mask & vol_6bit) GPIO will be updated.
+  void set_gpio_volume(const uint8_t vol_6bit, const uint8_t mask = 0xff);
 
   // Non-owning pointer to the state machine
   StateMachine* state_machine_ptr_;
@@ -75,6 +87,12 @@ private:
   pin_size_t mute_button_pin_;
   // Output pin to mute / unmute
   pin_size_t set_mute_pin_;
+  // Output pin to turn power on/off
+  pin_size_t power_enable_pin_;
+  // Latch the volume to the left stereo
+  pin_size_t latch_left_vol_;
+  // Latch the volume to the right stereo
+  pin_size_t latch_right_vol_;
   /// Volume as a wrap around integer
   int32_t volume_;
   /// Previous count of the encoder
@@ -89,8 +107,10 @@ private:
   bool is_muted_{false};
   /// If the volume/mute is change outside of the update_XX(), this keep latch the update
   bool latched_volume_updated_{false};
-  /// When set_gpio_based_on_volume() is called we need to know what was previous value of the GPIOs
-  uint8_t prev_vol_6bit_set_on_gpio_{0};
+  /// When set_gpio_based_on_volume() is called we need to know what was previous value of the GPIOs for each stereo
+  /// side
+  uint8_t prev_vol_6bit_set_on_left_{0};
+  uint8_t prev_vol_6bit_set_on_right_{0};
 };
 
 #endif  // VOL_CTRL_GUARD_H_

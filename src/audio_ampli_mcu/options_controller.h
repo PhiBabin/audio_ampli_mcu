@@ -22,6 +22,19 @@ class RP2040_PWM;
 /// Convert option to a human readable string.
 const char* option_to_string(const Option option);
 
+struct OptionContollerPins
+{
+  const int in_out_unipolar_pin;
+  const int in_out_bal_unipolar_pin;
+  const int set_low_gain_pin;
+  const int out_bal_pin;
+  const int preamp_out_pin;
+  const int bias_out_pin;
+  const int out_se_pin;
+  const int out_lfe_bal_pin;
+  const int out_lfe_se_pin;
+};
+
 class OptionController
 {
 public:
@@ -32,14 +45,10 @@ public:
     PioEncoder* option_encoder_ptr,
     IoExpander* io_expander_ptr,
     VolumeController* volume_ctrl_ptr,
-    const int select_button_pin,
+    const pin_size_t select_button_pin,
+    const pin_size_t bias_out_pin,
     const int32_t tick_per_option,
-    const int in_out_unipolar_pin,
-    const int in_out_bal_unipolar_pin,
-    const int set_low_gain_pin,
-    const int out_bal_pin,
-    const int preamp_out_pin,
-    const int bias_out_pin);
+    OptionContollerPins pins);
 
   // Init GPIO pins
   void init();
@@ -79,13 +88,11 @@ private:
   // Pin for the mute toggle button
   pin_size_t select_button_pin_;
 
-  // The various pins that are controled by the options
-  const int in_out_unipolar_pin_;
-  const int in_out_bal_unipolar_pin_;
-  const int set_low_gain_pin_;
-  const int out_bal_pin_;
-  const int preamp_out_pin_;
-  const int bias_out_pin_;
+  // PWM pin that control the bias level.
+  pin_size_t bias_out_pin_;
+
+  // The various pins on the IO expander that are controled by the options
+  OptionContollerPins pins_;
 
   /// Non-owning pointer to the io expander
   IoExpander* io_expander_ptr_;
