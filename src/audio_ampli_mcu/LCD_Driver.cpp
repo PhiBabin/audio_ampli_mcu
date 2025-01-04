@@ -360,7 +360,7 @@ void Display::set_pixel_unsafe(const uint16_t x, const uint16_t y, const uint32_
 {
   const uint32_t px_offset = static_cast<uint32_t>(y) * LCD_WIDTH + x;
   const uint32_t bytes_offset = px_offset * 3 / 2;
-  // Because pixels take 1.5bytes, we need to handle the case where the pixel is at the start of a byte or at the end
+  // Because pixels take 1.5bytes, we need to handle the case where the pixel is at the start of a byte or at the middle
   if ((px_offset & 1) == 0)
   {
     frame_buffer_[bytes_offset] = (color_12bit >> 4) & 0xff;  // 8 MSb
@@ -370,8 +370,8 @@ void Display::set_pixel_unsafe(const uint16_t x, const uint16_t y, const uint32_
   else
   {
     frame_buffer_[bytes_offset] =
-      (frame_buffer_[bytes_offset] & 0xf0) | ((color_12bit & 0xf0) >> 4);  // previous pixel's 4 LSb + 4 MSb
-    frame_buffer_[bytes_offset + 1] = color_12bit & 0xff;                  // 8 LSb
+      (frame_buffer_[bytes_offset] & 0xf0) | ((color_12bit & 0xf00) >> 8);  // previous pixel's 4 LSb + 4 MSb
+    frame_buffer_[bytes_offset + 1] = color_12bit & 0xff;                   // 8 LSb
   }
 }
 void Display::set_pixel(const uint16_t x, const uint16_t y, const uint32_t color_12bit)

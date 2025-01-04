@@ -43,7 +43,11 @@ public:
   bool is_muted() const;
 
   // Toggle muted state
-  void toggle_mute(uint8_t);
+  void toggle_mute();
+
+  // Power on/off the amplificator and change to standy state
+  void power_on();
+  void power_off();
 
   // Read encoder, update state and set GPIO pin that set the volume.
   // return true on change in volume or mute status

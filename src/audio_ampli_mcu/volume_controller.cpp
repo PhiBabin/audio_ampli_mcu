@@ -186,6 +186,23 @@ bool VolumeController::update_volume()
   return true;
 }
 
+void VolumeController::toggle_mute()
+{
+  is_muted_ = !is_muted_;
+  latched_volume_updated_ = true;
+}
+
+void VolumeController::power_off()
+{
+  digitalWrite(power_enable_pin_, HIGH);
+  state_machine_ptr_->change_state(State::standby);
+}
+void VolumeController::power_on()
+{
+  digitalWrite(power_enable_pin_, LOW);
+  state_machine_ptr_->change_state(State::main_menu);
+}
+
 bool VolumeController::update_mute()
 {
   unsigned long now = millis();
@@ -202,13 +219,11 @@ bool VolumeController::update_mute()
     Serial.println("Long press");
     if (state_machine_ptr_->get_state() != State::standby)
     {
-      digitalWrite(power_enable_pin_, HIGH);
-      state_machine_ptr_->change_state(State::standby);
+      power_off();
     }
     else
     {
-      digitalWrite(power_enable_pin_, LOW);
-      state_machine_ptr_->change_state(State::main_menu);
+      power_on();
     }
   }
   return mute_button_.is_short_press() || mute_button_.is_long_press();

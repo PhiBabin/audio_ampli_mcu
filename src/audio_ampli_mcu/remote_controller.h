@@ -10,6 +10,9 @@
 #include "options_controller.h"
 #include "volume_controller.h"
 
+#include <functional>
+#include <unordered_map>
+
 /// Receive and decode command from IR remote.
 /// Right now it only supports the Apple Remote 1294.
 class RemoteController
@@ -30,8 +33,10 @@ private:
   // Handles based on button pressed
   void handle_up();
   void handle_down();
-  void handle_left();
-  void handle_right();
+  void handle_vol_down();
+  void handle_vol_up();
+  void handle_mute();
+  void handle_power_on_off();
   void handle_menu();
   void handle_select();
 
@@ -46,5 +51,9 @@ private:
   AudioInputController* audio_input_ctrl_ptr_;
   /// Non-owning pointer to the volume controler
   VolumeController* volume_ctrl_ptr_;
+
+  using RemoteCallbacks = std::unordered_map<uint16_t, std::function<void()>>;
+
+  std::unordered_map<uint16_t, RemoteCallbacks> remotes_mapping_;
 };
 #endif  // REMOTE_CONTROL_GUARD_H_
