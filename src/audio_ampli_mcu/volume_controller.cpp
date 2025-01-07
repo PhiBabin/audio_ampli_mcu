@@ -119,8 +119,6 @@ void VolumeController::latch_volume_gpio_one_side(
 
 void VolumeController::set_gpio_based_on_volume()
 {
-  // constexpr uint32_t relay_0_to_1_transition_time_us = 800;
-  // constexpr uint32_t relay_1_to_0_transition_time_us = 1500;
   uint8_t vol_6bit = 0;
   if (!is_muted())
   {

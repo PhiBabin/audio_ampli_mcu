@@ -82,6 +82,7 @@ void RemoteController::handle_up()
     audio_input_ctrl_ptr_->menu_down();
   }
 }
+
 void RemoteController::handle_down()
 {
   if (state_machine_ptr_->get_state() == State::option_menu)
@@ -98,10 +99,12 @@ void RemoteController::handle_vol_down()
 {
   volume_ctrl_ptr_->set_volume_db(volume_ctrl_ptr_->get_volume_db() - volume_change);
 }
+
 void RemoteController::handle_vol_up()
 {
   volume_ctrl_ptr_->set_volume_db(volume_ctrl_ptr_->get_volume_db() + volume_change);
 }
+
 void RemoteController::handle_menu()
 {
   if (state_machine_ptr_->get_state() == State::option_menu)
@@ -113,6 +116,7 @@ void RemoteController::handle_menu()
     state_machine_ptr_->change_state(State::option_menu);
   }
 }
+
 void RemoteController::handle_select()
 {
   if (state_machine_ptr_->get_state() == State::option_menu)

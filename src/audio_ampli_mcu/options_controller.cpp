@@ -279,16 +279,45 @@ bool OptionController::update()
 
 void OptionController::menu_up()
 {
-  increment_enum(Option::option_enum_length, selected_option_);
+  const bool is_scroll_for_bias = selected_option_ == Option::bias && enabled_bias_scrolling_;
+  if (is_scroll_for_bias)
+  {
+    if (bias_ < bias_increment)
+    {
+      bias_ = 0;
+    }
+    else
+    {
+      bias_ -= bias_increment;
+    }
+    update_gpio();
+  }
+  else
+  {
+    increment_enum(Option::option_enum_length, selected_option_);
+  }
 }
+
 void OptionController::menu_down()
 {
-  decrement_enum(Option::option_enum_length, selected_option_);
+  const bool is_scroll_for_bias = selected_option_ == Option::bias && enabled_bias_scrolling_;
+  if (is_scroll_for_bias)
+  {
+    bias_ += bias_increment;
+    if (bias_ > 100)
+    {
+      bias_ = 100;
+    }
+    update_gpio();
+  }
+  else
+  {
+    decrement_enum(Option::option_enum_length, selected_option_);
+  }
 }
 
 bool OptionController::update_encoder()
 {
-  constexpr uint8_t bias_increment = 5;
   const int32_t current_count = option_encoder_ptr_->getCount();
 
   if (state_machine_ptr_->get_state() == State::main_menu)
@@ -297,44 +326,15 @@ bool OptionController::update_encoder()
     return false;
   }
 
-  const bool is_scroll_for_bias = selected_option_ == Option::bias && enabled_bias_scrolling_;
-
   if (current_count - prev_encoder_count_ > tick_per_option_)
   {
-    if (is_scroll_for_bias)
-    {
-      bias_ += bias_increment;
-      if (bias_ > 100)
-      {
-        bias_ = 100;
-      }
-      update_gpio();
-    }
-    else
-    {
-      decrement_enum(Option::option_enum_length, selected_option_);
-    }
+    menu_down();
     prev_encoder_count_ = current_count;
     return true;
   }
   if (-tick_per_option_ > current_count - prev_encoder_count_)
   {
-    if (is_scroll_for_bias)
-    {
-      if (bias_ < bias_increment)
-      {
-        bias_ = 0;
-      }
-      else
-      {
-        bias_ -= bias_increment;
-      }
-      update_gpio();
-    }
-    else
-    {
-      increment_enum(Option::option_enum_length, selected_option_);
-    }
+    menu_up();
     prev_encoder_count_ = current_count;
     return true;
   }

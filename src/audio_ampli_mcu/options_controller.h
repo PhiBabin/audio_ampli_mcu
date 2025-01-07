@@ -72,6 +72,8 @@ private:
   bool update_selection();
   bool update_encoder();
 
+  constexpr static uint8_t bias_increment = 5;
+
   // Non-owning pointer to the state machine
   StateMachine* state_machine_ptr_;
   // Non-owning pointer to the persistent data
