@@ -107,9 +107,8 @@ private:
   // Selected option
   Option selected_option_{Option::back};
 
-  uint8_t bias_{0};
-
-  char bias_str_buffer_[10];
+  constexpr static size_t bias_str_buffer_len_ = 10;
+  char bias_str_buffer_[bias_str_buffer_len_];
 
   bool enabled_bias_scrolling_{false};
 };

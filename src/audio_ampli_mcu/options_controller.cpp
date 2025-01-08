@@ -59,8 +59,8 @@ OptionController::OptionController(
   , io_expander_ptr_(io_expander_ptr)
   , volume_ctrl_ptr_(volume_ctrl_ptr)
 {
-  PWM_Instance_ = new RP2040_PWM(bias_out_pin_, pwm_frequency, bias_);
-  PWM_Instance_->setPWM(bias_out_pin_, pwm_frequency, bias_);
+  PWM_Instance_ = new RP2040_PWM(bias_out_pin_, pwm_frequency, persistent_data_ptr_->bias);
+  PWM_Instance_->setPWM(bias_out_pin_, pwm_frequency, persistent_data_ptr_->bias);
 }
 
 void OptionController::init()
@@ -90,8 +90,10 @@ void OptionController::update_gpio()
   const int output_se_value = !is_bal_output ? HIGH : LOW;
   const int in_out_unipolar_value = is_bal_input && !is_bal_output ? HIGH : LOW;
   const int in_out_bal_unipolar_value = !is_bal_input && is_bal_output ? HIGH : LOW;
-  const int out_lfe_bal = is_lfe_enable && is_bal_output ? HIGH : LOW;
-  const int out_lfe_se = is_lfe_enable && !is_bal_output ? HIGH : LOW;
+
+  // If the output is BAL, LFE/subwoofer will use the SE and vice-versa.
+  const int out_lfe_bal = is_lfe_enable && !is_bal_output ? HIGH : LOW;
+  const int out_lfe_se = is_lfe_enable && is_bal_output ? HIGH : LOW;
 
   // Update GPIO accordingly
   io_expander_ptr_->cache_write_pin(pins_.out_bal_pin, output_bal_value);
@@ -105,7 +107,7 @@ void OptionController::update_gpio()
   io_expander_ptr_->apply_write();
 
   // Set PWM for bias
-  PWM_Instance_->setPWM(bias_out_pin_, pwm_frequency, bias_);
+  PWM_Instance_->setPWM(bias_out_pin_, pwm_frequency, persistent_data_ptr_->bias);
 }
 
 void OptionController::on_audio_input_change()
@@ -179,11 +181,11 @@ const char* OptionController::get_option_value_string(const Option& option)
     {
       if (enabled_bias_scrolling_)
       {
-        sprintf(bias_str_buffer_, "<%d>", bias_);
+        snprintf(bias_str_buffer_, bias_str_buffer_len_, "<%d%%>", persistent_data_ptr_->bias);
       }
       else
       {
-        sprintf(bias_str_buffer_, " %d ", bias_);
+        snprintf(bias_str_buffer_, bias_str_buffer_len_, " %d%% ", persistent_data_ptr_->bias);
       }
 
       return bias_str_buffer_;
@@ -282,13 +284,10 @@ void OptionController::menu_up()
   const bool is_scroll_for_bias = selected_option_ == Option::bias && enabled_bias_scrolling_;
   if (is_scroll_for_bias)
   {
-    if (bias_ < bias_increment)
+    persistent_data_ptr_->bias += bias_increment;
+    if (persistent_data_ptr_->bias > 100)
     {
-      bias_ = 0;
-    }
-    else
-    {
-      bias_ -= bias_increment;
+      persistent_data_ptr_->bias = 100;
     }
     update_gpio();
   }
@@ -303,10 +302,13 @@ void OptionController::menu_down()
   const bool is_scroll_for_bias = selected_option_ == Option::bias && enabled_bias_scrolling_;
   if (is_scroll_for_bias)
   {
-    bias_ += bias_increment;
-    if (bias_ > 100)
+    if (persistent_data_ptr_->bias < bias_increment)
     {
-      bias_ = 100;
+      persistent_data_ptr_->bias = 0;
+    }
+    else
+    {
+      persistent_data_ptr_->bias -= bias_increment;
     }
     update_gpio();
   }

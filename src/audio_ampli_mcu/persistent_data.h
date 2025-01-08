@@ -29,6 +29,7 @@ public:
   OutputModeOption output_mode_value{OutputModeOption::phones};
   OutputTypeOption output_type_value{OutputTypeOption::se};
   OnOffOption sufwoofer_enable_value{OnOffOption::off};
+  uint8_t bias{50};  // Bias in percentage, 50 == 50%
 
   // Getters
   const PerAudioInputOutputData& get_per_audio_input_output_data() const;

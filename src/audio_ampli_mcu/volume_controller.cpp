@@ -30,6 +30,9 @@ VolumeController::VolumeController(
 
 void VolumeController::init()
 {
+  pinMode(power_enable_pin_, OUTPUT);
+  digitalWrite(power_enable_pin_, LOW);
+
   mute_button_.setup(mute_button_pin_, BUTTON_DEBOUNCE_DELAY, InputDebounce::PIM_INT_PULL_UP_RES);
 
   pinMode(latch_left_vol_, OUTPUT);
@@ -49,7 +52,6 @@ void VolumeController::init()
   }
   set_gpio_based_on_volume();
 
-  pinMode(power_enable_pin_, OUTPUT);
   digitalWrite(power_enable_pin_, HIGH);
 }
 
@@ -192,12 +194,13 @@ void VolumeController::toggle_mute()
 
 void VolumeController::power_off()
 {
-  digitalWrite(power_enable_pin_, HIGH);
+  digitalWrite(power_enable_pin_, LOW);
   state_machine_ptr_->change_state(State::standby);
 }
+
 void VolumeController::power_on()
 {
-  digitalWrite(power_enable_pin_, LOW);
+  digitalWrite(power_enable_pin_, HIGH);
   state_machine_ptr_->change_state(State::main_menu);
 }
 
@@ -207,14 +210,12 @@ bool VolumeController::update_mute()
   mute_button_.process(now);
   if (mute_button_.is_short_press())
   {
-    Serial.println("Short press");
     is_muted_ = !is_muted_;
     // digitalWrite(set_mute_pin_, is_muted() ? LOW : HIGH);  // Mute is active low
     set_gpio_based_on_volume();
   }
   else if (mute_button_.is_long_press())
   {
-    Serial.println("Long press");
     if (state_machine_ptr_->get_state() != State::standby)
     {
       power_off();
