@@ -21,9 +21,9 @@ VolumeController::VolumeController(
   , power_enable_pin_(power_enable_pin)
   , latch_left_vol_(latch_left_vol)
   , latch_right_vol_(latch_right_vol)
-  , volume_(0)
   , prev_encoder_count_(0)
   , total_tick_for_63db_(total_tick_for_63db)
+  , tick_per_db_(total_tick_for_63db_ / 64)
   , vol_encoder_ptr_(vol_encoder_ptr)
 {
 }
@@ -124,8 +124,8 @@ void VolumeController::set_gpio_based_on_volume()
   uint8_t vol_6bit = 0;
   if (!is_muted())
   {
-    // Map volume to 6 bit (64 state)
-    vol_6bit = static_cast<uint8_t>(map(volume_, 0, total_tick_for_63db_, 0, 64));
+    // Map volume to 6 bit, -63 -> 0,  0 -> 63
+    vol_6bit = 63 + get_volume_db();
   }
 
 #ifdef USE_V2_PCB
@@ -149,14 +149,18 @@ int32_t VolumeController::get_volume_db() const
   return persistent_data_ptr_->get_volume_db();
 }
 
+void VolumeController::increase_volume_db(const int32_t delta_volume_db)
+{
+  set_volume_db(get_volume_db() + delta_volume_db);
+}
+
 void VolumeController::set_volume_db(const int32_t new_volume_db)
 {
-  const auto constraint_volume_db = constrain(new_volume_db, -63, 1);
-  volume_ = map(constraint_volume_db, -63, 1, 0, total_tick_for_63db_);
-  set_gpio_based_on_volume();
+  const auto constraint_volume_db = constrain(new_volume_db, -63, 0);
 
   // Update volume DB in the persistent data
   persistent_data_ptr_->get_volume_db_mutable() = constraint_volume_db;
+  set_gpio_based_on_volume();
   latched_volume_updated_ = true;
 }
 
@@ -173,17 +177,23 @@ bool VolumeController::update_volume()
     prev_encoder_count_ = current_count;
     return false;
   }
-  // Apply volume change
-  volume_ += current_count - prev_encoder_count_;
-  // Count cannot increase beyond the -63 to 0 range
-  volume_ = constrain(volume_, 0, total_tick_for_63db_ - 1);
-  prev_encoder_count_ = current_count;
 
-  // Apply volume to GPIO and persistent data
-  const auto new_volume_db = map(volume_, 0, total_tick_for_63db_, -63, 1);
-  persistent_data_ptr_->get_volume_db_mutable() = new_volume_db;
-  set_gpio_based_on_volume();
-  return true;
+  const auto delta_tick = current_count - prev_encoder_count_;
+  if (delta_tick >= tick_per_db_)
+  {
+    increase_volume_db(delta_tick / tick_per_db_);
+    const auto remainder = delta_tick % tick_per_db_;
+    prev_encoder_count_ = prev_encoder_count_ + delta_tick - remainder;
+    return true;
+  }
+  if (delta_tick <= -tick_per_db_)
+  {
+    increase_volume_db(delta_tick / tick_per_db_);
+    const auto remainder = (-delta_tick) % tick_per_db_;
+    prev_encoder_count_ = prev_encoder_count_ + delta_tick + remainder;
+    return true;
+  }
+  return false;
 }
 
 void VolumeController::toggle_mute()

@@ -79,16 +79,16 @@ bool AudioInputController::update()
     return false;
   }
 
-  if (current_count - prev_encoder_count_ > tick_per_audio_in_)
-  {
-    prev_encoder_count_ = current_count;
-    menu_up();
-    return true;
-  }
-  if (-tick_per_audio_in_ > current_count - prev_encoder_count_)
+  if (current_count - prev_encoder_count_ >= tick_per_audio_in_)
   {
     prev_encoder_count_ = current_count;
     menu_down();
+    return true;
+  }
+  if (current_count - prev_encoder_count_ <= -tick_per_audio_in_)
+  {
+    prev_encoder_count_ = current_count;
+    menu_up();
     return true;
   }
   return false;

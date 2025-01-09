@@ -39,6 +39,9 @@ public:
   // Update current volume in db
   void set_volume_db(const int32_t new_volume_db);
 
+  // Add a certain amount of db to the current volume.
+  void increase_volume_db(const int32_t delta_volume_db);
+
   // Return whether we're muted
   bool is_muted() const;
 
@@ -97,12 +100,12 @@ private:
   pin_size_t latch_left_vol_;
   // Latch the volume to the right stereo
   pin_size_t latch_right_vol_;
-  /// Volume as a wrap around integer
-  int32_t volume_;
   /// Previous count of the encoder
   int32_t prev_encoder_count_;
   /// How many encoder tick correspond to the full range of 0-100%
   int32_t total_tick_for_63db_;
+  /// How many encoder tick per db of volume
+  int32_t tick_per_db_;
   /// Pointer to the quadrature encoder
   PioEncoder* vol_encoder_ptr_;
   /// Toggle button for the mutting

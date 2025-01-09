@@ -328,13 +328,13 @@ bool OptionController::update_encoder()
     return false;
   }
 
-  if (current_count - prev_encoder_count_ > tick_per_option_)
+  if (current_count - prev_encoder_count_ >= tick_per_option_)
   {
     menu_down();
     prev_encoder_count_ = current_count;
     return true;
   }
-  if (-tick_per_option_ > current_count - prev_encoder_count_)
+  if (current_count - prev_encoder_count_ <= -tick_per_option_)
   {
     menu_up();
     prev_encoder_count_ = current_count;

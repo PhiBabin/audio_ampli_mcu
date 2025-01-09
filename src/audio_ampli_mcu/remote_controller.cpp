@@ -79,7 +79,7 @@ void RemoteController::handle_up()
   }
   else
   {
-    audio_input_ctrl_ptr_->menu_down();
+    audio_input_ctrl_ptr_->menu_up();
   }
 }
 
@@ -91,18 +91,18 @@ void RemoteController::handle_down()
   }
   else
   {
-    audio_input_ctrl_ptr_->menu_up();
+    audio_input_ctrl_ptr_->menu_down();
   }
 }
 
 void RemoteController::handle_vol_down()
 {
-  volume_ctrl_ptr_->set_volume_db(volume_ctrl_ptr_->get_volume_db() - volume_change);
+  volume_ctrl_ptr_->increase_volume_db(-volume_change);
 }
 
 void RemoteController::handle_vol_up()
 {
-  volume_ctrl_ptr_->set_volume_db(volume_ctrl_ptr_->get_volume_db() + volume_change);
+  volume_ctrl_ptr_->increase_volume_db(volume_change);
 }
 
 void RemoteController::handle_menu()
