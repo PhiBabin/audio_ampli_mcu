@@ -66,6 +66,22 @@ bool RemoteController::decode_command()
     return false;
   }
 
+  const auto time_since_last_cmd_ms = millis() - last_valid_reception_;
+
+  if (
+    address == last_valid_addr_ && command == last_valid_cmd_ && time_since_last_cmd_ms < max_delay_between_repeats_ms)
+  {
+    ++repeat_count_;
+  }
+  else
+  {
+    repeat_count_ = 0;
+    last_valid_addr_ = address;
+    last_valid_cmd_ = command;
+  }
+
+  last_valid_reception_ = millis();
+
   // Call command's callback
   cmd_iter->second();
   return true;
@@ -95,14 +111,22 @@ void RemoteController::handle_down()
   }
 }
 
+int repeat_to_volume_multiplicator(const uint8_t repeat_count)
+{
+  // The longer the button is pressed the larger the increase in volume
+  return repeat_count < 2 ? 1 : 5;
+}
+
 void RemoteController::handle_vol_down()
 {
-  volume_ctrl_ptr_->increase_volume_db(-volume_change);
+  volume_ctrl_ptr_->increase_volume_db(-volume_change * repeat_to_volume_multiplicator(repeat_count_));
 }
 
 void RemoteController::handle_vol_up()
 {
-  volume_ctrl_ptr_->increase_volume_db(volume_change);
+  // The longer the button is pressed the larger the increase in volume
+  const auto repeat = min(2 * repeat_count_ + 1, 10);
+  volume_ctrl_ptr_->increase_volume_db(volume_change * repeat_to_volume_multiplicator(repeat_count_));
 }
 
 void RemoteController::handle_menu()

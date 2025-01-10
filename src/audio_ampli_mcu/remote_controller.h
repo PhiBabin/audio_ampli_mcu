@@ -42,6 +42,7 @@ private:
 
   // How much the remote change the volume per button press
   static const auto volume_change = 1;
+  static const auto max_delay_between_repeats_ms = 800;
 
   // Non-owning pointer to the state machine
   StateMachine* state_machine_ptr_;
@@ -55,5 +56,10 @@ private:
   using RemoteCallbacks = std::unordered_map<uint16_t, std::function<void()>>;
 
   std::unordered_map<uint16_t, RemoteCallbacks> remotes_mapping_;
+
+  uint16_t last_valid_addr_{0};
+  uint16_t last_valid_cmd_{0};
+  int last_valid_reception_{0};
+  uint8_t repeat_count_{0};
 };
 #endif  // REMOTE_CONTROL_GUARD_H_
