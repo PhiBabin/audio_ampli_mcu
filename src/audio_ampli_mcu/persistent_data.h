@@ -30,6 +30,8 @@ public:
   OutputTypeOption output_type_value{OutputTypeOption::se};
   OnOffOption sufwoofer_enable_value{OnOffOption::off};
   uint8_t bias{50};  // Bias in percentage, 50 == 50%
+  // Offset in dB of the left stereo output compared to the right output
+  int8_t left_right_balance_db{0};
 
   // Getters
   const PerAudioInputOutputData& get_per_audio_input_output_data() const;

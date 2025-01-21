@@ -1,5 +1,7 @@
 #include "volume_controller.h"
 
+#include <iostream>
+
 #define BUTTON_DEBOUNCE_DELAY 20  // [ms]
 
 VolumeController::VolumeController(
@@ -121,21 +123,33 @@ void VolumeController::latch_volume_gpio_one_side(
 
 void VolumeController::set_gpio_based_on_volume()
 {
-  uint8_t vol_6bit = 0;
+  uint8_t left_vol_6bit = 0;
+  uint8_t right_vol_6bit = 0;
   if (!is_muted())
   {
     // Map volume to 6 bit, -63 -> 0,  0 -> 63
-    vol_6bit = 63 + get_volume_db();
+    left_vol_6bit = 63 + get_volume_db();
+    if (
+      persistent_data_ptr_->left_right_balance_db < 0 &&
+      abs(persistent_data_ptr_->left_right_balance_db) > left_vol_6bit)
+    {
+      right_vol_6bit = 0;
+    }
+    else
+    {
+      right_vol_6bit = left_vol_6bit + persistent_data_ptr_->left_right_balance_db;
+      right_vol_6bit = right_vol_6bit > 63 ? 63 : right_vol_6bit;
+    }
   }
 
 #ifdef USE_V2_PCB
-  latch_volume_gpio_one_side(prev_vol_6bit_set_on_left_, vol_6bit, latch_left_vol_);
-  latch_volume_gpio_one_side(prev_vol_6bit_set_on_right_, vol_6bit, latch_right_vol_);
-  prev_vol_6bit_set_on_left_ = vol_6bit;
-  prev_vol_6bit_set_on_right_ = vol_6bit;
+  latch_volume_gpio_one_side(prev_vol_6bit_set_on_left_, left_vol_6bit, latch_left_vol_);
+  latch_volume_gpio_one_side(prev_vol_6bit_set_on_right_, right_vol_6bit, latch_right_vol_);
+  prev_vol_6bit_set_on_left_ = left_vol_6bit;
+  prev_vol_6bit_set_on_right_ = right_vol_6bit;
 #else
-  latch_volume_gpio_one_side(prev_vol_6bit_set_on_left_, vol_6bit, latch_left_vol_);
-  prev_vol_6bit_set_on_left_ = vol_6bit;
+  latch_volume_gpio_one_side(prev_vol_6bit_set_on_left_, left_vol_6bit, latch_left_vol_);
+  prev_vol_6bit_set_on_left_ = left_vol_6bit;
 #endif
 }
 

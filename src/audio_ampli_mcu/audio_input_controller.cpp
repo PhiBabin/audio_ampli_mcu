@@ -44,15 +44,6 @@ void AudioInputController::menu_up()
   auto& audio_input = persistent_data_ptr_->selected_audio_input;
   const auto max_enum_value = static_cast<uint8_t>(AudioInput::audio_input_enum_length);
   auto audio_input_int = static_cast<uint8_t>(audio_input);
-  audio_input = static_cast<AudioInput>((audio_input_int + 1) % max_enum_value);
-  set_gpio();
-}
-
-void AudioInputController::menu_down()
-{
-  auto& audio_input = persistent_data_ptr_->selected_audio_input;
-  const auto max_enum_value = static_cast<uint8_t>(AudioInput::audio_input_enum_length);
-  auto audio_input_int = static_cast<uint8_t>(audio_input);
   if (audio_input_int == 0)
   {
     audio_input_int = max_enum_value - 1;
@@ -62,6 +53,15 @@ void AudioInputController::menu_down()
     --audio_input_int;
   }
   audio_input = static_cast<AudioInput>(audio_input_int);
+  set_gpio();
+}
+
+void AudioInputController::menu_down()
+{
+  auto& audio_input = persistent_data_ptr_->selected_audio_input;
+  const auto max_enum_value = static_cast<uint8_t>(AudioInput::audio_input_enum_length);
+  auto audio_input_int = static_cast<uint8_t>(audio_input);
+  audio_input = static_cast<AudioInput>((audio_input_int + 1) % max_enum_value);
   set_gpio();
 }
 

@@ -134,6 +134,8 @@ const char* option_to_string(const Option option)
       return "BIAS";
     case Option::subwoofer:
       return "SUBWOOFER";
+    case Option::balance:
+      return "L/RIGHT BAL";
     case Option::back:
       return "";
     case Option::option_enum_length:
@@ -200,6 +202,19 @@ const char* OptionController::get_option_value_string(const Option& option)
         default:
           return "ERR5";
       }
+    case Option::balance:
+    {
+      if (enabled_balance_scrolling_)
+      {
+        snprintf(balance_str_buffer_, balance_str_buffer_len_, "<%+d>", persistent_data_ptr_->left_right_balance_db);
+      }
+      else
+      {
+        snprintf(balance_str_buffer_, balance_str_buffer_len_, " %+d ", persistent_data_ptr_->left_right_balance_db);
+      }
+
+      return balance_str_buffer_;
+    }
     case Option::back:
       return "";
     case Option::option_enum_length:
@@ -247,6 +262,9 @@ bool OptionController::on_menu_press()
       increment_enum(OnOffOption::enum_length, persistent_data_ptr_->sufwoofer_enable_value);
       update_gpio();
       break;
+    case Option::balance:
+      enabled_balance_scrolling_ = !enabled_balance_scrolling_;
+      break;
     case Option::back:
       state_machine_ptr_->change_state(State::main_menu);
       break;
@@ -282,24 +300,7 @@ bool OptionController::update()
 void OptionController::menu_up()
 {
   const bool is_scroll_for_bias = selected_option_ == Option::bias && enabled_bias_scrolling_;
-  if (is_scroll_for_bias)
-  {
-    persistent_data_ptr_->bias += bias_increment;
-    if (persistent_data_ptr_->bias > 100)
-    {
-      persistent_data_ptr_->bias = 100;
-    }
-    update_gpio();
-  }
-  else
-  {
-    increment_enum(Option::option_enum_length, selected_option_);
-  }
-}
-
-void OptionController::menu_down()
-{
-  const bool is_scroll_for_bias = selected_option_ == Option::bias && enabled_bias_scrolling_;
+  const bool is_scroll_for_balance = selected_option_ == Option::balance && enabled_balance_scrolling_;
   if (is_scroll_for_bias)
   {
     if (persistent_data_ptr_->bias < bias_increment)
@@ -312,9 +313,42 @@ void OptionController::menu_down()
     }
     update_gpio();
   }
+  else if (is_scroll_for_balance)
+  {
+    --persistent_data_ptr_->left_right_balance_db;
+    persistent_data_ptr_->left_right_balance_db =
+      constrain(persistent_data_ptr_->left_right_balance_db, -left_right_balance_range, left_right_balance_range);
+    update_gpio();
+  }
   else
   {
     decrement_enum(Option::option_enum_length, selected_option_);
+  }
+}
+
+void OptionController::menu_down()
+{
+  const bool is_scroll_for_bias = selected_option_ == Option::bias && enabled_bias_scrolling_;
+  const bool is_scroll_for_balance = selected_option_ == Option::balance && enabled_balance_scrolling_;
+  if (is_scroll_for_bias)
+  {
+    persistent_data_ptr_->bias += bias_increment;
+    if (persistent_data_ptr_->bias > 100)
+    {
+      persistent_data_ptr_->bias = 100;
+    }
+    update_gpio();
+  }
+  else if (is_scroll_for_balance)
+  {
+    ++persistent_data_ptr_->left_right_balance_db;
+    persistent_data_ptr_->left_right_balance_db =
+      constrain(persistent_data_ptr_->left_right_balance_db, -left_right_balance_range, left_right_balance_range);
+    update_gpio();
+  }
+  else
+  {
+    increment_enum(Option::option_enum_length, selected_option_);
   }
 }
 

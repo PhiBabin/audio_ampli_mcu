@@ -73,6 +73,7 @@ private:
   bool update_encoder();
 
   constexpr static uint8_t bias_increment = 5;
+  constexpr static uint8_t left_right_balance_range = 5;
 
   // Non-owning pointer to the state machine
   StateMachine* state_machine_ptr_;
@@ -109,8 +110,11 @@ private:
 
   constexpr static size_t bias_str_buffer_len_ = 10;
   char bias_str_buffer_[bias_str_buffer_len_];
+  constexpr static size_t balance_str_buffer_len_ = 10;
+  char balance_str_buffer_[balance_str_buffer_len_];
 
   bool enabled_bias_scrolling_{false};
+  bool enabled_balance_scrolling_{false};
 };
 
 #endif  // OPTIONS_CTRL_GUARD_H_

@@ -114,7 +114,7 @@ void RemoteController::handle_down()
 int repeat_to_volume_multiplicator(const uint8_t repeat_count)
 {
   // The longer the button is pressed the larger the increase in volume
-  return repeat_count < 2 ? 1 : 5;
+  return repeat_count < 2 ? 1 : 3;
 }
 
 void RemoteController::handle_vol_down()
@@ -125,7 +125,6 @@ void RemoteController::handle_vol_down()
 void RemoteController::handle_vol_up()
 {
   // The longer the button is pressed the larger the increase in volume
-  const auto repeat = min(2 * repeat_count_ + 1, 10);
   volume_ctrl_ptr_->increase_volume_db(volume_change * repeat_to_volume_multiplicator(repeat_count_));
 }
 

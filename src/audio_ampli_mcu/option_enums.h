@@ -10,6 +10,7 @@ enum class Option : uint8_t
   output_type,
   bias,
   subwoofer,
+  balance,
   back,
   option_enum_length
 };

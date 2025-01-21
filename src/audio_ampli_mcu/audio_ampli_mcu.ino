@@ -115,7 +115,7 @@ void draw_volume(const bool has_state_changed = true)
 
   if (state_machine.get_state() == State::option_menu)
   {
-    const uint32_t y_end = 50;
+    const uint32_t y_end = 40;
     const uint32_t y_text_top = (y_end - regular_bold_font.get_height_px()) / 2;
     if (has_state_changed)
     {
@@ -128,14 +128,14 @@ void draw_volume(const bool has_state_changed = true)
       return;
     }
 
-    char option_buffer[10];
+    char option_buffer[15] = {0};
     if (volume_ctrl.is_muted())
     {
       strcpy(option_buffer, "[MUTED]");
     }
     else
     {
-      sprintf(option_buffer, "Vol: %ddB", volume_ctrl.get_volume_db());
+      snprintf(option_buffer, 15, "Vol: %ddB", volume_ctrl.get_volume_db());
     }
     draw_string_fast(display, option_buffer, 0, y_text_top, LCD_WIDTH, regular_bold_font);
     return;
@@ -318,7 +318,6 @@ void draw_options()
     {
       const auto curr_option_box_top_y = curr_option_center_y - ver_spacing / 2;
 
-      // LCD_ClearWindow_12bitRGB(
       display.set_rectangle(
         0,
         curr_option_box_top_y,
