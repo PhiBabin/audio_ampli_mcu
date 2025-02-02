@@ -21,6 +21,7 @@ class RP2040_PWM;
 
 /// Convert option to a human readable string.
 const char* option_to_string(const Option option);
+const char* advance_option_to_string(const AdvanceMenuOption option);
 
 struct OptionContollerPins
 {
@@ -33,6 +34,11 @@ struct OptionContollerPins
   const int out_se_pin;
   const int out_lfe_bal_pin;
   const int out_lfe_se_pin;
+};
+
+class ValueControlerInterface
+{
+  virtual char* get_string() = 0;
 };
 
 class OptionController
@@ -53,9 +59,12 @@ public:
   // Init GPIO pins
   void init();
 
-  Option get_selected_option() const;
-
-  const char* get_option_value_string(const Option& option);
+  OptionMenuScreen get_current_menu_screen() const;
+  size_t get_num_options() const;
+  const char* get_option_label_string(const uint8_t& option_num);
+  std::optional<const char*> get_option_value_string(const uint8_t& option_num);
+  std::optional<const char*> get_input_rename_value(const AudioInput& audio_input) const;
+  bool is_option_selected(const uint8_t option_num) const;
 
   // Read encoder, update state and set GPIO pin that set the volume.
   // return true on change in volume or mute status
@@ -69,6 +78,8 @@ public:
   void menu_down();
 
 private:
+  std::optional<const char*> get_main_option_value_string(const Option& option);
+  std::optional<const char*> get_advance_menu_option_value_string(const AdvanceMenuOption& option);
   bool update_selection();
   bool update_encoder();
 
@@ -107,6 +118,8 @@ private:
 
   // Selected option
   Option selected_option_{Option::back};
+  AdvanceMenuOption selected_advance_menu_option_{AdvanceMenuOption::back};
+  OptionMenuScreen selected_screen_{OptionMenuScreen::main};
 
   constexpr static size_t bias_str_buffer_len_ = 10;
   char bias_str_buffer_[bias_str_buffer_len_];
@@ -115,6 +128,39 @@ private:
 
   bool enabled_bias_scrolling_{false};
   bool enabled_balance_scrolling_{false};
+
+  // template <typename EnumType>
+  // class EnumControler : public ValueControlerInterface
+  // {
+  // public:
+  //   void EnumControler(EnumType* value_ptr);
+  //   char* get_string() final;
+
+  // private:
+  //   /// Non-owning pointer to the enum
+  //   EnumType* value_ptr;
+  // };
+
+  // struct Option
+  // {
+  //   char* label;
+  //   std::optional<std::unique_ptr<ValueControlerInterface>> value_ctrl;
+  //   bool is_selected{false};
+  // };
+
+  // template <typename EnumType>
+  // class Menu
+  // {
+  //   std::array<Option, EnumType::enum_length> options;
+  // };
+
+  // class OptionMenu
+  // {
+  //   uint8_t selected_option{0};
+  //   std::vector<Option> options;
+  // };
+
+  // std::array<OptionMenu, OptionMenuScreen::enum_length> menus_;
 };
 
 #endif  // OPTIONS_CTRL_GUARD_H_

@@ -54,10 +54,10 @@ int main(int argc, char* args[])
             switch (event.key.keysym.sym)
             {
               case SDLK_w:
-                increment_encoder(20, 100);
+                decrement_encoder(20, 100);
                 break;
               case SDLK_s:
-                decrement_encoder(20, 100);
+                increment_encoder(20, 100);
                 break;
               case SDLK_a:
                 decrement_encoder(18, 3);

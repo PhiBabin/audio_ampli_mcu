@@ -17,6 +17,14 @@ template <typename T>
 void increment_enum(const T& max_enum_value, T& enum_value_out)
 {
   using IntegerType = typename std::underlying_type<T>::type;
+  enum_value_out =
+    static_cast<T>((static_cast<IntegerType>(enum_value_out) + 1) % static_cast<IntegerType>(max_enum_value));
+}
+
+template <typename T>
+void decrement_enum(const T& max_enum_value, T& enum_value_out)
+{
+  using IntegerType = typename std::underlying_type<T>::type;
   const auto max_enum_int = static_cast<IntegerType>(max_enum_value);
   uint8_t enum_int = static_cast<IntegerType>(enum_value_out);
   if (enum_int == 0)
@@ -28,14 +36,6 @@ void increment_enum(const T& max_enum_value, T& enum_value_out)
     --enum_int;
   }
   enum_value_out = static_cast<T>(enum_int);
-}
-
-template <typename T>
-void decrement_enum(const T& max_enum_value, T& enum_value_out)
-{
-  using IntegerType = typename std::underlying_type<T>::type;
-  enum_value_out =
-    static_cast<T>((static_cast<IntegerType>(enum_value_out) + 1) % static_cast<IntegerType>(max_enum_value));
 }
 
 OptionController::OptionController(
@@ -115,9 +115,74 @@ void OptionController::on_audio_input_change()
   update_gpio();
 }
 
-Option OptionController::get_selected_option() const
+OptionMenuScreen OptionController::get_current_menu_screen() const
 {
-  return selected_option_;
+  return selected_screen_;
+}
+
+size_t OptionController::get_num_options() const
+{
+  if (selected_screen_ == OptionMenuScreen::main)
+  {
+    return static_cast<uint8_t>(Option::enum_length);
+  }
+  else
+  {
+    return static_cast<uint8_t>(AdvanceMenuOption::enum_length);
+  }
+}
+
+const char* OptionController::get_option_label_string(const uint8_t& option_num)
+{
+  if (selected_screen_ == OptionMenuScreen::main)
+  {
+    if (option_num < static_cast<uint8_t>(Option::enum_length))
+    {
+      return option_to_string(static_cast<Option>(option_num));
+    }
+  }
+  else
+  {
+    if (option_num < static_cast<uint8_t>(AdvanceMenuOption::enum_length))
+    {
+      return advance_option_to_string(static_cast<AdvanceMenuOption>(option_num));
+    }
+  }
+  return "ERR44";
+}
+
+std::optional<const char*> OptionController::get_option_value_string(const uint8_t& option_num)
+{
+  if (selected_screen_ == OptionMenuScreen::main)
+  {
+    const auto option_enum = static_cast<Option>(option_num);
+
+    if (option_num < static_cast<uint8_t>(Option::enum_length))
+    {
+      return get_main_option_value_string(option_enum);
+    }
+  }
+  else
+  {
+    const auto option_enum = static_cast<AdvanceMenuOption>(option_num);
+    if (option_num < static_cast<uint8_t>(AdvanceMenuOption::enum_length))
+    {
+      return get_advance_menu_option_value_string(option_enum);
+    }
+  }
+  return "ERR55";
+}
+
+bool OptionController::is_option_selected(const uint8_t option_num) const
+{
+  if (selected_screen_ == OptionMenuScreen::main)
+  {
+    return static_cast<Option>(option_num) == selected_option_;
+  }
+  else
+  {
+    return static_cast<AdvanceMenuOption>(option_num) == selected_advance_menu_option_;
+  }
 }
 
 const char* option_to_string(const Option option)
@@ -130,22 +195,114 @@ const char* option_to_string(const Option option)
       return "OUTPUT";
     case Option::output_type:
       return "TYPE";
-    case Option::bias:
-      return "BIAS";
     case Option::subwoofer:
       return "SUBWOOFER";
     case Option::balance:
       return "L/RIGHT BAL";
+    case Option::more_options:
+      return "MORE OPTIONS";
     case Option::back:
-      return "";
-    case Option::option_enum_length:
+      return "BACK";
+    case Option::enum_length:
       return "ERR5";
     default:
       return "ERR6";
   };
 }
 
-const char* OptionController::get_option_value_string(const Option& option)
+const char* advance_option_to_string(const AdvanceMenuOption option)
+{
+  switch (option)
+  {
+    case AdvanceMenuOption::bias:
+      return "BIAS";
+    case AdvanceMenuOption::rename_bal:
+      return "RENAME BAL ";
+    case AdvanceMenuOption::rename_rca1:
+      return "RENAME RCA1";
+    case AdvanceMenuOption::rename_rca2:
+      return "RENAME RCA2";
+    case AdvanceMenuOption::rename_rca3:
+      return "RENAME RCA3";
+    case AdvanceMenuOption::back:
+      return "BACK";
+    case AdvanceMenuOption::enum_length:
+      return "ERR5";
+    default:
+      return "ERR6";
+  };
+}
+
+AudioInput get_audio_input_from_advance_option(const AdvanceMenuOption option)
+{
+  switch (option)
+  {
+    case AdvanceMenuOption::rename_bal:
+      return AudioInput::bal;
+    case AdvanceMenuOption::rename_rca1:
+      return AudioInput::rca_1;
+    case AdvanceMenuOption::rename_rca2:
+      return AudioInput::rca_2;
+    case AdvanceMenuOption::rename_rca3:
+      return AudioInput::rca_3;
+    default:
+      return AudioInput::bal;
+  }
+}
+
+std::optional<const char*> OptionController::get_input_rename_value(const AudioInput& audio_input) const
+{
+  // Get the name alias
+  const auto& name_alias = persistent_data_ptr_->get_per_audio_input_data(audio_input).name_alias;
+  switch (name_alias)
+  {
+    case InputNameAliasOption::no_alias:
+      return audio_input_to_string(audio_input);
+      break;
+    case InputNameAliasOption::dac:
+      return "DAC";
+    case InputNameAliasOption::cd:
+      return "CD";
+    case InputNameAliasOption::phono:
+      return "PHONO";
+    case InputNameAliasOption::tuner:
+      return "TUNER";
+    case InputNameAliasOption::aux:
+      return "AUX";
+    case InputNameAliasOption::enum_length:
+      return "ERR1";
+  }
+  return "ERR2";
+}
+
+std::optional<const char*> OptionController::get_advance_menu_option_value_string(const AdvanceMenuOption& option)
+{
+  switch (option)
+  {
+    case AdvanceMenuOption::bias:
+    {
+      const auto str_template = enabled_bias_scrolling_ ? "<%d%%>" : " %d%% ";
+      snprintf(bias_str_buffer_, bias_str_buffer_len_, str_template, persistent_data_ptr_->bias);
+
+      return bias_str_buffer_;
+    }
+    case AdvanceMenuOption::rename_bal:
+    case AdvanceMenuOption::rename_rca1:
+    case AdvanceMenuOption::rename_rca2:
+    case AdvanceMenuOption::rename_rca3:
+    {
+      return get_input_rename_value(get_audio_input_from_advance_option(option));
+    }
+    case AdvanceMenuOption::back:
+      return {};
+    case AdvanceMenuOption::enum_length:
+      return "ERR4";
+    default:
+      return "ERR6";
+  }
+}
+
+std::optional<const char*> OptionController::get_main_option_value_string(const Option& option)
 {
   switch (option)
   {
@@ -179,19 +336,6 @@ const char* OptionController::get_option_value_string(const Option& option)
         default:
           return "ERR3";
       }
-    case Option::bias:
-    {
-      if (enabled_bias_scrolling_)
-      {
-        snprintf(bias_str_buffer_, bias_str_buffer_len_, "<%d%%>", persistent_data_ptr_->bias);
-      }
-      else
-      {
-        snprintf(bias_str_buffer_, bias_str_buffer_len_, " %d%% ", persistent_data_ptr_->bias);
-      }
-
-      return bias_str_buffer_;
-    }
     case Option::subwoofer:
       switch (persistent_data_ptr_->sufwoofer_enable_value)
       {
@@ -215,9 +359,11 @@ const char* OptionController::get_option_value_string(const Option& option)
 
       return balance_str_buffer_;
     }
+    case Option::more_options:
+      return {};
     case Option::back:
-      return "";
-    case Option::option_enum_length:
+      return {};
+    case Option::enum_length:
       return "ERR4";
     default:
       return "ERR6";
@@ -231,44 +377,81 @@ bool OptionController::on_menu_press()
     state_machine_ptr_->change_state(State::option_menu);
     return true;
   }
-  constexpr auto volume_change = 14;
-  switch (selected_option_)
+  switch (selected_screen_)
   {
-    case Option::gain:
-      // When the gain is set from low to high, reduce the volume by 14db.
-      if (persistent_data_ptr_->get_gain_mutable() == GainOption::low)
+    case OptionMenuScreen::main:
+      switch (selected_option_)
       {
-        volume_ctrl_ptr_->set_volume_db(volume_ctrl_ptr_->get_volume_db() - volume_change);
+        case Option::gain:
+        {
+          constexpr auto volume_change = 14;
+          // When the gain is set from low to high, reduce the volume by 14db.
+          if (persistent_data_ptr_->get_gain_mutable() == GainOption::low)
+          {
+            volume_ctrl_ptr_->set_volume_db(volume_ctrl_ptr_->get_volume_db() - volume_change);
+          }
+          else
+          {
+            volume_ctrl_ptr_->set_volume_db(volume_ctrl_ptr_->get_volume_db() + volume_change);
+          }
+          increment_enum(GainOption::enum_length, persistent_data_ptr_->get_gain_mutable());
+          update_gpio();
+          break;
+        }
+        case Option::output_mode:
+          increment_enum(OutputModeOption::enum_length, persistent_data_ptr_->output_mode_value);
+          update_gpio();
+          break;
+        case Option::output_type:
+          increment_enum(OutputTypeOption::enum_length, persistent_data_ptr_->output_type_value);
+          update_gpio();
+          break;
+        case Option::subwoofer:
+          increment_enum(OnOffOption::enum_length, persistent_data_ptr_->sufwoofer_enable_value);
+          update_gpio();
+          break;
+        case Option::balance:
+          enabled_balance_scrolling_ = !enabled_balance_scrolling_;
+          break;
+        case Option::more_options:
+          selected_screen_ = OptionMenuScreen::advance;
+          break;
+        case Option::back:
+          state_machine_ptr_->change_state(State::main_menu);
+          break;
+        case Option::enum_length:
+          break;
+        default:
+          break;
       }
-      else
+      break;
+    case OptionMenuScreen::advance:
+      switch (selected_advance_menu_option_)
       {
-        volume_ctrl_ptr_->set_volume_db(volume_ctrl_ptr_->get_volume_db() + volume_change);
+        case AdvanceMenuOption::bias:
+          enabled_bias_scrolling_ = !enabled_bias_scrolling_;
+          break;
+        case AdvanceMenuOption::rename_bal:
+        case AdvanceMenuOption::rename_rca1:
+        case AdvanceMenuOption::rename_rca2:
+        case AdvanceMenuOption::rename_rca3:
+        {
+          const auto audio_input = get_audio_input_from_advance_option(selected_advance_menu_option_);
+          // Get the name alias
+          auto& name_alias = persistent_data_ptr_->get_per_audio_input_data_mutable(audio_input).name_alias;
+          increment_enum(InputNameAliasOption::enum_length, name_alias);
+          break;
+        }
+        case AdvanceMenuOption::back:
+          selected_screen_ = OptionMenuScreen::main;
+          break;
+        case AdvanceMenuOption::enum_length:
+          break;
+        default:
+          break;
       }
-      increment_enum(GainOption::enum_length, persistent_data_ptr_->get_gain_mutable());
-      update_gpio();
       break;
-    case Option::output_mode:
-      increment_enum(OutputModeOption::enum_length, persistent_data_ptr_->output_mode_value);
-      update_gpio();
-      break;
-    case Option::output_type:
-      increment_enum(OutputTypeOption::enum_length, persistent_data_ptr_->output_type_value);
-      update_gpio();
-      break;
-    case Option::bias:
-      enabled_bias_scrolling_ = !enabled_bias_scrolling_;
-      break;
-    case Option::subwoofer:
-      increment_enum(OnOffOption::enum_length, persistent_data_ptr_->sufwoofer_enable_value);
-      update_gpio();
-      break;
-    case Option::balance:
-      enabled_balance_scrolling_ = !enabled_balance_scrolling_;
-      break;
-    case Option::back:
-      state_machine_ptr_->change_state(State::main_menu);
-      break;
-    case Option::option_enum_length:
+    case OptionMenuScreen::enum_length:
       break;
     default:
       break;
@@ -299,9 +482,10 @@ bool OptionController::update()
 
 void OptionController::menu_up()
 {
-  const bool is_scroll_for_bias = selected_option_ == Option::bias && enabled_bias_scrolling_;
+  const bool is_main_menu = selected_screen_ == OptionMenuScreen::main;
+  const bool is_scroll_for_bias = selected_advance_menu_option_ == AdvanceMenuOption::bias && enabled_bias_scrolling_;
   const bool is_scroll_for_balance = selected_option_ == Option::balance && enabled_balance_scrolling_;
-  if (is_scroll_for_bias)
+  if (!is_main_menu && is_scroll_for_bias)
   {
     if (persistent_data_ptr_->bias < bias_increment)
     {
@@ -313,7 +497,7 @@ void OptionController::menu_up()
     }
     update_gpio();
   }
-  else if (is_scroll_for_balance)
+  else if (is_main_menu && is_scroll_for_balance)
   {
     --persistent_data_ptr_->left_right_balance_db;
     persistent_data_ptr_->left_right_balance_db =
@@ -322,15 +506,23 @@ void OptionController::menu_up()
   }
   else
   {
-    decrement_enum(Option::option_enum_length, selected_option_);
+    if (is_main_menu)
+    {
+      decrement_enum(Option::enum_length, selected_option_);
+    }
+    else
+    {
+      decrement_enum(AdvanceMenuOption::enum_length, selected_advance_menu_option_);
+    }
   }
 }
 
 void OptionController::menu_down()
 {
-  const bool is_scroll_for_bias = selected_option_ == Option::bias && enabled_bias_scrolling_;
+  const bool is_main_menu = selected_screen_ == OptionMenuScreen::main;
+  const bool is_scroll_for_bias = selected_advance_menu_option_ == AdvanceMenuOption::bias && enabled_bias_scrolling_;
   const bool is_scroll_for_balance = selected_option_ == Option::balance && enabled_balance_scrolling_;
-  if (is_scroll_for_bias)
+  if (!is_main_menu && is_scroll_for_bias)
   {
     persistent_data_ptr_->bias += bias_increment;
     if (persistent_data_ptr_->bias > 100)
@@ -339,7 +531,7 @@ void OptionController::menu_down()
     }
     update_gpio();
   }
-  else if (is_scroll_for_balance)
+  else if (is_main_menu && is_scroll_for_balance)
   {
     ++persistent_data_ptr_->left_right_balance_db;
     persistent_data_ptr_->left_right_balance_db =
@@ -348,7 +540,14 @@ void OptionController::menu_down()
   }
   else
   {
-    increment_enum(Option::option_enum_length, selected_option_);
+    if (is_main_menu)
+    {
+      increment_enum(Option::enum_length, selected_option_);
+    }
+    else
+    {
+      increment_enum(AdvanceMenuOption::enum_length, selected_advance_menu_option_);
+    }
   }
 }
 

@@ -120,7 +120,7 @@ void draw_volume(const bool has_state_changed = true)
     if (has_state_changed)
     {
       // LCD_ClearWindow_12bitRGB(
-      display.set_rectangle(0, 0, LCD_WIDTH, y_end, BLACK_COLOR);
+      display.draw_rectangle(0, 0, LCD_WIDTH, y_end, BLACK_COLOR);
     }
     // prev_state = state_machine.get_state();
     if (millis() - time_since_last_change >= max_time_since_last_change)
@@ -146,15 +146,15 @@ void draw_volume(const bool has_state_changed = true)
   char buffer[5];
   sprintf(buffer, "%d", volume_ctrl.get_volume_db());
 
-  const uint32_t min_x = 85;
-  const uint32_t max_x = LCD_WIDTH - 10;
+  const uint32_t min_x = 94;
+  const uint32_t max_x = LCD_WIDTH - 8;
   const uint32_t middle_y = LCD_HEIGHT / 2;
   const uint32_t start_y = middle_y - font.get_height_px() / 2;
 
   if (prev_mute_state != volume_ctrl.is_muted())
   {
     // LCD_ClearWindow_12bitRGB(
-    display.set_rectangle(min_x, 0, max_x, LCD_HEIGHT, BLACK_COLOR);
+    display.draw_rectangle(min_x, 0, max_x, LCD_HEIGHT, BLACK_COLOR);
     prev_mute_state = volume_ctrl.is_muted();
   }
 
@@ -202,7 +202,7 @@ void draw_standby(const bool has_state_changed = true)
     if (zzz_count > number_of_ZZZ)
     {
       zzz_count = 1;
-      display.set_rectangle(
+      display.draw_rectangle(
         start_x, top_y, start_x + number_of_ZZZ * spacing_x, top_y + font.get_height_px(), BLACK_COLOR);
     }
     for (int i = 0; i < zzz_count; ++i)
@@ -221,18 +221,18 @@ void draw_audio_inputs(const bool has_state_changed = true)
     return;
   }
   const auto& font = regular_bold_font;
-  const auto max_enum_value = static_cast<uint8_t>(AudioInput::audio_input_enum_length);
+  const auto max_enum_value = static_cast<uint8_t>(AudioInput::enum_length);
   const uint32_t ver_spacing =
     LCD_HEIGHT / (max_enum_value + 1);  // + 1 is to have equal spacing between the top input and the screen's border
 
-  const uint32_t tab_width_px = 82;
+  const uint32_t tab_width_px = 92;
   const uint32_t tab_height_px = font.get_height_px() + 8;
   const uint32_t first_option_center_y = ver_spacing;
 
   if (has_state_changed)
   {
     // LCD_ClearWindow_12bitRGB(
-    display.set_rectangle(0, 0, tab_width_px + 1, LCD_HEIGHT, BLACK_COLOR);
+    display.draw_rectangle(0, 0, tab_width_px + 1, LCD_HEIGHT, BLACK_COLOR);
   }
   else if (prev_audio_input == audio_input_ctrl.get_audio_input())
   {
@@ -263,21 +263,17 @@ void draw_audio_inputs(const bool has_state_changed = true)
     }
     else if (was_previously_selected)
     {
-      // LCD_ClearWindow_12bitRGB(
-      display.set_rectangle(
+      display.draw_rectangle(
         0, curr_option_box_top_y, tab_width_px, curr_option_box_top_y + tab_height_px + 1, BLACK_COLOR);
     }
     if (is_selected || was_previously_selected || has_state_changed)
     {
-      draw_string_fast(
-        display,
-        audio_input_to_string(audio_input),
-        0,
-        curr_option_text_top_y,
-        tab_width_px,
-        font,
-        !is_selected,
-        false);
+      const auto maybe_audio_input_str = option_ctrl.get_input_rename_value(audio_input);
+      if (maybe_audio_input_str)
+      {
+        draw_string_fast(
+          display, *maybe_audio_input_str, 0, curr_option_text_top_y, tab_width_px, font, !is_selected, false);
+      }
     }
   }
   prev_audio_input = audio_input_ctrl.get_audio_input();
@@ -286,19 +282,19 @@ void draw_audio_inputs(const bool has_state_changed = true)
 void draw_options()
 {
   static auto prev_state = state_machine.get_state();
-  static auto prev_selected_option = option_ctrl.get_selected_option();
+  static auto prev_option_menu = option_ctrl.get_current_menu_screen();
   const auto& font = regular_bold_font;
   if (state_machine.get_state() != State::option_menu)
   {
     prev_state = state_machine.get_state();
-    prev_selected_option = option_ctrl.get_selected_option();
     return;
   }
 
-  const auto max_enum_value = static_cast<uint8_t>(Option::option_enum_length);
-  const uint32_t ver_spacing = LCD_HEIGHT / (max_enum_value + 2);
+  const auto max_enum_value = option_ctrl.get_num_options();
+  const uint32_t ver_spacing = font.get_height_px() + 5;
+  // const uint32_t ver_spacing = LCD_HEIGHT / (max_enum_value + 2);
 
-  if (prev_state != state_machine.get_state())
+  if (prev_state != state_machine.get_state() || prev_option_menu != option_ctrl.get_current_menu_screen())
   {
     // LCD_ClearWindow_12bitRGB(0, 0, LCD_WIDTH, LCD_HEIGHT, BLACK_COLOR);
 
@@ -307,47 +303,39 @@ void draw_options()
 
   for (uint8_t enum_value = 0; enum_value < max_enum_value; ++enum_value)
   {
-    const auto option = static_cast<Option>(enum_value);
     const auto curr_option_center_y = (enum_value + 2) * ver_spacing;
     const auto curr_option_text_top_y = curr_option_center_y - font.get_height_px() / 2;
 
-    const auto is_selected = option_ctrl.get_selected_option() == option;
-    const auto is_prev_selected_option = option == prev_selected_option;
+    const auto is_selected = option_ctrl.is_option_selected(enum_value);
+    const auto label_str = option_ctrl.get_option_label_string(enum_value);
+    const auto maybe_value_str = option_ctrl.get_option_value_string(enum_value);
 
-    if (is_selected || is_prev_selected_option)
+    // if (is_selected || is_prev_selected_option)
+    // {
+    const auto curr_option_box_top_y = curr_option_center_y - ver_spacing / 2;
+
+    display.draw_rectangle(
+      0,
+      curr_option_box_top_y,
+      LCD_WIDTH,
+      curr_option_box_top_y + ver_spacing + 1,
+      is_selected ? WHITE_COLOR : BLACK_COLOR);
+    // }
+
+    // If there is no value string, center the option's label
+    if (!maybe_value_str)
     {
-      const auto curr_option_box_top_y = curr_option_center_y - ver_spacing / 2;
-
-      display.set_rectangle(
-        0,
-        curr_option_box_top_y,
-        LCD_WIDTH,
-        curr_option_box_top_y + ver_spacing + 1,
-        is_selected ? WHITE_COLOR : BLACK_COLOR);
-    }
-
-    // Back is centered
-    if (option == Option::back)
-    {
-      draw_string_fast(display, "BACK", 0, curr_option_text_top_y, LCD_WIDTH, font, !is_selected, false);
-    }  // Other option have a field name and values
+      draw_string_fast(display, label_str, 0, curr_option_text_top_y, LCD_WIDTH, font, !is_selected, false);
+    }  // Other option have a field label and values
     else
     {
+      draw_string_fast(display, label_str, 0, curr_option_text_top_y, LCD_WIDTH / 2, font, !is_selected, false);
       draw_string_fast(
-        display, option_to_string(option), 0, curr_option_text_top_y, LCD_WIDTH / 2, font, !is_selected, false);
-      draw_string_fast(
-        display,
-        option_ctrl.get_option_value_string(option),
-        LCD_WIDTH / 2,
-        curr_option_text_top_y,
-        LCD_WIDTH,
-        font,
-        !is_selected,
-        false);
+        display, *maybe_value_str, LCD_WIDTH / 2, curr_option_text_top_y, LCD_WIDTH, font, !is_selected, false);
     }
   }
   prev_state = state_machine.get_state();
-  prev_selected_option = option_ctrl.get_selected_option();
+  prev_option_menu = option_ctrl.get_current_menu_screen();
 }
 
 void test_draw_speed()
@@ -382,14 +370,14 @@ void test_clear_rectangle()
   display.clear_screen(BLACK_COLOR);
 
   Serial.println("---------------------------------------");
-  // display.set_rectangle(10, 20, 20, 30, WHITE_COLOR);
+  // display.draw_rectangle(10, 20, 20, 30, WHITE_COLOR);
   for (int i = 0; i < N; ++i)
   {
     Serial.println("+++++++++++++++++++++++++++++++++++++");
     int x_start = 10 + i;
     for (int width = 1; width < 10; ++width)
     {
-      display.set_rectangle(x_start, 10 + 34 * i, x_start + width, 30 + 34 * i, WHITE_COLOR);
+      display.draw_rectangle(x_start, 10 + 34 * i, x_start + width, 30 + 34 * i, WHITE_COLOR);
       x_start += width + 5;
     }
   }

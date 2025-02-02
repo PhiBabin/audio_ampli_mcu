@@ -1,6 +1,7 @@
 
 #include "persistent_data.h"
 
+#include <cassert>
 #ifdef SIM
 #include "sim/arduino.h"
 #else
@@ -30,6 +31,13 @@ bool PersistentData::operator==(const PersistentData& rhs) const
       return false;
     }
   }
+  for (size_t i = 0; i < NUM_AUDIO_INPUT; ++i)
+  {
+    if (per_audio_input_data[i].name_alias != rhs.per_audio_input_data[i].name_alias)
+    {
+      return false;
+    }
+  }
   return true;
 }
 
@@ -51,6 +59,16 @@ PersistentData::PerAudioInputOutputData& PersistentData::get_per_audio_input_out
 const PersistentData::PerAudioInputOutputData& PersistentData::get_per_audio_input_output_data() const
 {
   return per_audio_input_output_data[current_input_output_pair_index()];
+}
+const PersistentData::PerAudioInputData& PersistentData::get_per_audio_input_data(const AudioInput& input) const
+{
+  assert(static_cast<uint8_t>(input) < static_cast<uint8_t>(AudioInput::enum_length));
+  return per_audio_input_data[static_cast<uint8_t>(input)];
+}
+PersistentData::PerAudioInputData& PersistentData::get_per_audio_input_data_mutable(const AudioInput& input)
+{
+  assert(static_cast<uint8_t>(input) < static_cast<uint8_t>(AudioInput::enum_length));
+  return per_audio_input_data[static_cast<uint8_t>(input)];
 }
 int32_t& PersistentData::get_volume_db_mutable()
 {

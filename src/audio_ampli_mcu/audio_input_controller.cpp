@@ -42,7 +42,7 @@ void AudioInputController::init()
 void AudioInputController::menu_up()
 {
   auto& audio_input = persistent_data_ptr_->selected_audio_input;
-  const auto max_enum_value = static_cast<uint8_t>(AudioInput::audio_input_enum_length);
+  const auto max_enum_value = static_cast<uint8_t>(AudioInput::enum_length);
   auto audio_input_int = static_cast<uint8_t>(audio_input);
   if (audio_input_int == 0)
   {
@@ -59,7 +59,7 @@ void AudioInputController::menu_up()
 void AudioInputController::menu_down()
 {
   auto& audio_input = persistent_data_ptr_->selected_audio_input;
-  const auto max_enum_value = static_cast<uint8_t>(AudioInput::audio_input_enum_length);
+  const auto max_enum_value = static_cast<uint8_t>(AudioInput::enum_length);
   auto audio_input_int = static_cast<uint8_t>(audio_input);
   audio_input = static_cast<AudioInput>((audio_input_int + 1) % max_enum_value);
   set_gpio();
@@ -81,14 +81,14 @@ bool AudioInputController::update()
 
   if (current_count - prev_encoder_count_ >= tick_per_audio_in_)
   {
-    prev_encoder_count_ = current_count;
     menu_down();
+    prev_encoder_count_ = current_count;
     return true;
   }
   if (current_count - prev_encoder_count_ <= -tick_per_audio_in_)
   {
-    prev_encoder_count_ = current_count;
     menu_up();
+    prev_encoder_count_ = current_count;
     return true;
   }
   return false;

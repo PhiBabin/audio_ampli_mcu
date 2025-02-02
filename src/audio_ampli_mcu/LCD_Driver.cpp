@@ -266,7 +266,7 @@ void Display::clear_screen(const uint32_t color_12bit)
   }
 }
 
-void Display::set_rectangle(
+void Display::draw_rectangle(
   const uint16_t x_start_,
   const uint16_t y_start_,
   const uint16_t x_end_,

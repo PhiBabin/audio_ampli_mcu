@@ -99,7 +99,7 @@ public:
   void blip_framebuffer();
 
   void clear_screen(const uint32_t color_12bit);
-  void set_rectangle(
+  void draw_rectangle(
     const uint16_t x_start_,
     const uint16_t y_start_,
     const uint16_t x_end_,

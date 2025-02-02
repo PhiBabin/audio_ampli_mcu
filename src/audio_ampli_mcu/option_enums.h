@@ -3,16 +3,32 @@
 
 #include <stdint.h>
 
+enum class OptionMenuScreen : uint8_t
+{
+  main = 0,
+  advance,
+  enum_length
+};
 enum class Option : uint8_t
 {
   gain = 0,
   output_mode,
   output_type,
-  bias,
   subwoofer,
   balance,
+  more_options,
   back,
-  option_enum_length
+  enum_length
+};
+enum class AdvanceMenuOption : uint8_t
+{
+  bias = 0,
+  rename_bal,
+  rename_rca1,
+  rename_rca2,
+  rename_rca3,
+  back,
+  enum_length
 };
 enum class GainOption : uint8_t
 {
@@ -32,6 +48,17 @@ enum class OutputTypeOption : uint8_t
 {
   se = 0,
   bal,
+  enum_length
+};
+
+enum class InputNameAliasOption : uint8_t
+{
+  no_alias = 0,
+  dac,
+  cd,
+  phono,
+  tuner,
+  aux,
   enum_length
 };
 

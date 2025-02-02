@@ -127,13 +127,13 @@ void draw_string_fast(
   {
     // whiteout
     // LCD_ClearWindow_12bitRGB(
-    display.set_rectangle(start_x, start_y, start_text_x + 1, end_y, is_white_on_black ? BLACK_COLOR : WHITE_COLOR);
+    display.draw_rectangle(start_x, start_y, start_text_x + 1, end_y, is_white_on_black ? BLACK_COLOR : WHITE_COLOR);
   }
   if (end_text_x < end_x && clear_side)
   {
     // whiteout
     // LCD_ClearWindow_12bitRGB(
-    display.set_rectangle(end_text_x, start_y, end_x + 1, end_y, is_white_on_black ? BLACK_COLOR : WHITE_COLOR);
+    display.draw_rectangle(end_text_x, start_y, end_x + 1, end_y, is_white_on_black ? BLACK_COLOR : WHITE_COLOR);
   }
   str_temp = str;
   auto current_text_x = start_text_x;

@@ -19,6 +19,10 @@ public:
     int32_t volume_db{STARTUP_VOLUME_DB};
     GainOption gain_value{GainOption::low};
   };
+  struct PerAudioInputData
+  {
+    InputNameAliasOption name_alias{InputNameAliasOption::no_alias};
+  };
 
   uint16_t checksum{0};
   uint16_t magic_num{0xCAFE};
@@ -26,6 +30,7 @@ public:
   bool is_muted{false};
   AudioInput selected_audio_input{AudioInput::rca_1};
   PerAudioInputOutputData per_audio_input_output_data[NUM_INPUT_OUTPUT_PERMUTATION];
+  PerAudioInputData per_audio_input_data[NUM_AUDIO_INPUT];
   OutputModeOption output_mode_value{OutputModeOption::phones};
   OutputTypeOption output_type_value{OutputTypeOption::se};
   OnOffOption sufwoofer_enable_value{OnOffOption::off};
@@ -36,6 +41,8 @@ public:
   // Getters
   const PerAudioInputOutputData& get_per_audio_input_output_data() const;
   PerAudioInputOutputData& get_per_audio_input_output_data_mutable();
+  const PerAudioInputData& get_per_audio_input_data(const AudioInput& input) const;
+  PerAudioInputData& get_per_audio_input_data_mutable(const AudioInput& input);
   const int32_t& get_volume_db() const;
   int32_t& get_volume_db_mutable();
   const GainOption& get_gain() const;
