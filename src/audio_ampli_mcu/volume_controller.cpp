@@ -218,13 +218,51 @@ void VolumeController::toggle_mute()
 
 void VolumeController::power_off()
 {
+  // 1) Set the volume to mute
+  const auto current_is_mute = is_muted_;
+  is_muted_ = true;
+  set_gpio_based_on_volume();
+
+  // 2) wait 50ms to make sure that the volume is applied
+  delay(50);
+
+  // 3) Power off
   digitalWrite(power_enable_pin_, LOW);
+
+  // 4) Wait for power off to be applied
+  delay(500);
+
+  // 5) Restore mute status
+  is_muted_ = current_is_mute;
+
+  // 6) Enter standby mode
   state_machine_ptr_->change_state(State::standby);
 }
 
 void VolumeController::power_on()
 {
+  // 1) Power off
+  digitalWrite(power_enable_pin_, LOW);
+
+  // 2) Mute output
+  const auto current_is_mute = is_muted_;
+  is_muted_ = true;
+  set_gpio_based_on_volume();
+
+  // 3) wait 50ms to make sure that the volume is applied
+  delay(50);
+
+  // 4) Power on
   digitalWrite(power_enable_pin_, HIGH);
+
+  // 5) Wait for power on to be applied
+  delay(500);
+
+  // 6) Restore mute
+  is_muted_ = current_is_mute;
+  set_gpio_based_on_volume();
+
+  // 7) Exit standby mode
   state_machine_ptr_->change_state(State::main_menu);
 }
 
