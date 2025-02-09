@@ -23,9 +23,6 @@ public:
     PersistentData* persistent_data_ptr,
     const std::array<pin_size_t, 6> gpio_pin_vol_select,
     PioEncoder* vol_encoder_ptr,
-    const int mute_button_pin,
-    const int set_mute_pin,
-    const int power_enable_pin,
     const int latch_left_vol,
     const int latch_right_vol,
     const int32_t total_tick_for_63db);
@@ -48,9 +45,8 @@ public:
   // Toggle muted state
   void toggle_mute();
 
-  // Power on/off the amplificator and change to standy state
-  void power_on();
-  void power_off();
+  // Toggle muted state
+  void set_mute(const bool is_mute);
 
   // Read encoder, update state and set GPIO pin that set the volume.
   // return true on change in volume or mute status
@@ -62,15 +58,15 @@ public:
   // When selected options change, the volume is changed
   void on_option_change();
 
+  // Set volume of the left and right stereo by triggering the GPIOs.
+  void set_gpio_based_on_volume();
+
 private:
   // Read encoder, update state and set GPIO pin that set the volume.
   bool update_volume();
 
   // Update mute state
   bool update_mute();
-
-  // Set volume of the left and right stereo by triggering the GPIOs.
-  void set_gpio_based_on_volume();
 
   // Read current volume db on the current audio input and reset the volume tick count
   void reset_volume_tick_count_based_volume_db();
@@ -90,12 +86,8 @@ private:
   PersistentData* persistent_data_ptr_;
   // GPIO pin for each of the 6 bit of the volume
   std::array<pin_size_t, 6> gpio_pin_vol_select_;
-  // Pin for the mute toggle button
-  pin_size_t mute_button_pin_;
   // Output pin to mute / unmute
   pin_size_t set_mute_pin_;
-  // Output pin to turn power on/off
-  pin_size_t power_enable_pin_;
   // Latch the volume to the left stereo
   pin_size_t latch_left_vol_;
   // Latch the volume to the right stereo
@@ -108,8 +100,6 @@ private:
   int32_t tick_per_db_;
   /// Pointer to the quadrature encoder
   PioEncoder* vol_encoder_ptr_;
-  /// Toggle button for the mutting
-  ToggleButton mute_button_;
   /// Is the device muted?
   bool is_muted_{false};
   /// If the volume/mute is change outside of the update_XX(), this keep latch the update

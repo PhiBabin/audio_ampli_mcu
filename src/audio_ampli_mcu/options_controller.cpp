@@ -46,6 +46,7 @@ OptionController::OptionController(
   VolumeController* volume_ctrl_ptr,
   const pin_size_t select_button_pin,
   const pin_size_t bias_out_pin,
+  const int power_enable_pin,
   const int32_t tick_per_option,
   OptionContollerPins pins)
   : state_machine_ptr_(state_machine_ptr)
@@ -55,6 +56,7 @@ OptionController::OptionController(
   , option_encoder_ptr_(option_encoder_ptr)
   , select_button_pin_(select_button_pin)
   , bias_out_pin_(bias_out_pin)
+  , power_enable_pin_(power_enable_pin)
   , pins_(pins)
   , io_expander_ptr_(io_expander_ptr)
   , volume_ctrl_ptr_(volume_ctrl_ptr)
@@ -65,6 +67,8 @@ OptionController::OptionController(
 
 void OptionController::init()
 {
+  pinMode(power_enable_pin_, OUTPUT);
+  digitalWrite(power_enable_pin_, LOW);
   select_button_.setup(select_button_pin_, BUTTON_DEBOUNCE_DELAY, InputDebounce::PIM_INT_PULL_UP_RES);
   // Initialize GPIOs
   update_gpio();
@@ -83,17 +87,18 @@ void OptionController::update_gpio()
   const bool is_bal_input = persistent_data_ptr_->selected_audio_input == AudioInput::bal;
   const bool is_bal_output = persistent_data_ptr_->output_type_value == OutputTypeOption::bal;
   const bool is_lfe_enable = persistent_data_ptr_->sufwoofer_enable_value == OnOffOption::on;
+  const bool is_mute = volume_ctrl_ptr_->is_muted();
 
   // This is an expression of the look up table
   // Note: input balance is set by the audio input controler
-  const int output_bal_value = is_bal_output ? HIGH : LOW;
-  const int output_se_value = !is_bal_output ? HIGH : LOW;
+  const int output_bal_value = is_bal_output && !is_mute ? HIGH : LOW;
+  const int output_se_value = !is_bal_output && !is_mute ? HIGH : LOW;
   const int in_out_unipolar_value = is_bal_input && !is_bal_output ? HIGH : LOW;
   const int in_out_bal_unipolar_value = !is_bal_input && is_bal_output ? HIGH : LOW;
 
   // If the output is BAL, LFE/subwoofer will use the SE and vice-versa.
-  const int out_lfe_bal = is_lfe_enable && !is_bal_output ? HIGH : LOW;
-  const int out_lfe_se = is_lfe_enable && is_bal_output ? HIGH : LOW;
+  const int out_lfe_bal = is_lfe_enable && !is_bal_output && !is_mute ? HIGH : LOW;
+  const int out_lfe_se = is_lfe_enable && is_bal_output && !is_mute ? HIGH : LOW;
 
   // Update GPIO accordingly
   io_expander_ptr_->cache_write_pin(pins_.out_bal_pin, output_bal_value);
@@ -269,6 +274,8 @@ std::optional<const char*> OptionController::get_input_rename_value(const AudioI
       return "TUNER";
     case InputNameAliasOption::aux:
       return "AUX";
+    case InputNameAliasOption::stream:
+      return "STREAM";
     case InputNameAliasOption::enum_length:
       return "ERR1";
   }
@@ -368,6 +375,62 @@ std::optional<const char*> OptionController::get_main_option_value_string(const 
     default:
       return "ERR6";
   };
+}
+
+void OptionController::power_off()
+{
+  // 1) Set the volume to mute
+  volume_ctrl_ptr_->set_mute(true);
+  volume_ctrl_ptr_->set_gpio_based_on_volume();
+  update_gpio();
+
+  // 2) wait 50ms to make sure that the volume is applied
+  delay(50);
+
+  // 3) Power off
+  digitalWrite(power_enable_pin_, LOW);
+
+  // 4) Wait for power off to be applied
+  delay(500);
+
+  // 5) Enter standby mode
+  state_machine_ptr_->change_state(State::standby);
+
+  // 6) Turn off external power
+  io_expander_ptr_->cache_write_pin(pins_.trigger_12v, LOW);
+  io_expander_ptr_->apply_write();
+}
+
+void OptionController::power_on()
+{
+  // 1) Power off
+  digitalWrite(power_enable_pin_, LOW);
+
+  // 2) Mute output
+  volume_ctrl_ptr_->set_mute(true);
+  volume_ctrl_ptr_->set_gpio_based_on_volume();
+  update_gpio();
+
+  // 3) wait 50ms to make sure that the volume is applied
+  delay(50);
+
+  // 4) Power on
+  digitalWrite(power_enable_pin_, HIGH);
+
+  // 5) Wait for power on to be applied
+  delay(500);
+
+  // 6) Unmute
+  volume_ctrl_ptr_->set_mute(false);
+  volume_ctrl_ptr_->set_gpio_based_on_volume();
+  update_gpio();
+
+  // 7) Exit standby mode
+  state_machine_ptr_->change_state(State::main_menu);
+
+  // 8) Turn on external power
+  io_expander_ptr_->cache_write_pin(pins_.trigger_12v, HIGH);
+  io_expander_ptr_->apply_write();
 }
 
 bool OptionController::on_menu_press()

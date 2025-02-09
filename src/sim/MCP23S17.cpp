@@ -34,7 +34,7 @@ bool MCP23S17::pinMode8(uint8_t port, uint8_t value)
 
 void MCP23S17::print_status()
 {
-  const std::array<std::tuple<const char*, int>, 12> table = {
+  const std::array<std::tuple<const char*, int>, 13> table = {
     {{"in_bal", 0},
      {"in_rca1", 1},
      {"in_rca2", 2},
@@ -46,7 +46,8 @@ void MCP23S17::print_status()
      {"out_pream", 10},
      {"out_se", 11},
      {"out_lfe_bal", 12},
-     {"out_lfe_se", 13}}};
+     {"out_lfe_se", 13},
+     {"trigger_12v", 15}}};
   for (const auto& [label, abs_pin] : table)
   {
     uint8_t port = 0;

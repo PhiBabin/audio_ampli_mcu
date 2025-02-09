@@ -34,6 +34,7 @@ struct OptionContollerPins
   const int out_se_pin;
   const int out_lfe_bal_pin;
   const int out_lfe_se_pin;
+  const int trigger_12v;
 };
 
 class ValueControlerInterface
@@ -53,6 +54,7 @@ public:
     VolumeController* volume_ctrl_ptr,
     const pin_size_t select_button_pin,
     const pin_size_t bias_out_pin,
+    const int power_enable_pin,
     const int32_t tick_per_option,
     OptionContollerPins pins);
 
@@ -76,6 +78,10 @@ public:
   bool on_menu_press();
   void menu_up();
   void menu_down();
+
+  // Power on/off the amplificator and change to standy state
+  void power_on();
+  void power_off();
 
 private:
   std::optional<const char*> get_main_option_value_string(const Option& option);
@@ -105,6 +111,9 @@ private:
   // PWM pin that control the bias level.
   pin_size_t bias_out_pin_;
 
+  // Output pin to turn power on/off
+  pin_size_t power_enable_pin_;
+
   // The various pins on the IO expander that are controled by the options
   OptionContollerPins pins_;
 
@@ -128,39 +137,6 @@ private:
 
   bool enabled_bias_scrolling_{false};
   bool enabled_balance_scrolling_{false};
-
-  // template <typename EnumType>
-  // class EnumControler : public ValueControlerInterface
-  // {
-  // public:
-  //   void EnumControler(EnumType* value_ptr);
-  //   char* get_string() final;
-
-  // private:
-  //   /// Non-owning pointer to the enum
-  //   EnumType* value_ptr;
-  // };
-
-  // struct Option
-  // {
-  //   char* label;
-  //   std::optional<std::unique_ptr<ValueControlerInterface>> value_ctrl;
-  //   bool is_selected{false};
-  // };
-
-  // template <typename EnumType>
-  // class Menu
-  // {
-  //   std::array<Option, EnumType::enum_length> options;
-  // };
-
-  // class OptionMenu
-  // {
-  //   uint8_t selected_option{0};
-  //   std::vector<Option> options;
-  // };
-
-  // std::array<OptionMenu, OptionMenuScreen::enum_length> menus_;
 };
 
 #endif  // OPTIONS_CTRL_GUARD_H_

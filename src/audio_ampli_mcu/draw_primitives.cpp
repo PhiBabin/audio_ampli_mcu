@@ -86,7 +86,8 @@ void draw_string_fast(
   const uint32_t end_x,
   const LvFontWrapper& font,
   bool is_white_on_black,
-  bool clear_side)
+  bool clear_side,
+  const TextAlign txt_align)
 {
   if (str == NULL || *str == '\0')
   {
@@ -109,9 +110,32 @@ void draw_string_fast(
   text_width_px +=
     (strlen(str) - 1) * font.get_spacing_px();  // This kind of assumes that every character in string has a glyph
   const auto end_y = start_y + font.get_height_px();
-  const int32_t middle_x = static_cast<int32_t>((end_x - start_x) / 2 + start_x);
-  const uint32_t start_text_x = static_cast<uint32_t>(MAX(0L, middle_x - static_cast<int32_t>(text_width_px / 2)));
-  const auto end_text_x = middle_x + text_width_px / 2;
+
+  uint32_t start_text_x = 0;
+  uint32_t end_text_x = 0;
+  switch (txt_align)
+  {
+    case TextAlign::center:
+    {
+      const int32_t middle_x = static_cast<int32_t>((end_x - start_x) / 2 + start_x);
+      start_text_x = static_cast<uint32_t>(MAX(0L, middle_x - static_cast<int32_t>(text_width_px / 2)));
+      end_text_x = middle_x + text_width_px / 2;
+      break;
+    }
+    case TextAlign::right:
+    {
+      start_text_x = end_x > text_width_px ? end_x - text_width_px : 0;
+      end_text_x = end_x;
+      break;
+    }
+    default:
+    case TextAlign::left:
+    {
+      start_text_x = start_x;
+      end_text_x = start_x + text_width_px;
+      break;
+    }
+  }
 
   // Serial.print("start_x=");
   // Serial.print(start_x);
@@ -256,11 +280,6 @@ void draw_image_from_top_left(Display& display, const lv_img_dsc_t& img, const u
   uint32_t end_x = start_x + img.w_px;
   const uint32_t end_y = start_y + img.h_px;
 
-  if (img.w_px % 2 != 0)
-  {
-    ++end_x;
-  }
-
   //   Serial.print("\tstart_x=");
   //   Serial.print(start_x);
   //   Serial.print("end_x=");
@@ -278,7 +297,7 @@ void draw_image_from_top_left(Display& display, const lv_img_dsc_t& img, const u
       uint32_t b = 0;
       if (x < img.w_px && y < img.h_px)
       {
-        const auto offset = (img.w_px % 2 == 0) ? y * img.w_px * span + x * span : y * (img.w_px + 1) * span + x * span;
+        const auto offset = y * img.w_px * span + x * span;
         // Due to little endianness it's BGR, not RGB
         b = img.data[offset];
         g = img.data[offset + 1];

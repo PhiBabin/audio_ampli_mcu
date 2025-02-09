@@ -14,9 +14,10 @@
 #include "digit_font_lt_superior_mono.h"
 #include "dm_sans_extrabold.h"
 #include "io_expander.h"
-#include "mute_image.h"
+#include "mute_img.h"
 #include "options_controller.h"
 #include "persistent_data.h"
+#include "small_speaker_img.h"
 #include "state_machine.h"
 
 #ifdef SIM
@@ -60,7 +61,11 @@ OptionContollerPins option_ctrl_pins{
   .out_se_pin = 11,              // GPB3
   .out_lfe_bal_pin = 12,         // GPB4
   .out_lfe_se_pin = 13,          // GPB5
+  .trigger_12v = 15,             // GPB7
 };
+
+/// Toggle button for the mutting
+ToggleButton mute_button;
 
 PersistentData persistent_data{};
 PersistentDataFlasher persistent_data_flasher;
@@ -70,9 +75,6 @@ VolumeController volume_ctrl(
   &persistent_data,
   volume_gpio_pins,
   &volume_encoder,
-  mute_button_pin,
-  set_mute_pin,
-  power_enable_pin,
   latch_left_vol,
   latch_right_vol,
   TOTAL_TICK_FOR_FULL_VOLUME);
@@ -86,6 +88,7 @@ OptionController option_ctrl(
   &volume_ctrl,
   select_button_pin,
   bias_pwm_pin,
+  power_enable_pin,
   TICK_PER_AUDIO_IN,
   option_ctrl_pins);
 RemoteController remote_ctrl(&state_machine, &option_ctrl, &audio_input_ctrl, &volume_ctrl);
@@ -150,6 +153,7 @@ void draw_volume(const bool has_state_changed = true)
   const uint32_t max_x = LCD_WIDTH - 8;
   const uint32_t middle_y = LCD_HEIGHT / 2;
   const uint32_t start_y = middle_y - font.get_height_px() / 2;
+  const uint32_t middle_x = (max_x - min_x) / 2 + min_x;
 
   if (prev_mute_state != volume_ctrl.is_muted())
   {
@@ -160,13 +164,38 @@ void draw_volume(const bool has_state_changed = true)
 
   if (volume_ctrl.is_muted())
   {
-    draw_image(display, mute_image, (max_x - min_x) / 2 + min_x + 3, middle_y);
+    draw_image(display, mute_image, middle_x + 3, middle_y);
   }
   else
   {
     draw_string_fast(display, buffer, min_x, start_y, max_x, font);
   }
-  // prev_state = state_machine.get_state();
+
+  // If there is a left/right balance, draw an indicator on top of the volume
+  if (persistent_data.left_right_balance_db != 0)
+  {
+    const uint32_t bal_top_y = 8;
+    const uint32_t txt_bal_top_y = bal_top_y + 4;
+
+    draw_string_fast(
+      display, "R", middle_x - 20, txt_bal_top_y, middle_x - 3, regular_bold_font, true, false, TextAlign::right);
+
+    draw_image_from_top_left(display, small_speaker, middle_x, bal_top_y);
+
+    const uint32_t x_after_speaker = middle_x + small_speaker.w_px;
+    char str_buffer[10];
+    snprintf(str_buffer, 10, "%+ddB", persistent_data.left_right_balance_db);
+    draw_string_fast(
+      display,
+      str_buffer,
+      x_after_speaker + 3,
+      txt_bal_top_y,
+      x_after_speaker + 40,
+      regular_bold_font,
+      true,
+      false,
+      TextAlign::left);
+  }
 }
 
 void draw_standby(const bool has_state_changed = true)
@@ -410,6 +439,7 @@ void setup()
 
   volume_encoder.begin();
   menu_select_encoder.begin();
+  mute_button.setup(mute_button_pin, BUTTON_DEBOUNCE_DELAY, InputDebounce::PIM_INT_PULL_UP_RES);
 
   volume_ctrl.init();
   audio_input_ctrl.init();
@@ -420,13 +450,39 @@ void setup()
   display.clear_screen(BLACK_COLOR);
   display.blip_framebuffer();
 
+  option_ctrl.power_on();
+
   draw_options();
   draw_audio_inputs();
   draw_volume();
 }
 
+bool handle_mute_button()
+{
+  unsigned long now = millis();
+  mute_button.process(now);
+  if (mute_button.is_short_press())
+  {
+    volume_ctrl.toggle_mute();
+    volume_ctrl.set_gpio_based_on_volume();
+  }
+  else if (mute_button.is_long_press())
+  {
+    if (state_machine.get_state() != State::standby)
+    {
+      option_ctrl.power_off();
+    }
+    else
+    {
+      option_ctrl.power_on();
+    }
+  }
+  return mute_button.is_short_press() || mute_button.is_long_press();
+}
+
 void loop()
 {
+  handle_mute_button();
   const auto remote_change = remote_ctrl.decode_command();
   const auto option_change = option_ctrl.update();
   if (option_change || remote_change)

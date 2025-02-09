@@ -24,4 +24,6 @@
 // IR remote pin, the IRremote library requires this to be set via a #define
 #define IR_RECEIVE_PIN 6  // GP6
 
+#define BUTTON_DEBOUNCE_DELAY 20  // [ms]
+
 #endif  // CONFIG_OPTION_GUARD_H_

@@ -156,11 +156,11 @@ void RemoteController::handle_power_on_off()
 {
   if (state_machine_ptr_->get_state() == State::standby)
   {
-    volume_ctrl_ptr_->power_on();
+    option_ctrl_ptr_->power_on();
   }
   else
   {
-    volume_ctrl_ptr_->power_off();
+    option_ctrl_ptr_->power_off();
   }
 }
 

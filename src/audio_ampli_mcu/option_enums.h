@@ -59,6 +59,7 @@ enum class InputNameAliasOption : uint8_t
   phono,
   tuner,
   aux,
+  stream,
   enum_length
 };
 

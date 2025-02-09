@@ -79,6 +79,15 @@ void draw_character_fast(
   const uint32_t start_y,
   bool is_white_on_black = true);
 
+
+enum class TextAlign : uint8_t
+{
+  center = 0,
+  left,
+  right,
+  enum_length
+};
+
 void draw_string_fast(
   Display& display,
   const char* str,
@@ -87,7 +96,8 @@ void draw_string_fast(
   const uint32_t end_x,
   const LvFontWrapper& font,
   bool is_white_on_black = true,
-  bool clear_side = true);
+  bool clear_side = true,
+  const TextAlign txt_align = TextAlign::center);
 
 struct lv_img_dsc_t
 {
