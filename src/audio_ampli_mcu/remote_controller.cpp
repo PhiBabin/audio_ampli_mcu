@@ -8,12 +8,10 @@
 
 RemoteController::RemoteController(
   StateMachine* state_machine_ptr,
-  OptionController* option_ctrl_ptr,
-  AudioInputController* audio_input_ctrl_ptr,
+  InteractionHandler* interaction_handler_ptr,
   VolumeController* volume_ctrl_ptr)
   : state_machine_ptr_(state_machine_ptr)
-  , option_ctrl_ptr_(option_ctrl_ptr)
-  , audio_input_ctrl_ptr_(audio_input_ctrl_ptr)
+  , interaction_handler_ptr_(interaction_handler_ptr)
   , volume_ctrl_ptr_(volume_ctrl_ptr)
 {
   // Apple Remote 1294
@@ -89,26 +87,12 @@ bool RemoteController::decode_command()
 
 void RemoteController::handle_up()
 {
-  if (state_machine_ptr_->get_state() == State::option_menu)
-  {
-    option_ctrl_ptr_->menu_up();
-  }
-  else
-  {
-    audio_input_ctrl_ptr_->menu_up();
-  }
+  interaction_handler_ptr_->menu_change(IncrementDir::increment);
 }
 
 void RemoteController::handle_down()
 {
-  if (state_machine_ptr_->get_state() == State::option_menu)
-  {
-    option_ctrl_ptr_->menu_down();
-  }
-  else
-  {
-    audio_input_ctrl_ptr_->menu_down();
-  }
+  interaction_handler_ptr_->menu_change(IncrementDir::decrement);
 }
 
 int repeat_to_volume_multiplicator(const uint8_t repeat_count)
@@ -142,26 +126,12 @@ void RemoteController::handle_menu()
 
 void RemoteController::handle_select()
 {
-  if (state_machine_ptr_->get_state() == State::option_menu)
-  {
-    option_ctrl_ptr_->on_menu_press();
-  }
-  else
-  {
-    state_machine_ptr_->change_state(State::option_menu);
-  }
+  interaction_handler_ptr_->on_menu_press();
 }
 
 void RemoteController::handle_power_on_off()
 {
-  if (state_machine_ptr_->get_state() == State::standby)
-  {
-    option_ctrl_ptr_->power_on();
-  }
-  else
-  {
-    option_ctrl_ptr_->power_off();
-  }
+  interaction_handler_ptr_->on_power_button_press();
 }
 
 void RemoteController::handle_mute()

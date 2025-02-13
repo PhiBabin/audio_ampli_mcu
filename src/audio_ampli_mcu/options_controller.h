@@ -20,11 +20,11 @@
 class RP2040_PWM;
 
 /// Convert option to a human readable string.
-const char* option_to_string(const Option option);
-const char* advance_option_to_string(const AdvanceMenuOption option);
+AudioInput get_audio_input_from_rename_option(const Option option);
 
 struct OptionContollerPins
 {
+  const std::array<pin_size_t, 4> iox_gpio_pin_audio_in_select;
   const int in_out_unipolar_pin;
   const int in_out_bal_unipolar_pin;
   const int set_low_gain_pin;
@@ -49,64 +49,33 @@ public:
   OptionController(
     StateMachine* state_machine_ptr,
     PersistentData* persistent_data_ptr,
-    PioEncoder* option_encoder_ptr,
     IoExpander* io_expander_ptr,
     VolumeController* volume_ctrl_ptr,
-    const pin_size_t select_button_pin,
     const pin_size_t bias_out_pin,
     const int power_enable_pin,
-    const int32_t tick_per_option,
     OptionContollerPins pins);
 
   // Init GPIO pins
   void init();
 
-  OptionMenuScreen get_current_menu_screen() const;
-  size_t get_num_options() const;
-  const char* get_option_label_string(const uint8_t& option_num);
-  std::optional<const char*> get_option_value_string(const uint8_t& option_num);
-  std::optional<const char*> get_input_rename_value(const AudioInput& audio_input) const;
-  bool is_option_selected(const uint8_t option_num) const;
+  void increment_option(const Option& option, const IncrementDir& increment_dir);
 
-  // Read encoder, update state and set GPIO pin that set the volume.
-  // return true on change in volume or mute status
-  bool update();
+  std::optional<const char*> get_input_rename_value(const AudioInput& audio_input) const;
 
   void update_gpio();
-  void on_audio_input_change();
-
-  bool on_menu_press();
-  void menu_up();
-  void menu_down();
 
   // Power on/off the amplificator and change to standy state
   void power_on();
   void power_off();
 
 private:
-  std::optional<const char*> get_main_option_value_string(const Option& option);
-  std::optional<const char*> get_advance_menu_option_value_string(const AdvanceMenuOption& option);
-  bool update_selection();
-  bool update_encoder();
-
   constexpr static uint8_t bias_increment = 5;
-  constexpr static uint8_t left_right_balance_range = 5;
+  constexpr static int8_t left_right_balance_range = 5;
 
   // Non-owning pointer to the state machine
   StateMachine* state_machine_ptr_;
   // Non-owning pointer to the persistent data
   PersistentData* persistent_data_ptr_;
-  /// Previous count of the encoder
-  int32_t prev_encoder_count_;
-  /// Number of encoder tick per audio in
-  int32_t tick_per_option_;
-  /// Non-owning pointer to the quadrature encoder
-  PioEncoder* option_encoder_ptr_;
-  /// Toggle button for the mutting
-  ToggleButton select_button_;
-
-  // Pin for the mute toggle button
-  pin_size_t select_button_pin_;
 
   // PWM pin that control the bias level.
   pin_size_t bias_out_pin_;
@@ -124,19 +93,6 @@ private:
   VolumeController* volume_ctrl_ptr_;
 
   RP2040_PWM* PWM_Instance_;
-
-  // Selected option
-  Option selected_option_{Option::back};
-  AdvanceMenuOption selected_advance_menu_option_{AdvanceMenuOption::back};
-  OptionMenuScreen selected_screen_{OptionMenuScreen::main};
-
-  constexpr static size_t bias_str_buffer_len_ = 10;
-  char bias_str_buffer_[bias_str_buffer_len_];
-  constexpr static size_t balance_str_buffer_len_ = 10;
-  char balance_str_buffer_[balance_str_buffer_len_];
-
-  bool enabled_bias_scrolling_{false};
-  bool enabled_balance_scrolling_{false};
 };
 
 #endif  // OPTIONS_CTRL_GUARD_H_

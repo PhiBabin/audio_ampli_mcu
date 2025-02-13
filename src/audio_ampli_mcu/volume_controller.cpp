@@ -42,11 +42,11 @@ void VolumeController::init()
   set_gpio_based_on_volume();
 }
 
-void VolumeController::on_audio_input_change()
-{
-  reset_volume_tick_count_based_volume_db();
-  set_gpio_based_on_volume();
-}
+// void VolumeController::on_audio_input_change()
+// {
+//   reset_volume_tick_count_based_volume_db();
+//   set_gpio_based_on_volume();
+// }
 
 void VolumeController::on_option_change()
 {

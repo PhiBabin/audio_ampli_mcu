@@ -5,8 +5,12 @@
 
 enum class OptionMenuScreen : uint8_t
 {
+  // Main option menu
   main = 0,
+  // Adance option menu
   advance,
+  // Get out of the option menu and come back to the Main Volume screeen
+  exit,
   enum_length
 };
 enum class Option : uint8_t
@@ -16,20 +20,17 @@ enum class Option : uint8_t
   output_type,
   subwoofer,
   balance,
-  more_options,
-  back,
-  enum_length
-};
-enum class AdvanceMenuOption : uint8_t
-{
-  bias = 0,
+  bias,
   rename_bal,
   rename_rca1,
   rename_rca2,
   rename_rca3,
+  more_options,
   back,
+  audio_input,
   enum_length
 };
+
 enum class GainOption : uint8_t
 {
   low = 0,
@@ -69,6 +70,13 @@ enum class OnOffOption : uint8_t
   on,
   enum_length
 };
+
+enum class IncrementDir : uint8_t
+{
+  increment = 0,
+  decrement
+};
+
 constexpr uint8_t NUM_OUTPUT_MODE = static_cast<uint8_t>(OutputModeOption::enum_length);
 constexpr uint8_t NUM_OUTPUT_TYPE = static_cast<uint8_t>(OutputTypeOption::enum_length);
 #endif  // OPTIONS_ENUM_GUARD_H_

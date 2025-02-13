@@ -432,7 +432,7 @@ void draw_rounded_rectangle(
     }
   }
 
-  // Now that the corners are drawned, we can draw the not-corners, it's basically a cross-shaped area.
+  // Now that the corners are drawn, we can draw the not-corners, it's basically a cross-shaped area.
 
   // Horizontal lines
   for (int32_t j = top_corner_center_y; j <= bot_corner_center_y; ++j)
