@@ -64,7 +64,6 @@ function:
 *******************************************************************************/
 static void LCD_Reset(void)
 {
-  delay(200);
   DEV_Digital_Write(DEV_RST_PIN, 0);
   delay(200);
   DEV_Digital_Write(DEV_RST_PIN, 1);
@@ -358,6 +357,16 @@ void Display::draw_rectangle(
 
 void Display::set_pixel_unsafe(const uint16_t x, const uint16_t y, const uint32_t color_12bit)
 {
+#ifdef SIM
+  static int count_px = 0;
+  ++count_px;
+  if (count_px > 500)
+  {
+    delay(1);
+    count_px = 0;
+  }
+#endif
+
   const uint32_t px_offset = static_cast<uint32_t>(y) * LCD_WIDTH + x;
   const uint32_t bytes_offset = px_offset * 3 / 2;
   // Because pixels take 1.5bytes, we need to handle the case where the pixel is at the start of a byte or at the middle

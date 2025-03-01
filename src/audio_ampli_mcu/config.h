@@ -16,7 +16,14 @@
 #define TICK_PER_AUDIO_IN (ENCODER_TICK_PER_ROTATION / NUM_AUDIO_INPUT)
 
 // Changing the version will make previously saved settings unusable
-#define VERSION_NUMBER 7
+#define MAJOR_VERSION 1
+#define MINOR_VERSION 0
+// Change to the patch will not impact save settings
+#define PATCH_VERSION 1
+
+#define STR_HELPER(x) #x
+#define STR(x) STR_HELPER(x)
+#define VERSION_STRING "V" STR(MAJOR_VERSION) "." STR(MINOR_VERSION) "." STR(PATCH_VERSION)
 
 // V2 PCB has some hence features (such as power on/off, subwoofer and different volume for left/right)
 #define USE_V2_PCB

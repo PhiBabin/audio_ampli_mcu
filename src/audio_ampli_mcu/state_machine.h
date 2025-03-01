@@ -19,7 +19,7 @@ public:
 
 private:
   State state_{State::main_menu};
-  bool state_has_changed_{false};
+  bool state_has_changed_{true};
 };
 
 #endif  // STATE_MACHINE_GUARD_H_

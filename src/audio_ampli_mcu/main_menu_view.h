@@ -18,16 +18,16 @@ public:
   void menu_up();
   void menu_down();
   void menu_change(const IncrementDir& dir);
-  void draw(Display& display);
+  void draw(Display& display, const bool has_state_changed);
 
   // Power on/off the amplificator and change to standy state
   void power_on();
   void power_off();
 
 private:
-  void draw_volume(Display& display);
-  void draw_audio_inputs(Display& display);
-  void draw_left_right_bal_indicator(Display& display);
+  void draw_volume(Display& display, const bool has_state_changed);
+  void draw_audio_inputs(Display& display, const bool has_state_changed);
+  void draw_left_right_bal_indicator(Display& display, const bool has_state_changed);
   // const char* get_audio_input_renamed_str(const AudioInput& audio_input) const;
 
   // Non-owning pointer to the option controler

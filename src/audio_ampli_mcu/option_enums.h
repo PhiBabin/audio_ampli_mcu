@@ -9,6 +9,8 @@ enum class OptionMenuScreen : uint8_t
   main = 0,
   // Adance option menu
   advance,
+  // Support info menu
+  firmware_version,
   // Get out of the option menu and come back to the Main Volume screeen
   exit,
   enum_length
@@ -28,6 +30,7 @@ enum class Option : uint8_t
   more_options,
   back,
   audio_input,
+  text,
   enum_length
 };
 

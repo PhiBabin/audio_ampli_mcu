@@ -18,6 +18,8 @@ enum class MenuItemType : uint8_t
   focus_item,
   // A menu item which change menu
   change_menu,
+  // Just a way to display text
+  text,
   enum_length
 };
 
@@ -31,13 +33,13 @@ struct MenuItem
 
 struct Menu
 {
-  OptionMenuScreen type;
-  std::vector<MenuItem> items;
-  Option selected_option{Option::back};
-
+  Menu(const OptionMenuScreen& _type, std::vector<MenuItem> _items);
   void change_selected_item(const IncrementDir& dir);
   std::optional<std::reference_wrapper<const MenuItem>> try_get_selected_item() const;
-  std::optional<size_t> try_get_selected_index() const;
+
+  OptionMenuScreen type;
+  std::vector<MenuItem> items;
+  std::optional<size_t> maybe_selected_index;
 };
 
 class OptionsView
@@ -53,15 +55,15 @@ public:
   void menu_up();
   void menu_down();
   void menu_change(const IncrementDir& dir);
-  void draw(Display& display);
+  void draw(Display& display, const bool has_state_changed);
 
   // Power on/off the amplificator and change to standy state
   void power_on();
   void power_off();
 
 private:
-  void draw_menu(Display& display);
-  void draw_volume(Display& display);
+  void draw_menu(Display& display, const bool has_state_changed);
+  void draw_volume(Display& display, const bool has_state_changed);
   Menu& get_selected_menu();
   std::optional<const char*> string_format_option(const Option& option, const bool is_focus);
 
@@ -82,6 +84,8 @@ private:
   // Do we have an option focused (aka the menu up/down change the option's value instead of moving thru the different
   // options)
   bool is_focus_{false};
+  // Force particial redraw on button press
+  bool on_button_press_{false};
 
   // Temporary buffer used for string_format_option().
   constexpr static size_t tmp_format_str_len_ = 100;

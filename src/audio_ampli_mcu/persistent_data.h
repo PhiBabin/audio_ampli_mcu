@@ -26,7 +26,8 @@ public:
 
   uint16_t checksum{0};
   uint16_t magic_num{0xCAFE};
-  uint8_t version_num{VERSION_NUMBER};
+  uint8_t major_version_num{MAJOR_VERSION};
+  uint8_t minor_version_num{MINOR_VERSION};
   bool is_muted{false};
   AudioInput selected_audio_input{AudioInput::rca_1};
   PerAudioInputOutputData per_audio_input_output_data[NUM_INPUT_OUTPUT_PERMUTATION];

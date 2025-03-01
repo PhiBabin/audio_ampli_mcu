@@ -14,7 +14,8 @@
 bool PersistentData::operator==(const PersistentData& rhs) const
 {
   if (
-    magic_num != rhs.magic_num || version_num != rhs.version_num || is_muted != rhs.is_muted ||
+    magic_num != rhs.magic_num || major_version_num != rhs.major_version_num ||
+    minor_version_num != rhs.minor_version_num || is_muted != rhs.is_muted ||
     selected_audio_input != rhs.selected_audio_input || output_mode_value != rhs.output_mode_value ||
     output_mode_value != rhs.output_mode_value || output_type_value != rhs.output_type_value ||
     sufwoofer_enable_value != rhs.sufwoofer_enable_value || bias != rhs.bias ||
@@ -113,7 +114,9 @@ bool PersistentDataFlasher::maybe_load_data(PersistentData& data_out)
     Serial.println("Data in flash has the wrong checksum. It won't be restored.");
     return false;
   }
-  if (data_out.magic_num != 0xCAFE || data_out.version_num != VERSION_NUMBER)
+  if (
+    data_out.magic_num != 0xCAFE || data_out.major_version_num != MAJOR_VERSION ||
+    data_out.minor_version_num != MINOR_VERSION)
   {
     Serial.println("Data in flash is either corrupted or invalid. It won't be restored.");
     return false;
@@ -136,7 +139,6 @@ void PersistentDataFlasher::save(const PersistentData& curr_data)
   // If the current data is new, start a timer. Everytime the data change, reset the timer
   if (!maybe_changed_data_ || curr_data != *maybe_changed_data_)
   {
-    Serial.println("Persistent data changed.");
     maybe_changed_data_ = curr_data;
     maybe_time_since_last_change_to_data_ = millis();
     return;

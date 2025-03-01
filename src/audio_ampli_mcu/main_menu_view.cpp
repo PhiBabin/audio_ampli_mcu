@@ -37,45 +37,59 @@ void MainMenuView::menu_change(const IncrementDir& dir)
   option_ctrl_ptr_->increment_option(Option::audio_input, inversed_dir);
 }
 
-void MainMenuView::draw(Display& display)
+void MainMenuView::draw(Display& display, const bool has_state_changed)
 {
-  draw_volume(display);
-  draw_audio_inputs(display);
-  draw_left_right_bal_indicator(display);
+  draw_volume(display, has_state_changed);
+  draw_audio_inputs(display, has_state_changed);
+  draw_left_right_bal_indicator(display, has_state_changed);
 }
 
-void MainMenuView::draw_left_right_bal_indicator(Display& display)
+void MainMenuView::draw_left_right_bal_indicator(Display& display, const bool has_state_changed)
 {
-  // If there is a left/right balance, draw an indicator on top of the volume
-  if (persistent_data_ptr_->left_right_balance_db != 0)
+  if (!has_state_changed)
   {
-    const uint32_t middle_x = LCD_WIDTH / 2;
-    const uint32_t bal_top_y = 8;
-    const uint32_t txt_bal_top_y = bal_top_y + 4;
-
-    draw_string_fast(
-      display, "R", middle_x - 20, txt_bal_top_y, middle_x - 3, small_font_, true, false, TextAlign::right);
-
-    draw_image_from_top_left(display, small_speaker, middle_x, bal_top_y);
-
-    const uint32_t x_after_speaker = middle_x + small_speaker.w_px;
-    char str_buffer[10];
-    snprintf(str_buffer, 10, "%+ddB", persistent_data_ptr_->left_right_balance_db);
-    draw_string_fast(
-      display,
-      str_buffer,
-      x_after_speaker + 3,
-      txt_bal_top_y,
-      x_after_speaker + 40,
-      small_font_,
-      true,
-      false,
-      TextAlign::left);
+    return;
   }
+  // If there is a left/right balance, draw an indicator on top of the volume
+  if (persistent_data_ptr_->left_right_balance_db == 0)
+  {
+    return;
+  }
+  const uint32_t middle_x = LCD_WIDTH / 2;
+  const uint32_t bal_top_y = 8;
+  const uint32_t txt_bal_top_y = bal_top_y + 4;
+
+  draw_string_fast(
+    display, "R", middle_x - 20, txt_bal_top_y, middle_x - 3, small_font_, true, false, TextAlign::right);
+
+  draw_image_from_top_left(display, small_speaker, middle_x, bal_top_y);
+
+  const uint32_t x_after_speaker = middle_x + small_speaker.w_px;
+  char str_buffer[10];
+  snprintf(str_buffer, 10, "%+ddB", persistent_data_ptr_->left_right_balance_db);
+  draw_string_fast(
+    display,
+    str_buffer,
+    x_after_speaker + 3,
+    txt_bal_top_y,
+    x_after_speaker + 40,
+    small_font_,
+    true,
+    false,
+    TextAlign::left);
 }
-void MainMenuView::draw_volume(Display& display)
+void MainMenuView::draw_volume(Display& display, const bool has_state_changed)
 {
   static bool prev_mute_state = volume_ctrl_ptr_->is_muted();
+  static auto prev_volume_db = volume_ctrl_ptr_->get_volume_db();
+
+  if (
+    !has_state_changed && prev_mute_state == volume_ctrl_ptr_->is_muted() &&
+    prev_volume_db == volume_ctrl_ptr_->get_volume_db())
+  {
+    return;
+  }
+
   char buffer[5];
   sprintf(buffer, "%d", volume_ctrl_ptr_->get_volume_db());
 
@@ -87,9 +101,7 @@ void MainMenuView::draw_volume(Display& display)
 
   if (prev_mute_state != volume_ctrl_ptr_->is_muted())
   {
-    // LCD_ClearWindow_12bitRGB(
     display.draw_rectangle(min_x, 0, max_x, LCD_HEIGHT, BLACK_COLOR);
-    prev_mute_state = volume_ctrl_ptr_->is_muted();
   }
 
   if (volume_ctrl_ptr_->is_muted())
@@ -100,16 +112,15 @@ void MainMenuView::draw_volume(Display& display)
   {
     draw_string_fast(display, buffer, min_x, start_y, max_x, digit_font_);
   }
+  prev_mute_state = volume_ctrl_ptr_->is_muted();
+  prev_volume_db = volume_ctrl_ptr_->get_volume_db();
 }
 
-void MainMenuView::draw_audio_inputs(Display& display)
+void MainMenuView::draw_audio_inputs(Display& display, const bool has_state_changed)
 {
   static auto prev_audio_input = persistent_data_ptr_->selected_audio_input;
   const auto& selected_audio_input = persistent_data_ptr_->selected_audio_input;
-  if (state_machine_ptr_->get_state() != State::main_menu)
-  {
-    return;
-  }
+
   const auto max_enum_value = static_cast<uint8_t>(AudioInput::enum_length);
   const uint32_t ver_spacing =
     LCD_HEIGHT / (max_enum_value + 1);  // + 1 is to have equal spacing between the top input and the screen's border
@@ -118,16 +129,14 @@ void MainMenuView::draw_audio_inputs(Display& display)
   const uint32_t tab_height_px = small_font_.get_height_px() + 8;
   const uint32_t first_option_center_y = ver_spacing;
 
-  const bool has_state_changed{true};  // TODO
   if (has_state_changed)
   {
     display.draw_rectangle(0, 0, tab_width_px + 1, LCD_HEIGHT, BLACK_COLOR);
   }
-  //   else if (prev_audio_input == selected_audio_input)
-  //   {
-  //     prev_audio_input = selected_audio_input;
-  //     return;
-  //   }
+  else if (prev_audio_input == selected_audio_input)
+  {
+    return;
+  }
 
   for (uint8_t enum_value = 0; enum_value < max_enum_value; ++enum_value)
   {

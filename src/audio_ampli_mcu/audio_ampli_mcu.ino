@@ -226,56 +226,28 @@ void setup()
 
 void loop()
 {
-  const auto remote_change = remote_ctrl.decode_command();
-  const auto option_change = interaction_handler.update();
-  const bool has_volume_changed = volume_ctrl.update();
+  remote_ctrl.decode_command();
+  interaction_handler.update();
+  volume_ctrl.update();
 
-  const auto state_changed = state_machine.update();
-  if (state_changed)
+  const auto has_state_changed = state_machine.update();
+  if (has_state_changed)
   {
+    Serial.println("state changed!");
     display.clear_screen(BLACK_COLOR);
   }
   switch (state_machine.get_state())
   {
     case State::main_menu:
-      main_menu_view.draw(display);
+      main_menu_view.draw(display, has_state_changed);
       break;
     case State::option_menu:
-      option_view.draw(display);
+      option_view.draw(display, has_state_changed);
       break;
     case State::standby:
-      draw_standby(state_changed);
+      draw_standby(has_state_changed);
       break;
   }
-
-  // if (option_change || remote_change)
-  // {
-  //   Serial.println("update options");
-  //   draw_options();
-  //   volume_ctrl.on_option_change();
-  // }
-  // if (state_changed && state_machine.get_state() == State::main_menu)
-  // {
-  //   display.clear_screen(BLACK_COLOR);
-  // }
-  // draw_standby(state_changed);
-  // const auto audio_input_change = false;  // audio_input_ctrl.update();
-  // if (audio_input_change || remote_change)
-  // {
-  //   option_ctrl.on_audio_input_change();
-  //   volume_ctrl.on_audio_input_change();
-  // }
-  // // if (audio_input_change || state_changed || remote_change)
-  // // {
-  // // Serial.println("update audio input");
-  // draw_audio_inputs(state_changed);
-  // // }
-  // bool has_changed = volume_ctrl.update();
-  // if (has_changed || state_changed || audio_input_change || option_change || remote_change)
-  // {
-  //   Serial.println("update volume");
-  //   draw_volume(state_changed);
-  // }
 
   persistent_data_flasher.save(persistent_data);
   display.blip_framebuffer();
