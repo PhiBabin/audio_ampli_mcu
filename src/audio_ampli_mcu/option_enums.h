@@ -7,8 +7,10 @@ enum class OptionMenuScreen : uint8_t
 {
   // Main option menu
   main = 0,
-  // Adance option menu
+  // Advance option menu
   advance,
+  // Phono option menu
+  phono,
   // Support info menu
   firmware_version,
   // Get out of the option menu and come back to the Main Volume screeen
@@ -28,6 +30,11 @@ enum class Option : uint8_t
   rename_rca2,
   rename_rca3,
   more_options,
+  phono_mode,
+  phono_gain,
+  resistance_load,
+  capacitance_load,
+  rumble_filter,
   back,
   audio_input,
   text,
@@ -45,6 +52,51 @@ enum class OutputModeOption : uint8_t
 {
   phones = 0,
   line_out,
+  enum_length
+};
+
+enum class PhonoMode : uint8_t
+{
+  mm = 0,
+  mc,
+  enum_length
+};
+
+enum class MMPhonoGain : uint8_t
+{
+  gain_40dB = 0,
+  gain_45dB,
+  gain_50dB,
+  enum_length
+};
+
+enum class MCPhonoGain : uint8_t
+{
+  gain_55dB = 0,
+  gain_60dB,
+  gain_65dB,
+  enum_length
+};
+
+enum class PhonoResistanceLoad : uint8_t
+{
+  r_47k = 0,
+  r_1k,
+  r_400,
+  r_300,
+  r_200,
+  r_100,
+  r_50,
+  r_30,
+  enum_length
+};
+
+enum class PhonoCapacitanceLoad : uint8_t
+{
+  c_0f = 0,
+  c_100pf,
+  c_470pf,
+  c_1000pf,
   enum_length
 };
 

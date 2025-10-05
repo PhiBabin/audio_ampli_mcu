@@ -40,6 +40,7 @@ PioEncoder menu_select_encoder(20);       // GP20 and GP21 are the encoder's pin
 const pin_size_t mute_button_pin = 16;    // Button for the volume encoder
 const pin_size_t select_button_pin = 17;  // Button for the menu select encoder
 IoExpander io_expander(7);                // GP7 is the chip select of the IO expander
+IoExpander phono_io_expander(26);         // GP26 is the chip select of the IO expander on the phono board
 const pin_size_t set_mute_pin = 27;       // Output pin that mute / unmute
 const pin_size_t bias_pwm_pin = 27;       // Output pin that mute / unmute
 const pin_size_t power_enable_pin = 14;   // Output pin that power on / off the amplification part of the system
@@ -53,6 +54,7 @@ OptionContollerPins option_ctrl_pins{
   .iox_gpio_pin_audio_in_select = {0, 1, 2, 3},  // GPA0, GPA1, GPA2 & GPA3
   .in_out_unipolar_pin = 4,                      // GPA4
   .in_out_bal_unipolar_pin = 5,                  // GPA5
+  .in_phono_pin = 6,                             // GPA6
   .set_low_gain_pin = 8,                         // GPB0
   .out_bal_pin = 9,                              // GPB1
   .preamp_out_pin = 10,                          // GPB2
@@ -60,6 +62,17 @@ OptionContollerPins option_ctrl_pins{
   .out_lfe_bal_pin = 12,                         // GPB4
   .out_lfe_se_pin = 13,                          // GPB5
   .trigger_12v = 15,                             // GPB7
+
+  // Phono IO expander pins
+  .out_gain_0_pin = 15,         // GPB7
+  .out_gain_1_pin = 1,          // GPA1
+  .out_gain_2_pin = 2,          // GPA2
+  .out_res_0_pin = 7,           // GPA7
+  .out_res_1_pin = 6,           // GPA6
+  .out_res_2_pin = 5,           // GPA5
+  .out_cap_0_pin = 4,           // GPA4
+  .out_cap_1_pin = 3,           // GPA3
+  .out_rumble_filter_pin = 14,  // GPB6
 };
 
 PersistentData persistent_data{};
@@ -74,7 +87,14 @@ VolumeController volume_ctrl(
   latch_right_vol,
   TOTAL_TICK_FOR_FULL_VOLUME);
 OptionController option_ctrl(
-  &state_machine, &persistent_data, &io_expander, &volume_ctrl, bias_pwm_pin, power_enable_pin, option_ctrl_pins);
+  &state_machine,
+  &persistent_data,
+  &io_expander,
+  &phono_io_expander,
+  &volume_ctrl,
+  bias_pwm_pin,
+  power_enable_pin,
+  option_ctrl_pins);
 
 Display display;
 
@@ -208,6 +228,7 @@ void setup()
 
   display.gpio_init();
   io_expander.begin();
+  phono_io_expander.begin();
 
   volume_encoder.begin();
   menu_select_encoder.begin();

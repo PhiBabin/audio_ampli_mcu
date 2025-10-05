@@ -1,5 +1,21 @@
 #include "options_view.h"
 
+namespace
+{
+const char* format_on_off_option(const OnOffOption& option)
+{
+  switch (option)
+  {
+    case OnOffOption::on:
+      return "ON";
+    case OnOffOption::off:
+      return "OFF";
+    default:
+      return "ERR5";
+  }
+}
+}  // namespace
+
 Menu::Menu(const OptionMenuScreen& _type, std::vector<MenuItem> _items) : type(_type), items(std::move(_items))
 {
   if (!items.empty())
@@ -43,10 +59,23 @@ OptionsView::OptionsView(
         MenuItem{Option::rename_bal, "RENAME BAL ", MenuItemType::increment_item},
         MenuItem{Option::rename_rca1, "RENAME RCA1", MenuItemType::increment_item},
         MenuItem{Option::rename_rca2, "RENAME RCA2", MenuItemType::increment_item},
-        MenuItem{Option::rename_rca3, "RENAME RCA3", MenuItemType::increment_item},
+        // MenuItem{Option::rename_rca3, "RENAME RCA3", MenuItemType::increment_item},
+        MenuItem{Option::more_options, "PHONO OPTION", MenuItemType::change_menu, OptionMenuScreen::phono},
         MenuItem{
           Option::more_options, "FIRMWARE VERSION", MenuItemType::change_menu, OptionMenuScreen::firmware_version},
         MenuItem{Option::back, "BACK", MenuItemType::change_menu, OptionMenuScreen::main},
+      }));
+  menus_.emplace(
+    OptionMenuScreen::phono,
+    Menu(
+      OptionMenuScreen::phono,
+      {
+        MenuItem{Option::phono_mode, "MODE", MenuItemType::increment_item},
+        MenuItem{Option::phono_gain, "GAIN", MenuItemType::increment_item},
+        MenuItem{Option::resistance_load, "R LOAD", MenuItemType::increment_item},
+        MenuItem{Option::capacitance_load, "C LOAD", MenuItemType::increment_item},
+        MenuItem{Option::rumble_filter, "RUMBLE", MenuItemType::increment_item},
+        MenuItem{Option::back, "BACK", MenuItemType::change_menu, OptionMenuScreen::advance},
       }));
   menus_.emplace(
     OptionMenuScreen::firmware_version,
@@ -343,19 +372,12 @@ std::optional<const char*> OptionsView::string_format_option(const Option& optio
           return "ERR3";
       }
     case Option::subwoofer:
-      switch (persistent_data_ptr_->sufwoofer_enable_value)
-      {
-        case OnOffOption::on:
-          return "ON";
-        case OnOffOption::off:
-          return "OFF";
-        default:
-          return "ERR5";
-      }
+      return format_on_off_option(persistent_data_ptr_->sufwoofer_enable_value);
     case Option::balance:
     {
-      const auto str_template = is_focus ? "<%+d>" : " %+d ";
-      snprintf(tmp_format_str_buffer_, tmp_format_str_len_, str_template, persistent_data_ptr_->left_right_balance_db);
+      const auto str_template = is_focus ? "<%+d/%+d>" : "%+d/%+d ";
+      const auto [left, right] = volume_ctrl_ptr_->get_left_right_bias_compensation();
+      snprintf(tmp_format_str_buffer_, tmp_format_str_len_, str_template, left, right);
 
       return tmp_format_str_buffer_;
     }
@@ -373,6 +395,101 @@ std::optional<const char*> OptionsView::string_format_option(const Option& optio
     {
       return option_ctrl_ptr_->get_input_rename_value(get_audio_input_from_rename_option(option));
     }
+    case Option::phono_mode:
+      switch (persistent_data_ptr_->phono_mode_option)
+      {
+        case PhonoMode::mm:
+          return "MM";
+        case PhonoMode::mc:
+          return "MC";
+        default:
+          return "ERR6";
+      }
+      break;
+    case Option::phono_gain:
+      if (persistent_data_ptr_->phono_mode_option == PhonoMode::mm)
+      {
+        switch (persistent_data_ptr_->phono_mm_gain)
+        {
+          case MMPhonoGain::gain_40dB:
+            return "40dB";
+          case MMPhonoGain::gain_45dB:
+            return "45dB";
+          case MMPhonoGain::gain_50dB:
+            return "50dB";
+          default:
+            return "ERR7";
+        }
+      }
+      else
+      {
+        switch (persistent_data_ptr_->phono_mc_gain)
+        {
+          case MCPhonoGain::gain_55dB:
+            return "55dB";
+          case MCPhonoGain::gain_60dB:
+            return "60dB";
+          case MCPhonoGain::gain_65dB:
+            return "65dB";
+          default:
+            return "ERR7";
+        }
+      }
+      break;
+    case Option::resistance_load:
+      if (persistent_data_ptr_->phono_mode_option == PhonoMode::mm)
+      {
+        return "47K";
+      }
+      else
+      {
+        switch (persistent_data_ptr_->phono_resistance_load)
+        {
+          case PhonoResistanceLoad::r_47k:
+            return "47K";
+          case PhonoResistanceLoad::r_1k:
+            return "1K";
+          case PhonoResistanceLoad::r_400:
+            return "400";
+          case PhonoResistanceLoad::r_300:
+            return "300";
+          case PhonoResistanceLoad::r_200:
+            return "200";
+          case PhonoResistanceLoad::r_100:
+            return "100";
+          case PhonoResistanceLoad::r_50:
+            return "50";
+          case PhonoResistanceLoad::r_30:
+            return "30";
+          default:
+            return "ERR8";
+        }
+      }
+      break;
+    case Option::capacitance_load:
+
+      if (persistent_data_ptr_->phono_mode_option == PhonoMode::mc)
+      {
+        return "0F";
+      }
+      else
+      {
+        switch (persistent_data_ptr_->phono_capacitance_load)
+        {
+          case PhonoCapacitanceLoad::c_0f:
+            return "0 F";
+          case PhonoCapacitanceLoad::c_100pf:
+            return "100 pF";
+          case PhonoCapacitanceLoad::c_470pf:
+            return "470 pF";
+          case PhonoCapacitanceLoad::c_1000pf:
+            return "1000 pF";
+          default:
+            return "ERR8";
+        }
+      }
+    case Option::rumble_filter:
+      return format_on_off_option(persistent_data_ptr_->phono_rumble_filter);
     case Option::more_options:
       return {};
     case Option::back:

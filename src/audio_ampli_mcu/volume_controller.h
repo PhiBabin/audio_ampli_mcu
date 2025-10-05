@@ -13,6 +13,7 @@
 #include "state_machine.h"
 
 #include <array>
+#include <tuple>
 
 class VolumeController
 {
@@ -60,6 +61,9 @@ public:
 
   // Set volume of the left and right stereo by triggering the GPIOs.
   void set_gpio_based_on_volume();
+
+  // Get how much the compensation for the left and right speaker.
+  std::tuple<int16_t, int16_t> get_left_right_bias_compensation();
 
 private:
   // Read encoder, update state and set GPIO pin that set the volume.

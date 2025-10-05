@@ -22,6 +22,7 @@ public:
   bool update();
 
   void on_menu_press();
+  void on_mute_button_press();
   void on_power_button_press();
   void menu_change(const IncrementDir& dir);
 

@@ -11,7 +11,7 @@
 #define BUTTON_DEBOUNCE_DELAY 20  // [ms]
 
 // Frequency high enough to be filter out by the ampli
-constexpr uint32_t pwm_frequency = 20000;
+constexpr uint32_t pwm_frequency = 100000;
 
 template <typename T>
 void increment_enum(const T& max_enum_value, T& enum_value_out)
@@ -83,6 +83,7 @@ OptionController::OptionController(
   StateMachine* state_machine_ptr,
   PersistentData* persistent_data_ptr,
   IoExpander* io_expander_ptr,
+  IoExpander* phono_io_expander_ptr,
   VolumeController* volume_ctrl_ptr,
   const pin_size_t bias_out_pin,
   const int power_enable_pin,
@@ -93,6 +94,7 @@ OptionController::OptionController(
   , power_enable_pin_(power_enable_pin)
   , pins_(pins)
   , io_expander_ptr_(io_expander_ptr)
+  , phono_io_expander_ptr_(phono_io_expander_ptr)
   , volume_ctrl_ptr_(volume_ctrl_ptr)
 {
   PWM_Instance_ = new RP2040_PWM(bias_out_pin_, pwm_frequency, persistent_data_ptr_->bias);
@@ -110,6 +112,17 @@ void OptionController::init()
 
 void OptionController::update_gpio()
 {
+  // Basically all non-phono GPIOs
+  update_io_expander_gpio();
+
+  update_phono_gpio();
+
+  // Set PWM for bias
+  PWM_Instance_->setPWM(bias_out_pin_, pwm_frequency, persistent_data_ptr_->bias);
+}
+
+void OptionController::update_io_expander_gpio()
+{
   // Set audio input
   const auto& audio_input = persistent_data_ptr_->selected_audio_input;
   for (uint8_t i = 0; i < pins_.iox_gpio_pin_audio_in_select.size(); ++i)
@@ -118,6 +131,10 @@ void OptionController::update_gpio()
     const bool is_selected = i == static_cast<uint8_t>(audio_input);
     io_expander_ptr_->cache_write_pin(pin, is_selected ? HIGH : LOW);
   }
+
+  // Enable phono in if the RCA3 input is selected
+  const int in_phono_pin = persistent_data_ptr_->selected_audio_input == AudioInput::rca_3 ? HIGH : LOW;
+  io_expander_ptr_->cache_write_pin(pins_.in_phono_pin, in_phono_pin);
 
   // Set Low gain GPIO
   io_expander_ptr_->cache_write_pin(
@@ -153,9 +170,89 @@ void OptionController::update_gpio()
 
   // Actually apply the change to the GPIOs
   io_expander_ptr_->apply_write();
+}
 
-  // Set PWM for bias
-  PWM_Instance_->setPWM(bias_out_pin_, pwm_frequency, persistent_data_ptr_->bias);
+void OptionController::update_phono_gpio()
+{
+  // Gain
+  int out_gain_0 = LOW;
+  int out_gain_1 = LOW;
+  int out_gain_2 = LOW;
+  if (persistent_data_ptr_->phono_mode_option == PhonoMode::mm)
+  {
+    switch (persistent_data_ptr_->phono_mm_gain)
+    {
+      case MMPhonoGain::gain_40dB:
+        out_gain_0 = LOW;
+        out_gain_1 = HIGH;
+        out_gain_2 = LOW;
+        break;
+      case MMPhonoGain::gain_45dB:
+        out_gain_0 = LOW;
+        out_gain_1 = LOW;
+        out_gain_2 = HIGH;
+        break;
+      case MMPhonoGain::gain_50dB:
+        out_gain_0 = LOW;
+        out_gain_1 = LOW;
+        out_gain_2 = LOW;
+        break;
+    }
+  }
+  else
+  {
+    switch (persistent_data_ptr_->phono_mc_gain)
+    {
+      case MCPhonoGain::gain_55dB:
+        out_gain_0 = HIGH;
+        out_gain_1 = HIGH;
+        out_gain_2 = LOW;
+        break;
+      case MCPhonoGain::gain_60dB:
+        out_gain_0 = HIGH;
+        out_gain_1 = LOW;
+        out_gain_2 = HIGH;
+        break;
+      case MCPhonoGain::gain_65dB:
+        out_gain_0 = HIGH;
+        out_gain_1 = LOW;
+        out_gain_2 = LOW;
+        break;
+    }
+  }
+  phono_io_expander_ptr_->cache_write_pin(pins_.out_gain_0_pin, out_gain_0);
+  phono_io_expander_ptr_->cache_write_pin(pins_.out_gain_1_pin, out_gain_1);
+  phono_io_expander_ptr_->cache_write_pin(pins_.out_gain_2_pin, out_gain_2);
+
+  // Resistance Load
+  auto resistance_load_enum = persistent_data_ptr_->phono_resistance_load;
+  if (persistent_data_ptr_->phono_mode_option == PhonoMode::mm)
+  {
+    resistance_load_enum = PhonoResistanceLoad::r_47k;
+  }
+  // Enums's integer value matches the 3bits of the IO output
+  const auto out_resistance_load = static_cast<uint8_t>(resistance_load_enum);
+  phono_io_expander_ptr_->cache_write_pin(pins_.out_res_0_pin, (out_resistance_load >> 0) & 1);
+  phono_io_expander_ptr_->cache_write_pin(pins_.out_res_1_pin, (out_resistance_load >> 1) & 1);
+  phono_io_expander_ptr_->cache_write_pin(pins_.out_res_2_pin, (out_resistance_load >> 2) & 1);
+
+  // Capacity Load
+  auto capacitance_load_enum = persistent_data_ptr_->phono_capacitance_load;
+  if (persistent_data_ptr_->phono_mode_option == PhonoMode::mc)
+  {
+    capacitance_load_enum = PhonoCapacitanceLoad::c_0f;
+  }
+  // Enums's integer value matches the 3bits of the IO output
+  const auto out_capacitance_load = static_cast<uint8_t>(capacitance_load_enum);
+  phono_io_expander_ptr_->cache_write_pin(pins_.out_cap_0_pin, (out_capacitance_load >> 0) & 1);
+  phono_io_expander_ptr_->cache_write_pin(pins_.out_cap_1_pin, (out_capacitance_load >> 1) & 1);
+
+  // Rumble filter
+  const int out_rumble_filter = persistent_data_ptr_->phono_rumble_filter == OnOffOption::on ? HIGH : LOW;
+  phono_io_expander_ptr_->cache_write_pin(pins_.out_rumble_filter_pin, out_rumble_filter);
+
+  // Actually apply the change to the GPIOs
+  phono_io_expander_ptr_->apply_write();
 }
 
 AudioInput get_audio_input_from_rename_option(const Option option)
@@ -177,6 +274,10 @@ AudioInput get_audio_input_from_rename_option(const Option option)
 
 std::optional<const char*> OptionController::get_input_rename_value(const AudioInput& audio_input) const
 {
+  if (audio_input == AudioInput::rca_3)
+  {
+    return "PHONO";
+  }
   // Get the name alias
   const auto& name_alias = persistent_data_ptr_->get_per_audio_input_data(audio_input).name_alias;
   switch (name_alias)
@@ -307,6 +408,34 @@ void OptionController::increment_option(const Option& option, const IncrementDir
       break;
     }
     case Option::more_options:
+      break;
+    case Option::phono_mode:
+      change_enum(PhonoMode::enum_length, persistent_data_ptr_->phono_mode_option, increment_dir);
+      break;
+    case Option::phono_gain:
+      if (persistent_data_ptr_->phono_mode_option == PhonoMode::mm)
+      {
+        change_enum(MMPhonoGain::enum_length, persistent_data_ptr_->phono_mm_gain, increment_dir);
+      }
+      else
+      {
+        change_enum(MCPhonoGain::enum_length, persistent_data_ptr_->phono_mc_gain, increment_dir);
+      }
+      break;
+    case Option::resistance_load:
+      if (persistent_data_ptr_->phono_mode_option == PhonoMode::mc)
+      {
+        change_enum(PhonoResistanceLoad::enum_length, persistent_data_ptr_->phono_resistance_load, increment_dir);
+      }
+      break;
+    case Option::capacitance_load:
+      if (persistent_data_ptr_->phono_mode_option == PhonoMode::mm)
+      {
+        change_enum(PhonoCapacitanceLoad::enum_length, persistent_data_ptr_->phono_capacitance_load, increment_dir);
+      }
+      break;
+    case Option::rumble_filter:
+      change_enum(OnOffOption::enum_length, persistent_data_ptr_->phono_rumble_filter, increment_dir);
       break;
     case Option::back:
       break;

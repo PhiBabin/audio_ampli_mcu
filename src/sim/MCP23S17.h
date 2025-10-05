@@ -14,7 +14,8 @@ public:
 
 private:
   void print_status();
-
+  
+  uint8_t chip_select_;
   // Cache of the current GPIO direction for port A and B
   uint8_t direction_gpio_[2];
   // Cache of the current GPIO value for port A and B

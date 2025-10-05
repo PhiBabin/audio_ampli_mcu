@@ -55,29 +55,36 @@ void MainMenuView::draw_left_right_bal_indicator(Display& display, const bool ha
   {
     return;
   }
-  const uint32_t middle_x = LCD_WIDTH / 2;
   const uint32_t bal_top_y = 8;
-  const uint32_t txt_bal_top_y = bal_top_y + 4;
 
-  draw_string_fast(
-    display, "R", middle_x - 20, txt_bal_top_y, middle_x - 3, small_font_, true, false, TextAlign::right);
+  const auto [left_bias, right_bias] = volume_ctrl_ptr_->get_left_right_bias_compensation();
+  char str_buffer[40];
+  snprintf(str_buffer, 40, "%+d BAL %+d", left_bias, right_bias);
+  draw_string_fast(display, str_buffer, 0, bal_top_y, LCD_WIDTH, small_font_, true, false, TextAlign::center);
 
-  draw_image_from_top_left(display, small_speaker, middle_x, bal_top_y);
+  // const uint32_t txt_bal_top_y = bal_top_y + 4;
+  // const uint32_t middle_x = LCD_WIDTH / 2;
 
-  const uint32_t x_after_speaker = middle_x + small_speaker.w_px;
-  char str_buffer[10];
-  snprintf(str_buffer, 10, "%+ddB", persistent_data_ptr_->left_right_balance_db);
-  draw_string_fast(
-    display,
-    str_buffer,
-    x_after_speaker + 3,
-    txt_bal_top_y,
-    x_after_speaker + 40,
-    small_font_,
-    true,
-    false,
-    TextAlign::left);
+  // draw_string_fast(
+  //   display, "R", middle_x - 20, txt_bal_top_y, middle_x - 3, small_font_, true, false, TextAlign::right);
+
+  // draw_image_from_top_left(display, small_speaker, middle_x, bal_top_y);
+
+  // const uint32_t x_after_speaker = middle_x + small_speaker.w_px;
+  // char str_buffer[10];
+  // snprintf(str_buffer, 10, "%+ddB", persistent_data_ptr_->left_right_balance_db);
+  // draw_string_fast(
+  //   display,
+  //   str_buffer,
+  //   x_after_speaker + 3,
+  //   txt_bal_top_y,
+  //   x_after_speaker + 40,
+  //   small_font_,
+  //   true,
+  //   false,
+  //   TextAlign::left);
 }
+
 void MainMenuView::draw_volume(Display& display, const bool has_state_changed)
 {
   static bool prev_mute_state = volume_ctrl_ptr_->is_muted();
@@ -93,8 +100,8 @@ void MainMenuView::draw_volume(Display& display, const bool has_state_changed)
   char buffer[5];
   sprintf(buffer, "%d", volume_ctrl_ptr_->get_volume_db());
 
-  const uint32_t min_x = 94;
-  const uint32_t max_x = LCD_WIDTH - 8;
+  const uint32_t min_x = 100;
+  const uint32_t max_x = LCD_WIDTH - 4;
   const uint32_t middle_y = LCD_HEIGHT / 2;
   const uint32_t start_y = middle_y - digit_font_.get_height_px() / 2;
   const uint32_t middle_x = (max_x - min_x) / 2 + min_x;
@@ -125,7 +132,7 @@ void MainMenuView::draw_audio_inputs(Display& display, const bool has_state_chan
   const uint32_t ver_spacing =
     LCD_HEIGHT / (max_enum_value + 1);  // + 1 is to have equal spacing between the top input and the screen's border
 
-  const uint32_t tab_width_px = 92;
+  const uint32_t tab_width_px = 100;
   const uint32_t tab_height_px = small_font_.get_height_px() + 8;
   const uint32_t first_option_center_y = ver_spacing;
 

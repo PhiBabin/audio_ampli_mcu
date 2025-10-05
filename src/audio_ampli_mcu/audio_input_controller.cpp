@@ -36,7 +36,6 @@ AudioInputController::AudioInputController(
 
 void AudioInputController::init()
 {
-  set_gpio();
 }
 
 void AudioInputController::menu_up()
@@ -53,7 +52,6 @@ void AudioInputController::menu_up()
     --audio_input_int;
   }
   audio_input = static_cast<AudioInput>(audio_input_int);
-  set_gpio();
 }
 
 void AudioInputController::menu_down()
@@ -62,7 +60,6 @@ void AudioInputController::menu_down()
   const auto max_enum_value = static_cast<uint8_t>(AudioInput::enum_length);
   auto audio_input_int = static_cast<uint8_t>(audio_input);
   audio_input = static_cast<AudioInput>((audio_input_int + 1) % max_enum_value);
-  set_gpio();
 }
 
 AudioInput AudioInputController::get_audio_input() const
@@ -94,15 +91,3 @@ bool AudioInputController::update()
   return false;
 }
 
-void AudioInputController::set_gpio()
-{
-  const auto& audio_input = persistent_data_ptr_->selected_audio_input;
-
-  for (uint8_t i = 0; i < iox_gpio_pin_audio_in_select_.size(); ++i)
-  {
-    const auto& pin = iox_gpio_pin_audio_in_select_[i];
-    const bool is_selected = i == static_cast<uint8_t>(audio_input);
-    io_expander_ptr_->cache_write_pin(pin, is_selected ? 1 : 0);
-  }
-  io_expander_ptr_->apply_write();
-}

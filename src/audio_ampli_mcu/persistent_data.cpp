@@ -19,6 +19,9 @@ bool PersistentData::operator==(const PersistentData& rhs) const
     selected_audio_input != rhs.selected_audio_input || output_mode_value != rhs.output_mode_value ||
     output_mode_value != rhs.output_mode_value || output_type_value != rhs.output_type_value ||
     sufwoofer_enable_value != rhs.sufwoofer_enable_value || bias != rhs.bias ||
+    left_right_balance_db != rhs.left_right_balance_db || phono_mode_option != rhs.phono_mode_option ||
+    phono_mm_gain != rhs.phono_mm_gain || phono_mc_gain != rhs.phono_mc_gain ||
+    phono_resistance_load != rhs.phono_resistance_load || phono_capacitance_load != rhs.phono_capacitance_load ||
     left_right_balance_db != rhs.left_right_balance_db)
   {
     return false;

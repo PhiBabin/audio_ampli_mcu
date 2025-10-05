@@ -42,12 +42,6 @@ void VolumeController::init()
   set_gpio_based_on_volume();
 }
 
-// void VolumeController::on_audio_input_change()
-// {
-//   reset_volume_tick_count_based_volume_db();
-//   set_gpio_based_on_volume();
-// }
-
 void VolumeController::on_option_change()
 {
   reset_volume_tick_count_based_volume_db();
@@ -111,6 +105,19 @@ void VolumeController::latch_volume_gpio_one_side(
   digitalWrite(latch_pin, LOW);
 }
 
+std::tuple<int16_t, int16_t> VolumeController::get_left_right_bias_compensation()
+{
+  const int16_t sign = persistent_data_ptr_->left_right_balance_db < 0 ? -1 : 1;
+  const int16_t change = sign * abs(persistent_data_ptr_->left_right_balance_db) / 2;
+
+  // If there is an odd offset (e.g. +3dB), the distribution is not symmetric, so we increase the right side.
+  if (abs(persistent_data_ptr_->left_right_balance_db) % 2 == 1)
+  {
+    return std::make_tuple(-change, change + sign);
+  }
+  return std::make_tuple(-change, change);
+}
+
 void VolumeController::set_gpio_based_on_volume()
 {
   uint8_t left_vol_6bit = 0;
@@ -118,18 +125,11 @@ void VolumeController::set_gpio_based_on_volume()
   if (!is_muted())
   {
     // Map volume to 6 bit, -63 -> 0,  0 -> 63
-    left_vol_6bit = 63 + get_volume_db();
-    if (
-      persistent_data_ptr_->left_right_balance_db < 0 &&
-      abs(persistent_data_ptr_->left_right_balance_db) > left_vol_6bit)
-    {
-      right_vol_6bit = 0;
-    }
-    else
-    {
-      right_vol_6bit = left_vol_6bit + persistent_data_ptr_->left_right_balance_db;
-      right_vol_6bit = right_vol_6bit > 63 ? 63 : right_vol_6bit;
-    }
+    const uint8_t positive_volume = 63 + get_volume_db();
+
+    const auto [left_bias, right_bias] = get_left_right_bias_compensation();
+    left_vol_6bit = constrain(positive_volume + left_bias, 0, 63);
+    right_vol_6bit = constrain(positive_volume + right_bias, 0, 63);
   }
 
 #ifdef USE_V2_PCB

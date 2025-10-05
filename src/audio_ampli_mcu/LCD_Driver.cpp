@@ -47,7 +47,7 @@ void LCD_GPIO_Init(void)
   pinMode(DEV_DOUT_PIN, INPUT);
 
   // Frequency high enough to be filter out by the ampli
-  constexpr uint32_t pwm_frequency = 20000;
+  constexpr uint32_t pwm_frequency = 100000;
   PWM_Instance = new RP2040_PWM(DEV_BL_PIN, pwm_frequency, LCD_BACKLIGHT);
   PWM_Instance->setPWM(DEV_BL_PIN, pwm_frequency, LCD_BACKLIGHT);
 
@@ -62,7 +62,7 @@ void LCD_GPIO_Init(void)
 function:
   Hardware reset
 *******************************************************************************/
-static void LCD_Reset(void)
+void LCD_Reset(void)
 {
   DEV_Digital_Write(DEV_RST_PIN, 0);
   delay(200);
@@ -74,14 +74,14 @@ static void LCD_Reset(void)
 function:
     Write data and commands
 *******************************************************************************/
-static void LCD_Write_Command(uint8_t data)
+inline void LCD_Write_Command(uint8_t data)
 {
   DEV_Digital_Write(DEV_CS_PIN, 0);
   DEV_Digital_Write(DEV_DC_PIN, 0);
   DEV_SPI_WRITE(data);
 }
 
-static void LCD_WriteData_Byte(uint8_t data)
+inline void LCD_WriteData_Byte(uint8_t data)
 {
   DEV_Digital_Write(DEV_CS_PIN, 0);
   DEV_Digital_Write(DEV_DC_PIN, 1);
@@ -89,7 +89,7 @@ static void LCD_WriteData_Byte(uint8_t data)
   DEV_Digital_Write(DEV_CS_PIN, 1);
 }
 
-void LCD_WriteData_Word(uint16_t data)
+inline void LCD_WriteData_Word(uint16_t data)
 {
   DEV_Digital_Write(DEV_CS_PIN, 0);
   DEV_Digital_Write(DEV_DC_PIN, 1);
@@ -122,7 +122,7 @@ void LCD_Init(void)
   LCD_WriteData_Byte(0x00);
   LCD_WriteData_Byte(0x3F);
 
-  LCD_Write_Command(0x2B);  // (2Bh): Row Address Se
+  LCD_Write_Command(0x2B);  // (2Bh): Row Address Set
   LCD_WriteData_Byte(0x00);
   LCD_WriteData_Byte(0x00);
   LCD_WriteData_Byte(0x00);
@@ -234,6 +234,12 @@ void Display::set_window(const uint16_t x_start, const uint16_t y_start, const u
 
 void Display::blip_framebuffer()
 {
+  if (!has_screen_changed)
+  {
+    return;
+  }
+  has_screen_changed = false;
+
   DEV_SPI_BEGIN_TRANS;
   set_window(0, 0, LCD_WIDTH, LCD_HEIGHT);
   DEV_Digital_Write(DEV_CS_PIN, 0);
@@ -263,6 +269,7 @@ void Display::clear_screen(const uint32_t color_12bit)
       frame_buffer_[i + 2] = byte2;
     }
   }
+  has_screen_changed = true;
 }
 
 void Display::draw_rectangle(
@@ -382,7 +389,9 @@ void Display::set_pixel_unsafe(const uint16_t x, const uint16_t y, const uint32_
       (frame_buffer_[bytes_offset] & 0xf0) | ((color_12bit & 0xf00) >> 8);  // previous pixel's 4 LSb + 4 MSb
     frame_buffer_[bytes_offset + 1] = color_12bit & 0xff;                   // 8 LSb
   }
+  has_screen_changed = true;
 }
+
 void Display::set_pixel(const uint16_t x, const uint16_t y, const uint32_t color_12bit)
 {
   if (x >= LCD_WIDTH || y >= LCD_HEIGHT)

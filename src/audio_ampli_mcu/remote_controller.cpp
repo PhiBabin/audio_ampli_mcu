@@ -7,9 +7,7 @@
 #endif
 
 RemoteController::RemoteController(
-  StateMachine* state_machine_ptr,
-  InteractionHandler* interaction_handler_ptr,
-  VolumeController* volume_ctrl_ptr)
+  StateMachine* state_machine_ptr, InteractionHandler* interaction_handler_ptr, VolumeController* volume_ctrl_ptr)
   : state_machine_ptr_(state_machine_ptr)
   , interaction_handler_ptr_(interaction_handler_ptr)
   , volume_ctrl_ptr_(volume_ctrl_ptr)
@@ -25,7 +23,7 @@ RemoteController::RemoteController(
   remotes_mapping_.emplace(0x87EE, std::move(apple));
 
   // Cheap Amazon clone of the Apple Siri remote
-  // This remote use the same codes as the apple remove for the arrow + select + menu
+  // This remote use the same codes as the apple remote for the arrow + select + menu
   RemoteCallbacks amazon_volume;
   amazon_volume[0x2] = std::bind(&RemoteController::handle_vol_up, this);
   amazon_volume[0x3] = std::bind(&RemoteController::handle_vol_down, this);
@@ -136,5 +134,5 @@ void RemoteController::handle_power_on_off()
 
 void RemoteController::handle_mute()
 {
-  volume_ctrl_ptr_->toggle_mute();
+  interaction_handler_ptr_->on_mute_button_press();
 }

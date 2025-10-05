@@ -81,10 +81,10 @@ private:
   std::unordered_map<OptionMenuScreen, Menu> menus_;
   // Switch menu screen is selected
   OptionMenuScreen selected_menu_{OptionMenuScreen::main};
-  // Do we have an option focused (aka the menu up/down change the option's value instead of moving thru the different
+  // Do we have an option focused? (aka the menu up/down change the option's value instead of moving thru the different
   // options)
   bool is_focus_{false};
-  // Force particial redraw on button press
+  // Force partial redraw on button press
   bool on_button_press_{false};
 
   // Temporary buffer used for string_format_option().

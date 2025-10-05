@@ -46,14 +46,19 @@ bool InteractionHandler::update_selection()
   return true;
 }
 
+void InteractionHandler::on_mute_button_press()
+{
+  volume_ctrl_ptr_->toggle_mute();
+  volume_ctrl_ptr_->set_gpio_based_on_volume();
+}
+
 bool InteractionHandler::update_mute_button()
 {
   unsigned long now = millis();
   mute_button_.process(now);
   if (mute_button_.is_short_press())
   {
-    volume_ctrl_ptr_->toggle_mute();
-    volume_ctrl_ptr_->set_gpio_based_on_volume();
+    on_mute_button_press();
   }
   else if (mute_button_.is_long_press())
   {

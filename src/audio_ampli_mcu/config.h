@@ -17,9 +17,9 @@
 
 // Changing the version will make previously saved settings unusable
 #define MAJOR_VERSION 1
-#define MINOR_VERSION 0
+#define MINOR_VERSION 2
 // Change to the patch will not impact save settings
-#define PATCH_VERSION 1
+#define PATCH_VERSION 0
 
 #define STR_HELPER(x) #x
 #define STR(x) STR_HELPER(x)

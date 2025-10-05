@@ -27,6 +27,7 @@ struct OptionContollerPins
   const std::array<pin_size_t, 4> iox_gpio_pin_audio_in_select;
   const int in_out_unipolar_pin;
   const int in_out_bal_unipolar_pin;
+  const int in_phono_pin;
   const int set_low_gain_pin;
   const int out_bal_pin;
   const int preamp_out_pin;
@@ -35,6 +36,17 @@ struct OptionContollerPins
   const int out_lfe_bal_pin;
   const int out_lfe_se_pin;
   const int trigger_12v;
+
+  // Phono IO expander pins
+  const int out_gain_0_pin;
+  const int out_gain_1_pin;
+  const int out_gain_2_pin;
+  const int out_res_0_pin;
+  const int out_res_1_pin;
+  const int out_res_2_pin;
+  const int out_cap_0_pin;
+  const int out_cap_1_pin;
+  const int out_rumble_filter_pin;
 };
 
 class ValueControlerInterface
@@ -50,6 +62,7 @@ public:
     StateMachine* state_machine_ptr,
     PersistentData* persistent_data_ptr,
     IoExpander* io_expander_ptr,
+    IoExpander* phono_io_expander_ptr,
     VolumeController* volume_ctrl_ptr,
     const pin_size_t bias_out_pin,
     const int power_enable_pin,
@@ -72,6 +85,9 @@ private:
   constexpr static uint8_t bias_increment = 5;
   constexpr static int8_t left_right_balance_range = 5;
 
+  void update_io_expander_gpio();
+  void update_phono_gpio();
+
   // Non-owning pointer to the state machine
   StateMachine* state_machine_ptr_;
   // Non-owning pointer to the persistent data
@@ -88,6 +104,9 @@ private:
 
   /// Non-owning pointer to the io expander
   IoExpander* io_expander_ptr_;
+
+  /// Non-owning pointer to the phono's io expander
+  IoExpander* phono_io_expander_ptr_;
 
   /// Non-owning pointer to the volume controler
   VolumeController* volume_ctrl_ptr_;
