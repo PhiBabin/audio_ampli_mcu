@@ -112,6 +112,10 @@ private:
   VolumeController* volume_ctrl_ptr_;
 
   RP2040_PWM* PWM_Instance_;
+
+  /// Previous bias set
+  uint8_t prev_bias_;
+
 };
 
 #endif  // OPTIONS_CTRL_GUARD_H_

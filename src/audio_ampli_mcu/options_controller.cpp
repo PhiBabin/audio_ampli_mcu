@@ -99,6 +99,7 @@ OptionController::OptionController(
 {
   PWM_Instance_ = new RP2040_PWM(bias_out_pin_, pwm_frequency, persistent_data_ptr_->bias);
   PWM_Instance_->setPWM(bias_out_pin_, pwm_frequency, persistent_data_ptr_->bias);
+  prev_bias_ = persistent_data_ptr_->bias;
 }
 
 void OptionController::init()
@@ -118,7 +119,11 @@ void OptionController::update_gpio()
   update_phono_gpio();
 
   // Set PWM for bias
-  PWM_Instance_->setPWM(bias_out_pin_, pwm_frequency, persistent_data_ptr_->bias);
+  if (prev_bias_ != persistent_data_ptr_->bias)
+  {
+    PWM_Instance_->setPWM(bias_out_pin_, pwm_frequency, persistent_data_ptr_->bias);
+    prev_bias_ = persistent_data_ptr_->bias;
+  }
 }
 
 void OptionController::update_io_expander_gpio()
