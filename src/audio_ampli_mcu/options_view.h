@@ -33,7 +33,7 @@ struct MenuItem
 
 struct Menu
 {
-  Menu(const OptionMenuScreen& _type, std::vector<MenuItem> _items);
+  Menu(const OptionMenuScreen& _type, std::vector<MenuItem> _items, bool take_last_item = true);
   void change_selected_item(const IncrementDir& dir);
   std::optional<std::reference_wrapper<const MenuItem>> try_get_selected_item() const;
 
@@ -50,7 +50,9 @@ public:
     VolumeController* volume_ctrl_ptr,
     PersistentData* persistent_data_ptr,
     StateMachine* state_machine_ptr,
-    const LvFontWrapper& font);
+    const LvFontWrapper& font,
+    const LvFontWrapper& medium_font,
+    const LvFontWrapper& large_font);
   void on_menu_press();
   void menu_up();
   void menu_down();
@@ -67,6 +69,9 @@ private:
   Menu& get_selected_menu();
   std::optional<const char*> string_format_option(const Option& option, const bool is_focus);
 
+  // Whether we are using the large size menu theme or the small size
+  bool use_large_ui_{true};
+
   // Non-owning pointer to the option controler
   OptionController* option_ctrl_ptr_;
   /// Non-owning pointer to the volume controler
@@ -77,6 +82,10 @@ private:
   StateMachine* state_machine_ptr_;
   // Font use to draw the menu (preferably small)
   const LvFontWrapper& font_;
+  // Font use to draw the menu titles
+  const LvFontWrapper& medium_font_;
+  // Font use to draw the current option's value
+  const LvFontWrapper& large_font_;
   // Menu screens
   std::unordered_map<OptionMenuScreen, Menu> menus_;
   // Switch menu screen is selected

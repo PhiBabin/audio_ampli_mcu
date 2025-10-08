@@ -11,6 +11,8 @@
 #include "digit_font.h"
 #include "digit_font_droid_sans_mono.h"
 #include "dm_sans_extrabold.h"
+#include "dm_sans_regular_40.h"
+#include "dm_sans_regular_64.h"
 #include "interaction_handler.h"
 #include "io_expander.h"
 #include "main_menu_view.h"
@@ -101,10 +103,19 @@ Display display;
 LvFontWrapper digit_droid_sans_font(&droid_sans_mono, true);
 LvFontWrapper digit_light_font(&dmsans_36pt_light, true);
 LvFontWrapper regular_bold_font(&dmsans_36pt_extrabold);
+LvFontWrapper regular_medium_font(&dmsans_36pt_regular_40);
+LvFontWrapper regular_large_font(&dmsans_36pt_regular_64);
 
 MainMenuView main_menu_view(
   &option_ctrl, &volume_ctrl, &persistent_data, &state_machine, regular_bold_font, digit_droid_sans_font);
-OptionsView option_view(&option_ctrl, &volume_ctrl, &persistent_data, &state_machine, regular_bold_font);
+OptionsView option_view(
+  &option_ctrl,
+  &volume_ctrl,
+  &persistent_data,
+  &state_machine,
+  regular_bold_font,
+  regular_medium_font,
+  regular_large_font);
 InteractionHandler interaction_handler(
   &option_view,
   &main_menu_view,

@@ -1,5 +1,7 @@
 #include "options_view.h"
 
+#include "left_arrow_img.h"
+
 namespace
 {
 const char* format_on_off_option(const OnOffOption& option)
@@ -16,11 +18,12 @@ const char* format_on_off_option(const OnOffOption& option)
 }
 }  // namespace
 
-Menu::Menu(const OptionMenuScreen& _type, std::vector<MenuItem> _items) : type(_type), items(std::move(_items))
+Menu::Menu(const OptionMenuScreen& _type, std::vector<MenuItem> _items, bool take_last_item)
+  : type(_type), items(std::move(_items))
 {
   if (!items.empty())
   {
-    maybe_selected_index = items.size() - 1;
+    maybe_selected_index = take_last_item ? items.size() - 1 : 0;
   }
 }
 
@@ -29,65 +32,102 @@ OptionsView::OptionsView(
   VolumeController* volume_ctrl_ptr,
   PersistentData* persistent_data_ptr,
   StateMachine* state_machine_ptr,
-  const LvFontWrapper& font)
+  const LvFontWrapper& font,
+  const LvFontWrapper& medium_font,
+  const LvFontWrapper& large_font)
   : option_ctrl_ptr_(option_ctrl_ptr)
   , volume_ctrl_ptr_(volume_ctrl_ptr)
   , persistent_data_ptr_(persistent_data_ptr)
   , state_machine_ptr_(state_machine_ptr)
   , font_(font)
+  , medium_font_(medium_font)
+  , large_font_(large_font)
 {
-  menus_.emplace(
-    OptionMenuScreen::main,
-    Menu(
+  if (use_large_ui_)
+  {
+    menus_.emplace(
       OptionMenuScreen::main,
-      {
-        MenuItem{Option::gain, "GAIN", MenuItemType::increment_item},
-        MenuItem{Option::output_mode, "OUTPUT MODE", MenuItemType::increment_item},
-        MenuItem{Option::output_type, "OUTPUT TYPE", MenuItemType::increment_item},
-        MenuItem{Option::subwoofer, "SUBWOOFER", MenuItemType::increment_item},
-        MenuItem{Option::balance, "L/R BALANCE", MenuItemType::focus_item},
-        MenuItem{Option::more_options, "MORE OPTION", MenuItemType::change_menu, OptionMenuScreen::advance},
-        MenuItem{Option::back, "BACK", MenuItemType::change_menu, OptionMenuScreen::exit},
-      }));
+      Menu(
+        OptionMenuScreen::main,
+        {
+          MenuItem{Option::balance, "L/R BALANCE", MenuItemType::focus_item},  // real focus
+          MenuItem{Option::subwoofer, "SUBWOOFER", MenuItemType::increment_item},
+          MenuItem{Option::gain, "GAIN", MenuItemType::increment_item},
+          MenuItem{Option::output_mode, "OUTPUT MODE", MenuItemType::increment_item},
+          MenuItem{Option::output_type, "OUTPUT TYPE", MenuItemType::increment_item},
+          MenuItem{Option::bias, "BIAS", MenuItemType::focus_item},  // real focus
+          MenuItem{Option::rename_bal, "RENAME BAL ", MenuItemType::focus_item},
+          MenuItem{Option::rename_rca1, "RENAME RCA1", MenuItemType::focus_item},
+          MenuItem{Option::rename_rca2, "RENAME RCA2", MenuItemType::focus_item},
+          MenuItem{Option::phono_mode, "PHONO MODE", MenuItemType::increment_item},
+          MenuItem{Option::phono_gain, "PHONO GAIN", MenuItemType::focus_item},
+          MenuItem{Option::resistance_load, "PHONO R LOAD", MenuItemType::focus_item},
+          MenuItem{Option::capacitance_load, "PHONO C LOAD", MenuItemType::focus_item},
+          MenuItem{Option::rumble_filter, "RUMBLE", MenuItemType::increment_item},
+          MenuItem{
+            Option::text,
+            "BAB AUDIO " VERSION_STRING "\n" __DATE__ "\nBY ANDRE &"
+            "\nPHILIPPE BABIN",
+            MenuItemType::text},
+          MenuItem{Option::back, "BACK", MenuItemType::change_menu, OptionMenuScreen::exit},
+        },
+        /*take_last_item = */ false));
+  }
+  else
+  {
+    menus_.emplace(
+      OptionMenuScreen::main,
+      Menu(
+        OptionMenuScreen::main,
+        {
+          MenuItem{Option::gain, "GAIN", MenuItemType::increment_item},
+          MenuItem{Option::output_mode, "OUTPUT MODE", MenuItemType::increment_item},
+          MenuItem{Option::output_type, "OUTPUT TYPE", MenuItemType::increment_item},
+          MenuItem{Option::subwoofer, "SUBWOOFER", MenuItemType::increment_item},
+          MenuItem{Option::balance, "L/R BALANCE", MenuItemType::focus_item},
+          MenuItem{Option::more_options, "MORE OPTION", MenuItemType::change_menu, OptionMenuScreen::advance},
+          MenuItem{Option::back, "BACK", MenuItemType::change_menu, OptionMenuScreen::exit},
+        }));
 
-  menus_.emplace(
-    OptionMenuScreen::advance,
-    Menu(
+    menus_.emplace(
       OptionMenuScreen::advance,
-      {
-        MenuItem{Option::bias, "BIAS", MenuItemType::focus_item},
-        MenuItem{Option::rename_bal, "RENAME BAL ", MenuItemType::increment_item},
-        MenuItem{Option::rename_rca1, "RENAME RCA1", MenuItemType::increment_item},
-        MenuItem{Option::rename_rca2, "RENAME RCA2", MenuItemType::increment_item},
-        // MenuItem{Option::rename_rca3, "RENAME RCA3", MenuItemType::increment_item},
-        MenuItem{Option::more_options, "PHONO OPTION", MenuItemType::change_menu, OptionMenuScreen::phono},
-        MenuItem{
-          Option::more_options, "FIRMWARE VERSION", MenuItemType::change_menu, OptionMenuScreen::firmware_version},
-        MenuItem{Option::back, "BACK", MenuItemType::change_menu, OptionMenuScreen::main},
-      }));
-  menus_.emplace(
-    OptionMenuScreen::phono,
-    Menu(
+      Menu(
+        OptionMenuScreen::advance,
+        {
+          MenuItem{Option::bias, "BIAS", MenuItemType::focus_item},
+          MenuItem{Option::rename_bal, "RENAME BAL ", MenuItemType::increment_item},
+          MenuItem{Option::rename_rca1, "RENAME RCA1", MenuItemType::increment_item},
+          MenuItem{Option::rename_rca2, "RENAME RCA2", MenuItemType::increment_item},
+          // MenuItem{Option::rename_rca3, "RENAME RCA3", MenuItemType::increment_item},
+          MenuItem{Option::more_options, "PHONO OPTION", MenuItemType::change_menu, OptionMenuScreen::phono},
+          MenuItem{
+            Option::more_options, "FIRMWARE VERSION", MenuItemType::change_menu, OptionMenuScreen::firmware_version},
+          MenuItem{Option::back, "BACK", MenuItemType::change_menu, OptionMenuScreen::main},
+        }));
+    menus_.emplace(
       OptionMenuScreen::phono,
-      {
-        MenuItem{Option::phono_mode, "MODE", MenuItemType::increment_item},
-        MenuItem{Option::phono_gain, "GAIN", MenuItemType::increment_item},
-        MenuItem{Option::resistance_load, "R LOAD", MenuItemType::increment_item},
-        MenuItem{Option::capacitance_load, "C LOAD", MenuItemType::increment_item},
-        MenuItem{Option::rumble_filter, "RUMBLE", MenuItemType::increment_item},
-        MenuItem{Option::back, "BACK", MenuItemType::change_menu, OptionMenuScreen::advance},
-      }));
-  menus_.emplace(
-    OptionMenuScreen::firmware_version,
-    Menu(
+      Menu(
+        OptionMenuScreen::phono,
+        {
+          MenuItem{Option::phono_mode, "MODE", MenuItemType::increment_item},
+          MenuItem{Option::phono_gain, "GAIN", MenuItemType::increment_item},
+          MenuItem{Option::resistance_load, "R LOAD", MenuItemType::increment_item},
+          MenuItem{Option::capacitance_load, "C LOAD", MenuItemType::increment_item},
+          MenuItem{Option::rumble_filter, "RUMBLE", MenuItemType::increment_item},
+          MenuItem{Option::back, "BACK", MenuItemType::change_menu, OptionMenuScreen::advance},
+        }));
+    menus_.emplace(
       OptionMenuScreen::firmware_version,
-      {
-        MenuItem{Option::text, "BAB AUDIO " VERSION_STRING, MenuItemType::text},
-        MenuItem{Option::text, __DATE__, MenuItemType::text},
-        MenuItem{Option::text, "BY ANDRE &", MenuItemType::text},
-        MenuItem{Option::text, "PHILIPPE BABIN", MenuItemType::text},
-        MenuItem{Option::back, "BACK", MenuItemType::change_menu, OptionMenuScreen::advance},
-      }));
+      Menu(
+        OptionMenuScreen::firmware_version,
+        {
+          MenuItem{Option::text, "BAB AUDIO " VERSION_STRING, MenuItemType::text},
+          MenuItem{Option::text, __DATE__, MenuItemType::text},
+          MenuItem{Option::text, "BY ANDRE &", MenuItemType::text},
+          MenuItem{Option::text, "PHILIPPE BABIN", MenuItemType::text},
+          MenuItem{Option::back, "BACK", MenuItemType::change_menu, OptionMenuScreen::advance},
+        }));
+  }
 }
 
 void Menu::change_selected_item(const IncrementDir& dir)
@@ -239,8 +279,14 @@ void OptionsView::draw_volume(Display& display, const bool has_state_changed)
     prev_volume = volume_ctrl_ptr_->get_volume_db();
   }
 
-  const uint32_t y_end = 40;
-  const uint32_t y_text_top = (y_end - font_.get_height_px()) / 2;
+  uint32_t y_end = 40;
+  uint32_t y_text_top = (y_end - font_.get_height_px()) / 2;
+
+  if (use_large_ui_)
+  {
+    y_end = LCD_HEIGHT - 10;
+    y_text_top = y_end - font_.get_height_px();
+  }
 
   // prev_state = state_machine.get_state();
   if (millis() - time_since_last_change >= max_time_since_last_change)
@@ -278,60 +324,122 @@ void OptionsView::draw_menu(Display& display, const bool has_state_changed)
   }
   const bool partial_redraw = !has_state_changed && !has_menu_changed;
 
-  if (has_menu_changed)  // || prev_option_menu != option_ctrl.get_current_menu_screen())
+  if (use_large_ui_)
   {
+    const auto& maybe_menu_item = menu.try_get_selected_item();
+    if (!maybe_menu_item)
+    {
+      return;
+    }
     display.clear_screen(BLACK_COLOR);
-  }
 
-  const uint32_t ver_spacing = font_.get_height_px() + 8;
-  const auto num_menu_items = menu.items.size();
-  for (uint8_t i = 0; i < num_menu_items; ++i)
-  {
-    const auto& item = menu.items[i];
-    const auto curr_option_box_top_y = (i + 1) * ver_spacing + 5;
-    // const auto curr_option_center_y = (i + 1) * ver_spacing + 5;
-    const auto curr_option_bot_y = curr_option_box_top_y + ver_spacing;
-    const auto curr_option_center_y = curr_option_box_top_y + ver_spacing / 2;
-    const auto curr_option_text_top_y = curr_option_center_y - font_.get_height_px() / 2;
+    constexpr uint16_t height_top_bar_px = 56;
+    display.draw_rectangle(0, 0, LCD_WIDTH, height_top_bar_px, WHITE_COLOR);
 
-    // If we reach end of screen
-    if (curr_option_bot_y >= LCD_HEIGHT)
+    const auto& menu_item = maybe_menu_item.value().get();
+    const uint32_t ver_spacing = (height_top_bar_px - medium_font_.get_height_px()) / 2;
+    if (menu_item.type != MenuItemType::text)
     {
-      break;
+      draw_string_fast(display, menu_item.label, 0, ver_spacing, LCD_WIDTH, medium_font_, false, false);
     }
 
-    const auto is_prev_selected = prev_menu_selection && i == prev_menu_selection.value();
-    const auto is_selected = menu.maybe_selected_index && i == menu.maybe_selected_index.value();
-    const auto& label_str = item.label;
-
-    // When there was only a button press, only update the selected option and previously selected option
-    if (!is_selected && !is_prev_selected && partial_redraw)
-    {
-      continue;
-    }
-
-    display.draw_rectangle(
-      0, curr_option_box_top_y, LCD_WIDTH, curr_option_bot_y + 1, is_selected ? WHITE_COLOR : BLACK_COLOR);
-
-    switch (item.type)
+    const uint32_t y_center_black_zone = (LCD_HEIGHT - height_top_bar_px) / 2 + height_top_bar_px;
+    switch (menu_item.type)
     {
       case MenuItemType::text:
-      case MenuItemType::change_menu:
-        // Center the option's label
-        draw_string_fast(display, label_str, 0, curr_option_text_top_y, LCD_WIDTH, font_, !is_selected, false);
+        draw_multilines_string(display, menu_item.label, 0, height_top_bar_px + 20, LCD_WIDTH, font_, true, false);
         break;
-      case MenuItemType::increment_item:
+      case MenuItemType::change_menu:
+        break;
       case MenuItemType::focus_item:
+        // Draw a left and right arrow if item is in focus
+        if (is_focus_)
+        {
+          const uint32_t vertical_padding = 10;
+          const uint32_t top_y_arrow = y_center_black_zone - left_arrow_image.h_px / 2;
+          draw_image_from_top_left(display, left_arrow_image, vertical_padding, top_y_arrow);
+          draw_image_from_top_left(
+            display,
+            left_arrow_image,
+            LCD_WIDTH - vertical_padding - left_arrow_image.w_px,
+            top_y_arrow,
+            /*vertical_mirror=*/true);
+        }
+        // Intentional fallthrought
+      case MenuItemType::increment_item:
       {
+        const uint32_t top_y_text = y_center_black_zone - medium_font_.get_height_px() / 2;
         // Draw a field label and values
-        draw_string_fast(display, label_str, 0, curr_option_text_top_y, LCD_WIDTH / 2, font_, !is_selected, false);
-        const char* value_str = string_format_option(item.option, is_focus_ && is_selected).value_or("ERR");
-        draw_string_fast(
-          display, value_str, LCD_WIDTH / 2, curr_option_text_top_y, LCD_WIDTH, font_, !is_selected, false);
+        const char* value_str = string_format_option(menu_item.option, /*is_focus =*/false).value_or("ERR");
+        draw_string_fast(display, value_str, 0, top_y_text, LCD_WIDTH, medium_font_, true, false);
         break;
       }
       case MenuItemType::enum_length:
         break;
+    }
+
+    // char page_count_buffer[15] = {0};
+    // snprintf(page_count_buffer, 15, "%d of %d", menu.maybe_selected_index.value_or(0), menu.items.size());
+    // draw_string_fast(display, option_buffer, 0, y_text_top, LCD_WIDTH, font_, true, false, TextAlign::right);
+  }
+  else
+  {
+
+    if (has_menu_changed)  // || prev_option_menu != option_ctrl.get_current_menu_screen())
+    {
+      display.clear_screen(BLACK_COLOR);
+    }
+
+    const uint32_t ver_spacing = font_.get_height_px() + 8;
+    const auto num_menu_items = menu.items.size();
+    for (uint8_t i = 0; i < num_menu_items; ++i)
+    {
+      const auto& item = menu.items[i];
+      const auto curr_option_box_top_y = (i + 1) * ver_spacing + 5;
+      // const auto curr_option_center_y = (i + 1) * ver_spacing + 5;
+      const auto curr_option_bot_y = curr_option_box_top_y + ver_spacing;
+      const auto curr_option_center_y = curr_option_box_top_y + ver_spacing / 2;
+      const auto curr_option_text_top_y = curr_option_center_y - font_.get_height_px() / 2;
+
+      // If we reach end of screen
+      if (curr_option_bot_y >= LCD_HEIGHT)
+      {
+        break;
+      }
+
+      const auto is_prev_selected = prev_menu_selection && i == prev_menu_selection.value();
+      const auto is_selected = menu.maybe_selected_index && i == menu.maybe_selected_index.value();
+      const auto& label_str = item.label;
+
+      // When there was only a button press, only update the selected option and previously selected option
+      if (!is_selected && !is_prev_selected && partial_redraw)
+      {
+        continue;
+      }
+
+      display.draw_rectangle(
+        0, curr_option_box_top_y, LCD_WIDTH, curr_option_bot_y + 1, is_selected ? WHITE_COLOR : BLACK_COLOR);
+
+      switch (item.type)
+      {
+        case MenuItemType::text:
+        case MenuItemType::change_menu:
+          // Center the option's label
+          draw_string_fast(display, label_str, 0, curr_option_text_top_y, LCD_WIDTH, font_, !is_selected, false);
+          break;
+        case MenuItemType::increment_item:
+        case MenuItemType::focus_item:
+        {
+          // Draw a field label and values
+          draw_string_fast(display, label_str, 0, curr_option_text_top_y, LCD_WIDTH / 2, font_, !is_selected, false);
+          const char* value_str = string_format_option(item.option, is_focus_ && is_selected).value_or("ERR");
+          draw_string_fast(
+            display, value_str, LCD_WIDTH / 2, curr_option_text_top_y, LCD_WIDTH, font_, !is_selected, false);
+          break;
+        }
+        case MenuItemType::enum_length:
+          break;
+      }
     }
   }
   prev_menu_selection = menu.maybe_selected_index;

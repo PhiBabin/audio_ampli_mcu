@@ -34,16 +34,25 @@ bool InteractionHandler::update()
 
 bool InteractionHandler::update_selection()
 {
-  const bool prev_select_state = select_button_.get_state();
   unsigned long now = millis();
   select_button_.process(now);
-  if (select_button_.get_state() == prev_select_state)
-  {
-    return false;
-  }
 
-  on_menu_press();
-  return true;
+  if (select_button_.is_short_press())
+  {
+    on_menu_press();
+  }
+  else if (select_button_.is_long_press())
+  {
+    if (state_machine_ptr_->get_state() == State::option_menu)
+    {
+      state_machine_ptr_->change_state(State::main_menu);
+    }
+    else
+    {
+      state_machine_ptr_->change_state(State::option_menu);
+    }
+  }
+  return select_button_.is_short_press() || select_button_.is_long_press();
 }
 
 void InteractionHandler::on_mute_button_press()

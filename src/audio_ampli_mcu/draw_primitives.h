@@ -15,10 +15,29 @@
 const uint32_t WHITE_COLOR = 0xfff;
 const uint32_t BLACK_COLOR = 0x0;
 
+// New format for glyph descriptor, it includes a bounding box offset, so the bitmap doesn't have to include
+// transparent pixels
+struct lv_font_fmt_txt_glyph_dsc_t
+{
+  // Start index of the bitmap. A font can be max 4 GB.
+  uint32_t bitmap_index;
+  // Draw the next glyph after this width. 28.4 format (real_value * 16 is stored)
+  uint32_t adv_w;
+  //  Width of the glyph's bounding box
+  uint16_t box_w;
+  // Height of the glyph's bounding box
+  uint16_t box_h;
+  // x offset of the bounding box
+  int16_t ofs_x;
+  // y offset of the bounding box. Measured from the top of the line
+  int16_t ofs_y;
+};
+
 struct lv_font_glyph_dsc_t
 {
   // Pixel width
   uint32_t w_px;
+  // Offset in glyph bitmap
   uint32_t glyph_index;
 };
 
@@ -34,12 +53,16 @@ struct lv_font_t
   uint32_t unicode_last;
   // Height of the character in bitmap in pixel
   uint32_t h_px;
+  // Baseline measured from the bottom of the line
+  uint32_t base_line{0};
   // Pointer to the bitmap
   const uint8_t* glyph_bitmap;
   // Glyph description (width in px + offset in bitmap)
-  const lv_font_glyph_dsc_t* glyph_dsc;
+  const lv_font_glyph_dsc_t* glyph_dsc{NULL};
+  // New glyph description (width in px + offset in bitmap + bounding box)
+  const lv_font_fmt_txt_glyph_dsc_t* new_glyph_dsc{NULL};
   // Unicode code of each character in bitmap
-  const uint32_t* unicode_list;
+  const uint32_t* unicode_list{NULL};
 };
 
 class LvFontWrapper
@@ -57,6 +80,14 @@ public:
     uint32_t width_with_spacing_px;
     uint32_t skip_top_px;
     const uint8_t* raw_bytes;
+    //  Width of the glyph's bounding box
+    uint32_t box_w;
+    // Height of the glyph's bounding box
+    uint32_t box_h;
+    // x offset of the bounding box
+    uint32_t ofs_x;
+    // y offset of the bounding box. Measured from the top of the line
+    uint32_t ofs_y;
   };
 
   LvFontWrapper(const lv_font_t* font, const bool is_monospace = false);
@@ -79,7 +110,6 @@ void draw_character_fast(
   const uint32_t start_y,
   bool is_white_on_black = true);
 
-
 enum class TextAlign : uint8_t
 {
   center = 0,
@@ -89,6 +119,17 @@ enum class TextAlign : uint8_t
 };
 
 void draw_string_fast(
+  Display& display,
+  const char* str,
+  const uint32_t start_x,
+  const uint32_t start_y,
+  const uint32_t end_x,
+  const LvFontWrapper& font,
+  bool is_white_on_black = true,
+  bool clear_side = true,
+  const TextAlign txt_align = TextAlign::center);
+
+void draw_multilines_string(
   Display& display,
   const char* str,
   const uint32_t start_x,
@@ -109,7 +150,11 @@ struct lv_img_dsc_t
 
 void draw_image(Display& display, const lv_img_dsc_t& img, const uint32_t center_x, const uint32_t center_y);
 void draw_image_from_top_left(
-  Display& display, const lv_img_dsc_t& img, const uint32_t start_x, const uint32_t start_y);
+  Display& display,
+  const lv_img_dsc_t& img,
+  const uint32_t start_x,
+  const uint32_t start_y,
+  const bool vertical_mirror = false);
 
 void draw_rounded_rectangle(
   Display& display,

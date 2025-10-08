@@ -4,6 +4,7 @@
 #include <cassert>
 #include <cmath>
 #include <cstring>
+#include <stdlib.h>
 
 #ifdef MAX
 #undef MAX
@@ -76,6 +77,41 @@ void draw_character_fast(
   //   }
   // }
   // DEV_SPI_END_TRANS;
+}
+
+void draw_multilines_string(
+  Display& display,
+  const char* str,
+  const uint32_t start_x,
+  const uint32_t start_y,
+  const uint32_t end_x,
+  const LvFontWrapper& font,
+  bool is_white_on_black,
+  bool clear_side,
+  const TextAlign txt_align)
+{
+  const char* start = str;
+  uint32_t top_y = start_y;
+  const uint32_t line_spacing = font.get_height_px() + font.get_height_px() / 2;
+  for (;; ++str)
+  {
+    const ptrdiff_t length = str - start;
+    if ((*str == '\n' || *str == '\0') && length > 0)
+    {
+      char* line_buffer = static_cast<char*>(malloc(length + 2));
+      strncpy(line_buffer, start, length);
+      line_buffer[length] = '\0';
+      draw_string_fast(display, line_buffer, start_x, top_y, end_x, font, is_white_on_black, clear_side, txt_align);
+      free(line_buffer);
+
+      start = str + 1;
+      top_y += line_spacing;
+    }
+    if (*str == '\0')
+    {
+      break;
+    }
+  }
 }
 
 void draw_string_fast(
@@ -184,10 +220,19 @@ uint8_t LvFontWrapper::LvGlyph::get_color(const uint32_t x_px, const uint32_t y_
   }
   const auto bitmap_x_px = x_px - left_offset_px;
   const auto bitmap_y_px = y_px + skip_top_px;
-  const uint32_t bitmap_y_offset_px = bitmap_width_px % 2 == 0
-                                        ? bitmap_width_px * bitmap_y_px
-                                        : (bitmap_width_px + 1) * bitmap_y_px;  // Padding for odd width
-  const uint32_t offset_px = bitmap_y_offset_px + bitmap_x_px;
+
+  // To save on memory, the bitmap doesn't include zone of empty space, e.g. the space character doesn't have any data
+  // in the bitmap. So we need to check if the pixel x/y is within the bounding box before indexing into it.
+  if (bitmap_x_px < ofs_x || bitmap_y_px < ofs_y || bitmap_x_px >= ofs_x + box_w || bitmap_y_px >= ofs_y + box_h)
+  {
+    return 0;
+  }
+  const auto bounding_box_x_px = bitmap_x_px - ofs_x;
+  const auto bounding_box_y_px = bitmap_y_px - ofs_y;
+  const uint32_t bitmap_y_offset_px = box_w * bounding_box_y_px;
+  // const uint32_t bitmap_y_offset_px =
+  //   box_w % 2 == 0 ? box_w * bounding_box_y_px : (box_w + 1) * bounding_box_y_px;  // Padding for odd width
+  const uint32_t offset_px = bitmap_y_offset_px + bounding_box_x_px;
   const auto two_pixels_byte = raw_bytes[offset_px / 2];
   if (offset_px % 2 == 0)
   {
@@ -199,15 +244,43 @@ uint8_t LvFontWrapper::LvGlyph::get_color(const uint32_t x_px, const uint32_t y_
 LvFontWrapper::LvFontWrapper(const lv_font_t* font, const bool is_monospace)
   : font_(font), height_px_(font_->h_px - font_->h_top_skip_px - font_->h_bot_skip_px)
 {
+  assert(font_->glyph_dsc != NULL || font_->new_glyph_dsc != NULL);
   auto add_character = [this](const uint32_t unicode, const uint32_t index) {
-    LvGlyph glyph{
-      .width_px = font_->glyph_dsc[index].w_px,  // Will be updated if monospace
-      .bitmap_width_px = font_->glyph_dsc[index].w_px,
-      .height_px = height_px_,
-      .width_with_spacing_px = font_->glyph_dsc[index].w_px + font_->spacing_px,
-      .skip_top_px = font_->h_top_skip_px,
-      .raw_bytes = font_->glyph_bitmap + font_->glyph_dsc[index].glyph_index};
-    unicode_to_char_.emplace(unicode, glyph);
+    if (font_->glyph_dsc != NULL)
+    {
+      LvGlyph glyph{
+        .width_px = font_->glyph_dsc[index].w_px,  // Will be updated if monospace
+        .bitmap_width_px = font_->glyph_dsc[index].w_px,
+        .height_px = height_px_,
+        .width_with_spacing_px = font_->glyph_dsc[index].w_px + font_->spacing_px,
+        .skip_top_px = font_->h_top_skip_px,
+        .raw_bytes = font_->glyph_bitmap + font_->glyph_dsc[index].glyph_index,
+        .box_w =
+          (font_->glyph_dsc[index].w_px % 2 == 0 ? font_->glyph_dsc[index].w_px
+                                                 : font_->glyph_dsc[index].w_px + 1),  // Padding for odd width
+        .box_h = font_->h_px,
+        .ofs_x = 0,
+        .ofs_y = 0};
+      unicode_to_char_.emplace(unicode, glyph);
+    }
+    else if (font_->new_glyph_dsc != NULL)
+    {
+      // +1 is added here, because the first character is a null character
+      const auto& descriptor = font_->new_glyph_dsc[index + 1];
+      const uint32_t width = descriptor.adv_w / 16;
+      LvGlyph glyph{
+        .width_px = width,  // Will be updated if monospace
+        .bitmap_width_px = width,
+        .height_px = height_px_,
+        .width_with_spacing_px = width + font_->spacing_px,
+        .skip_top_px = font_->h_top_skip_px,
+        .raw_bytes = font_->glyph_bitmap + descriptor.bitmap_index,
+        .box_w = descriptor.box_w,
+        .box_h = descriptor.box_h,
+        .ofs_x = (descriptor.ofs_x < 0 ? 0 : descriptor.ofs_x),  // We don't support negative x offset
+        .ofs_y = height_px_ - (descriptor.box_h + descriptor.ofs_y + font_->base_line)};
+      unicode_to_char_.emplace(unicode, glyph);
+    }
   };
 
   // There are two way to encode the unicode, either as a continious array or as the range between unicode_first and
@@ -275,7 +348,8 @@ void draw_image(Display& display, const lv_img_dsc_t& img, const uint32_t center
   draw_image_from_top_left(display, img, start_x, start_y);
 }
 
-void draw_image_from_top_left(Display& display, const lv_img_dsc_t& img, const uint32_t start_x, const uint32_t start_y)
+void draw_image_from_top_left(
+  Display& display, const lv_img_dsc_t& img, const uint32_t start_x, const uint32_t start_y, const bool vertical_mirror)
 {
   uint32_t end_x = start_x + img.w_px;
   const uint32_t end_y = start_y + img.h_px;
@@ -297,7 +371,9 @@ void draw_image_from_top_left(Display& display, const lv_img_dsc_t& img, const u
       uint32_t b = 0;
       if (x < img.w_px && y < img.h_px)
       {
-        const auto offset = y * img.w_px * span + x * span;
+        // If vertically mirror change the x offset
+        const auto x_mirror = vertical_mirror ? img.w_px - x - 1 : x;
+        const auto offset = y * img.w_px * span + x_mirror * span;
         // Due to little endianness it's BGR, not RGB
         b = img.data[offset];
         g = img.data[offset + 1];
