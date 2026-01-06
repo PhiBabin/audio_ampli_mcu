@@ -27,6 +27,26 @@ Menu::Menu(const OptionMenuScreen& _type, std::vector<MenuItem> _items, bool tak
   }
 }
 
+const char* Menu::get_label() const
+{
+  switch (type)
+  {
+    case OptionMenuScreen::main:
+      return "MAIN MENU";
+    case OptionMenuScreen::advance:
+      return "MORE OPTIONS";
+    case OptionMenuScreen::phono:
+      return "PHONO";
+    case OptionMenuScreen::firmware_version:
+      return "FIRMWARE";
+    case OptionMenuScreen::exit:
+    case OptionMenuScreen::enum_length:
+    default:
+      return "";
+  }
+  return "";
+}
+
 OptionsView::OptionsView(
   OptionController* option_ctrl_ptr,
   VolumeController* volume_ctrl_ptr,
@@ -43,34 +63,73 @@ OptionsView::OptionsView(
   , medium_font_(medium_font)
   , large_font_(large_font)
 {
+}
+
+void OptionsView::init()
+{
+  menus_.clear();
   if (use_large_ui_)
   {
+    std::vector<MenuItem> items{
+      MenuItem{Option::balance, "L/R BALANCE", MenuItemType::focus_item},  // real focus
+      MenuItem{Option::subwoofer, "SUBWOOFER", MenuItemType::increment_item},
+      MenuItem{Option::gain, "GAIN", MenuItemType::increment_item},
+      MenuItem{Option::output_mode, "OUTPUT MODE", MenuItemType::increment_item},
+      MenuItem{Option::output_type, "OUTPUT TYPE", MenuItemType::increment_item},
+    };
+
+    std::vector<MenuItem> adv_option_items{
+      MenuItem{Option::bias, "BIAS", MenuItemType::focus_item},
+      MenuItem{Option::mute_channel, "MUTE CHAN", MenuItemType::focus_item},
+      MenuItem{Option::rename_bal, "RENAME BAL", MenuItemType::focus_item},
+      MenuItem{Option::rename_rca1, "RENAME RCA1", MenuItemType::focus_item},
+      MenuItem{Option::rename_rca2, "RENAME RCA2", MenuItemType::focus_item}};
+
+    // Add phono menu if a phono card has been detected
+    if (option_ctrl_ptr_->has_phono_card())
+    {
+      items.emplace_back(MenuItem{Option::back, "PHONO OPTION", MenuItemType::change_menu, OptionMenuScreen::phono});
+
+      menus_.emplace(
+        OptionMenuScreen::phono,
+        Menu(
+          OptionMenuScreen::phono,
+          {
+            MenuItem{Option::phono_mode, "PHONO MODE", MenuItemType::increment_item},
+            MenuItem{Option::phono_gain, "PHONO GAIN", MenuItemType::focus_item},
+            MenuItem{Option::resistance_load, "PHONO RES", MenuItemType::focus_item},
+            MenuItem{Option::capacitance_load, "PHONO CAP", MenuItemType::focus_item},
+            MenuItem{Option::rumble_filter, "RUMBLE", MenuItemType::increment_item},
+            MenuItem{Option::back, "BACK", MenuItemType::change_menu, OptionMenuScreen::main},
+          },
+          /*take_last_item = */ false));
+    }
+    else
+    {
+      adv_option_items.emplace_back(MenuItem{Option::rename_rca3, "RENAME RCA3", MenuItemType::focus_item});
+    }
+
+    // Advance option menu
+    items.emplace_back(
+      MenuItem{Option::more_options, "MORE OPTION", MenuItemType::change_menu, OptionMenuScreen::advance});
+
+    adv_option_items.emplace_back(
+      MenuItem{
+        Option::text,
+        "BAB AUDIO " VERSION_STRING "\n" __DATE__ "\nBY ANDRE &"
+        "\nPHILIPPE BABIN",
+        MenuItemType::text});
+    adv_option_items.emplace_back(MenuItem{Option::back, "BACK", MenuItemType::change_menu, OptionMenuScreen::main});
+    menus_.emplace(
+      OptionMenuScreen::advance, Menu(OptionMenuScreen::advance, adv_option_items, /*take_last_item = */ false));
+
+    items.emplace_back(MenuItem{Option::back, "EXIT MENU", MenuItemType::change_menu, OptionMenuScreen::exit});
+
     menus_.emplace(
       OptionMenuScreen::main,
       Menu(
         OptionMenuScreen::main,
-        {
-          MenuItem{Option::balance, "L/R BALANCE", MenuItemType::focus_item},  // real focus
-          MenuItem{Option::subwoofer, "SUBWOOFER", MenuItemType::increment_item},
-          MenuItem{Option::gain, "GAIN", MenuItemType::increment_item},
-          MenuItem{Option::output_mode, "OUTPUT MODE", MenuItemType::increment_item},
-          MenuItem{Option::output_type, "OUTPUT TYPE", MenuItemType::increment_item},
-          MenuItem{Option::bias, "BIAS", MenuItemType::focus_item},  // real focus
-          MenuItem{Option::rename_bal, "RENAME BAL ", MenuItemType::focus_item},
-          MenuItem{Option::rename_rca1, "RENAME RCA1", MenuItemType::focus_item},
-          MenuItem{Option::rename_rca2, "RENAME RCA2", MenuItemType::focus_item},
-          MenuItem{Option::phono_mode, "PHONO MODE", MenuItemType::increment_item},
-          MenuItem{Option::phono_gain, "PHONO GAIN", MenuItemType::focus_item},
-          MenuItem{Option::resistance_load, "PHONO R LOAD", MenuItemType::focus_item},
-          MenuItem{Option::capacitance_load, "PHONO C LOAD", MenuItemType::focus_item},
-          MenuItem{Option::rumble_filter, "RUMBLE", MenuItemType::increment_item},
-          MenuItem{
-            Option::text,
-            "BAB AUDIO " VERSION_STRING "\n" __DATE__ "\nBY ANDRE &"
-            "\nPHILIPPE BABIN",
-            MenuItemType::text},
-          MenuItem{Option::back, "BACK", MenuItemType::change_menu, OptionMenuScreen::exit},
-        },
+        std::move(items),
         /*take_last_item = */ false));
   }
   else
@@ -98,6 +157,7 @@ OptionsView::OptionsView(
           MenuItem{Option::rename_bal, "RENAME BAL ", MenuItemType::increment_item},
           MenuItem{Option::rename_rca1, "RENAME RCA1", MenuItemType::increment_item},
           MenuItem{Option::rename_rca2, "RENAME RCA2", MenuItemType::increment_item},
+          MenuItem{Option::mute_channel, "MUTE CHANNEL", MenuItemType::increment_item},
           // MenuItem{Option::rename_rca3, "RENAME RCA3", MenuItemType::increment_item},
           MenuItem{Option::more_options, "PHONO OPTION", MenuItemType::change_menu, OptionMenuScreen::phono},
           MenuItem{
@@ -331,23 +391,68 @@ void OptionsView::draw_menu(Display& display, const bool has_state_changed)
     {
       return;
     }
+    const auto& menu_item = maybe_menu_item.value().get();
+
     display.clear_screen(BLACK_COLOR);
 
-    constexpr uint16_t height_top_bar_px = 56;
-    display.draw_rectangle(0, 0, LCD_WIDTH, height_top_bar_px, WHITE_COLOR);
+    constexpr uint16_t top_bar_width_px = 5;
+    constexpr uint16_t bar_height_px = 56;
+    uint16_t height_option_top_px = 0;
+    uint16_t height_top_bar_px = bar_height_px;
 
-    const auto& menu_item = maybe_menu_item.value().get();
-    const uint32_t ver_spacing = (height_top_bar_px - medium_font_.get_height_px()) / 2;
-    if (menu_item.type != MenuItemType::text)
+    // If this is not the main menu, draw the current menu name at the top and lower the option name
+    if (selected_menu_ != OptionMenuScreen::main)
     {
-      draw_string_fast(display, menu_item.label, 0, ver_spacing, LCD_WIDTH, medium_font_, false, false);
+      // Increase top bar height
+      height_top_bar_px += bar_height_px;
+      height_option_top_px = bar_height_px;
+
+      // Draw menu name
+      display.draw_rectangle(0, 0, LCD_WIDTH, height_option_top_px, WHITE_COLOR);
+      const uint32_t ver_spacing = (height_option_top_px - medium_font_.get_height_px()) / 2;
+
+      draw_string_fast(display, menu.get_label(), 0, ver_spacing, LCD_WIDTH, medium_font_, false, false);
     }
+
+    // Show arrow if there is not an item in focus
+    if (menu_item.type != MenuItemType::focus_item || !is_focus_)
+    {
+      const uint32_t vertical_padding = 1;
+      const uint32_t top_y_arrow = (bar_height_px - left_arrow_image.h_px) / 2 + height_option_top_px;
+      if (menu.maybe_selected_index.value_or(0) != 0)
+      {
+        draw_image_from_top_left(display, left_arrow_image, vertical_padding, top_y_arrow);
+      }
+      if (menu.maybe_selected_index.value_or(0) + 1 < menu.items.size())
+      {
+        draw_image_from_top_left(
+          display,
+          left_arrow_image,
+          LCD_WIDTH - vertical_padding - left_arrow_image.w_px,
+          top_y_arrow,
+          /*vertical_mirror=*/true);
+      }
+    }
+
+    const uint32_t ver_spacing = (bar_height_px - medium_font_.get_height_px()) / 2 + height_option_top_px;
+
+    draw_string_fast(
+      display,
+      menu_item.type == MenuItemType::text ? "ABOUT" : menu_item.label,
+      0,
+      ver_spacing,
+      LCD_WIDTH,
+      medium_font_,
+      true,
+      false);
+
+    display.draw_rectangle(0, height_top_bar_px - top_bar_width_px, LCD_WIDTH, height_top_bar_px, WHITE_COLOR);
 
     const uint32_t y_center_black_zone = (LCD_HEIGHT - height_top_bar_px) / 2 + height_top_bar_px;
     switch (menu_item.type)
     {
       case MenuItemType::text:
-        draw_multilines_string(display, menu_item.label, 0, height_top_bar_px + 20, LCD_WIDTH, font_, true, false);
+        draw_multilines_string(display, menu_item.label, 0, height_top_bar_px + 5, LCD_WIDTH, font_, true, false);
         break;
       case MenuItemType::change_menu:
         break;
@@ -355,7 +460,7 @@ void OptionsView::draw_menu(Display& display, const bool has_state_changed)
         // Draw a left and right arrow if item is in focus
         if (is_focus_)
         {
-          const uint32_t vertical_padding = 10;
+          const uint32_t vertical_padding = 1;
           const uint32_t top_y_arrow = y_center_black_zone - left_arrow_image.h_px / 2;
           draw_image_from_top_left(display, left_arrow_image, vertical_padding, top_y_arrow);
           draw_image_from_top_left(
@@ -368,10 +473,10 @@ void OptionsView::draw_menu(Display& display, const bool has_state_changed)
         // Intentional fallthrought
       case MenuItemType::increment_item:
       {
-        const uint32_t top_y_text = y_center_black_zone - medium_font_.get_height_px() / 2;
+        const uint32_t top_y_text = y_center_black_zone - large_font_.get_height_px() / 2;
         // Draw a field label and values
         const char* value_str = string_format_option(menu_item.option, /*is_focus =*/false).value_or("ERR");
-        draw_string_fast(display, value_str, 0, top_y_text, LCD_WIDTH, medium_font_, true, false);
+        draw_string_fast(display, value_str, 0, top_y_text, LCD_WIDTH, large_font_, true, false);
         break;
       }
       case MenuItemType::enum_length:
@@ -512,6 +617,19 @@ std::optional<const char*> OptionsView::string_format_option(const Option& optio
           return "MC";
         default:
           return "ERR6";
+      }
+      break;
+    case Option::mute_channel:
+      switch (persistent_data_ptr_->mute_channel)
+      {
+        case MuteChannel::mute_left:
+          return "MUTE L";
+        case MuteChannel::both_channel_enabled:
+          return "NO MUTE";
+        case MuteChannel::mute_right:
+          return "MUTE R";
+        default:
+          return "ERR8";
       }
       break;
     case Option::phono_gain:

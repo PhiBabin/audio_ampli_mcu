@@ -73,7 +73,9 @@ public:
 
   void increment_option(const Option& option, const IncrementDir& increment_dir);
 
-  std::optional<const char*> get_input_rename_value(const AudioInput& audio_input) const;
+  std::optional<const char*> get_input_rename_value(const AudioInput& audio_input);
+
+  bool has_phono_card();
 
   void update_gpio();
 
@@ -115,7 +117,6 @@ private:
 
   /// Previous bias set
   uint8_t prev_bias_;
-
 };
 
 #endif  // OPTIONS_CTRL_GUARD_H_

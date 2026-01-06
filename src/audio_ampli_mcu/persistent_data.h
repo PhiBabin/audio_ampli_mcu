@@ -38,6 +38,7 @@ public:
   uint8_t bias{50};  // Bias in percentage, 50 == 50%
   // Offset in dB of the left stereo output compared to the right output
   int8_t left_right_balance_db{0};
+  MuteChannel mute_channel{MuteChannel::both_channel_enabled};
 
   // Phono options
   PhonoMode phono_mode_option{PhonoMode::mm};

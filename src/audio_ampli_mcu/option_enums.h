@@ -30,6 +30,7 @@ enum class Option : uint8_t
   rename_rca2,
   rename_rca3,
   more_options,
+  mute_channel,
   phono_mode,
   phono_gain,
   resistance_load,
@@ -67,6 +68,14 @@ enum class MMPhonoGain : uint8_t
   gain_40dB = 0,
   gain_45dB,
   gain_50dB,
+  enum_length
+};
+
+enum class MuteChannel : uint8_t
+{
+  mute_left = 0,
+  both_channel_enabled,
+  mute_right,
   enum_length
 };
 

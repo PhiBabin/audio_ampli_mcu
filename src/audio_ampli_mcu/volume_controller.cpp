@@ -110,10 +110,15 @@ std::tuple<int16_t, int16_t> VolumeController::get_left_right_bias_compensation(
   const int16_t sign = persistent_data_ptr_->left_right_balance_db < 0 ? -1 : 1;
   const int16_t change = sign * abs(persistent_data_ptr_->left_right_balance_db) / 2;
 
-  // If there is an odd offset (e.g. +3dB), the distribution is not symmetric, so we increase the right side.
+  // If there is an odd offset (e.g. +3dB), the distribution is not symmetric, so we increase the right side if the bias
+  // is positive and the left side if negative.
   if (abs(persistent_data_ptr_->left_right_balance_db) % 2 == 1)
   {
-    return std::make_tuple(-change, change + sign);
+    if (persistent_data_ptr_->left_right_balance_db > 0)
+    {
+      return std::make_tuple(-change, change + sign);
+    }
+    return std::make_tuple(-change - sign, change);
   }
   return std::make_tuple(-change, change);
 }
@@ -130,6 +135,18 @@ void VolumeController::set_gpio_based_on_volume()
     const auto [left_bias, right_bias] = get_left_right_bias_compensation();
     left_vol_6bit = constrain(positive_volume + left_bias, 0, 63);
     right_vol_6bit = constrain(positive_volume + right_bias, 0, 63);
+    switch (persistent_data_ptr_->mute_channel)
+    {
+      case MuteChannel::mute_left:
+        left_vol_6bit = 0;
+        break;
+      case MuteChannel::mute_right:
+        right_vol_6bit = 0;
+        break;
+      case MuteChannel::both_channel_enabled:
+      default:
+        break;
+    }
   }
 
 #ifdef USE_V2_PCB

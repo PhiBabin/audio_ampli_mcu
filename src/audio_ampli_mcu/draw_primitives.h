@@ -16,20 +16,22 @@ const uint32_t WHITE_COLOR = 0xfff;
 const uint32_t BLACK_COLOR = 0x0;
 
 // New format for glyph descriptor, it includes a bounding box offset, so the bitmap doesn't have to include
-// transparent pixels
+// transparent pixels.
 struct lv_font_fmt_txt_glyph_dsc_t
 {
   // Start index of the bitmap. A font can be max 4 GB.
   uint32_t bitmap_index;
   // Draw the next glyph after this width. 28.4 format (real_value * 16 is stored)
   uint32_t adv_w;
-  //  Width of the glyph's bounding box
+  // Width of the glyph's bounding box
   uint16_t box_w;
   // Height of the glyph's bounding box
   uint16_t box_h;
-  // x offset of the bounding box
+  // x offset of the bounding box. Measured from the left of the character.
   int16_t ofs_x;
-  // y offset of the bounding box. Measured from the top of the line
+  // y offset of the bounding box. Measured from the top of the typographic "base line", NOT from the top of the
+  // character. Also, the sign of the offset is positive towards the top, which is the opposite from the screen's
+  // coordinate system where positive y is towards the bottom.
   int16_t ofs_y;
 };
 
@@ -80,13 +82,13 @@ public:
     uint32_t width_with_spacing_px;
     uint32_t skip_top_px;
     const uint8_t* raw_bytes;
-    //  Width of the glyph's bounding box
+    // Width of the glyph's bitmap bounding box
     uint32_t box_w;
-    // Height of the glyph's bounding box
+    // Height of the glyph's bitmap bounding box
     uint32_t box_h;
-    // x offset of the bounding box
+    // x offset of the bounding box. Measured from the left of the character.
     uint32_t ofs_x;
-    // y offset of the bounding box. Measured from the top of the line
+    // y offset of the bounding box. Measured from the top of the character.
     uint32_t ofs_y;
   };
 

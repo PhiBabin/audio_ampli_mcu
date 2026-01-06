@@ -14,10 +14,10 @@ RemoteController::RemoteController(
 {
   // Apple Remote 1294
   RemoteCallbacks apple;
-  apple[0xA] = std::bind(&RemoteController::handle_up, this);
-  apple[0xC] = std::bind(&RemoteController::handle_down, this);
-  apple[0x9] = std::bind(&RemoteController::handle_vol_down, this);
-  apple[0x6] = std::bind(&RemoteController::handle_vol_up, this);
+  apple[0xA] = std::bind(&RemoteController::handle_up, this);    // up
+  apple[0xC] = std::bind(&RemoteController::handle_down, this);  // down
+  apple[0x9] = std::bind(&RemoteController::handle_up, this);    // right?
+  apple[0x6] = std::bind(&RemoteController::handle_down, this);  // left?
   apple[0x5] = std::bind(&RemoteController::handle_select, this);
   apple[0x3] = std::bind(&RemoteController::handle_menu, this);
   remotes_mapping_.emplace(0x87EE, std::move(apple));

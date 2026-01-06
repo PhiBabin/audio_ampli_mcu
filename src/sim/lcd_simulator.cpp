@@ -52,10 +52,16 @@ void write_2pixel_color_to_sdl_surface(const uint32_t color_2pixels)
   }
   const uint32_t left_pixel_color = (color_2pixels >> 12) & 0xFFF;
   const uint32_t right_pixel_color = (color_2pixels >> 0) & 0xFFF;
+  const uint32_t max_offset =
+    global_surface->pitch * (LCD_HEIGHT - 1) + (LCD_WIDTH - 1) * global_surface->format->BytesPerPixel;
 
-  auto sdl_draw_pixel = [](const auto x, const auto y, const uint32_t color12bit) {
-    uint8_t* const target_pixel =
-      ((uint8_t*)global_surface->pixels + y * global_surface->pitch + x * global_surface->format->BytesPerPixel);
+  auto sdl_draw_pixel = [&max_offset](const uint32_t x, const uint32_t y, const uint32_t color12bit) {
+    const uint32_t offset = y * global_surface->pitch + x * global_surface->format->BytesPerPixel;
+    if (offset >= max_offset)
+    {
+      return;
+    }
+    uint8_t* const target_pixel = ((uint8_t*)global_surface->pixels + offset);
 
     const auto [r, g, b] = rgb444_to_rgb888(color12bit);
     // Due to little endianness it's BGR, not RGB

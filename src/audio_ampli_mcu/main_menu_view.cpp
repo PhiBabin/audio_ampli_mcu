@@ -44,6 +44,10 @@ void MainMenuView::draw(Display& display, const bool has_state_changed)
   draw_left_right_bal_indicator(display, has_state_changed);
 }
 
+void MainMenuView::init()
+{
+}
+
 void MainMenuView::draw_left_right_bal_indicator(Display& display, const bool has_state_changed)
 {
   if (!has_state_changed)

@@ -37,6 +37,8 @@ struct Menu
   void change_selected_item(const IncrementDir& dir);
   std::optional<std::reference_wrapper<const MenuItem>> try_get_selected_item() const;
 
+  const char* get_label() const;
+
   OptionMenuScreen type;
   std::vector<MenuItem> items;
   std::optional<size_t> maybe_selected_index;
@@ -53,6 +55,8 @@ public:
     const LvFontWrapper& font,
     const LvFontWrapper& medium_font,
     const LvFontWrapper& large_font);
+
+  void init();
   void on_menu_press();
   void menu_up();
   void menu_down();

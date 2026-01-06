@@ -20,7 +20,11 @@ void draw_character_fast(
   bool draw_spacing)
 {
   uint32_t end_x = start_x + (draw_spacing ? glyph->width_with_spacing_px : glyph->width_px);
-  const uint32_t end_y = start_y + glyph->height_px;
+  uint32_t end_y = start_y + glyph->height_px;
+  if (end_y > LCD_HEIGHT)
+  {
+    end_y = LCD_HEIGHT;
+  }
 
   // Make sure that we have an even number of columns, that way we don't have to worry about write call with only one
   // column
@@ -145,7 +149,11 @@ void draw_string_fast(
   }
   text_width_px +=
     (strlen(str) - 1) * font.get_spacing_px();  // This kind of assumes that every character in string has a glyph
-  const auto end_y = start_y + font.get_height_px();
+  uint32_t end_y = start_y + font.get_height_px();
+  if (end_y > LCD_HEIGHT)
+  {
+    end_y = LCD_HEIGHT;
+  }
 
   uint32_t start_text_x = 0;
   uint32_t end_text_x = 0;
@@ -268,6 +276,11 @@ LvFontWrapper::LvFontWrapper(const lv_font_t* font, const bool is_monospace)
       // +1 is added here, because the first character is a null character
       const auto& descriptor = font_->new_glyph_dsc[index + 1];
       const uint32_t width = descriptor.adv_w / 16;
+      // We don't support negative x offset, so we set negative value to zero
+      const auto ofs_x = static_cast<uint32_t>(descriptor.ofs_x < 0 ? 0 : descriptor.ofs_x);
+      // For some reason the y offset is convoluted and it's an offset relative to the "base line" of the character.
+      // The offset is converted to an offset relative to the top left corner of the character.
+      const auto ofs_y = height_px_ - (descriptor.box_h + descriptor.ofs_y + font_->base_line);
       LvGlyph glyph{
         .width_px = width,  // Will be updated if monospace
         .bitmap_width_px = width,
@@ -277,8 +290,8 @@ LvFontWrapper::LvFontWrapper(const lv_font_t* font, const bool is_monospace)
         .raw_bytes = font_->glyph_bitmap + descriptor.bitmap_index,
         .box_w = descriptor.box_w,
         .box_h = descriptor.box_h,
-        .ofs_x = (descriptor.ofs_x < 0 ? 0 : descriptor.ofs_x),  // We don't support negative x offset
-        .ofs_y = height_px_ - (descriptor.box_h + descriptor.ofs_y + font_->base_line)};
+        .ofs_x = ofs_x,
+        .ofs_y = ofs_y};
       unicode_to_char_.emplace(unicode, glyph);
     }
   };

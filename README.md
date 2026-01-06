@@ -18,7 +18,7 @@ arduino-cli core install rp2040:rp2040
 ```
  5. Install libraries
 ```bash
-arduino-cli lib install rp2040-encoder-library@0.1.2 InputDebounce@1.6.0 MCP23S17@0.5.1 RP2040_PWM@1.7.0 IRremote@4.4.1
+arduino-cli lib install rp2040-encoder-library@0.1.2 InputDebounce@1.6.0 MCP23S17@0.8.0 RP2040_PWM@1.7.0 IRremote@4.4.1
 ```
  6. Compile the project, this will generate a `audio_ampli_mcu.ino.uf2` that can be drag and drop on the Usb storage of the Pi Pico
 ```bash

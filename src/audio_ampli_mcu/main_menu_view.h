@@ -15,6 +15,8 @@ public:
     StateMachine* state_machine_ptr,
     const LvFontWrapper& small_font,
     const LvFontWrapper& digit_font);
+
+  void init();
   void menu_up();
   void menu_down();
   void menu_change(const IncrementDir& dir);

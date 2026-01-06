@@ -1,6 +1,7 @@
 #include "sim/MCP23S17.h"
 
 #include "sim/arduino.h"
+#include "sim/sim_config.h"
 
 #include <cassert>
 #include <tuple>
@@ -26,6 +27,24 @@ bool MCP23S17::write8(uint8_t port, uint8_t value)
     print_status();
   }
   return true;
+}
+
+bool MCP23S17::setInterruptPolarity(uint8_t polarity)
+{
+#ifdef HAS_PHONO_CARD
+  polarity_ = polarity;
+#else
+  if (chip_select_ != 26)
+  {
+    polarity_ = polarity;
+  }
+#endif
+  return true;
+}
+
+uint8_t MCP23S17::getInterruptPolarity()
+{
+  return polarity_;
 }
 
 bool MCP23S17::pinMode8(uint8_t port, uint8_t value)

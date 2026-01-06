@@ -4,6 +4,23 @@ IoExpander::IoExpander(const int iox_chip_select_pin) : io_expander_(iox_chip_se
 {
 }
 
+bool IoExpander::is_connected()
+{
+  if (maybe_is_connected_.has_value())
+  {
+    return maybe_is_connected_.value();
+  }
+  // To check if there is an IO expander, we write the interrupt polarity config, we then read the value back
+  const uint8_t old_value = io_expander_.getInterruptPolarity();
+  const uint8_t different_value = old_value == 1 ? 2 : 1;
+  io_expander_.setInterruptPolarity(different_value);
+  const bool was_register_changed = io_expander_.getInterruptPolarity() == different_value;
+  io_expander_.setInterruptPolarity(old_value);
+
+  maybe_is_connected_ = was_register_changed;
+  return was_register_changed;
+}
+
 void IoExpander::begin()
 {
   const auto result = io_expander_.begin(false);

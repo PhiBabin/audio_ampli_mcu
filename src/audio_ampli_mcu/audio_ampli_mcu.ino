@@ -2,7 +2,7 @@
 /// - Raspberry Pi Pico/RP2040: 3.7.2
 /// - rp2040-encoder-library: 0.1.2
 /// - InputDebounce: 1.6.0
-/// - MCP23S17: 0.5.1
+/// - MCP23S17: 0.8.0
 /// - RP2040_PWM: 1.7.0
 /// - IRemote: 4.4.1
 
@@ -10,9 +10,9 @@
 #include "cat_sleep_img.h"
 #include "digit_font.h"
 #include "digit_font_droid_sans_mono.h"
+#include "dm_sans_bold_62.h"
 #include "dm_sans_extrabold.h"
 #include "dm_sans_regular_40.h"
-#include "dm_sans_regular_64.h"
 #include "interaction_handler.h"
 #include "io_expander.h"
 #include "main_menu_view.h"
@@ -49,7 +49,7 @@ const pin_size_t power_enable_pin = 14;   // Output pin that power on / off the 
 const pin_size_t latch_left_vol = 28;     // Apply volume to the left side
 const pin_size_t latch_right_vol = 15;    // Apply volume to the right side
 
-// 6bit output to control the volume
+// 6bit output to control the volume in least signifiant bit order
 const std::array<pin_size_t, 6> volume_gpio_pins = {22, 4, 5, 9, 10, 11};
 // IO expander pins for the audio input selection. BAL, RCA 1, RCA 2 and RCA 3   respectively
 OptionContollerPins option_ctrl_pins{
@@ -104,7 +104,7 @@ LvFontWrapper digit_droid_sans_font(&droid_sans_mono, true);
 LvFontWrapper digit_light_font(&dmsans_36pt_light, true);
 LvFontWrapper regular_bold_font(&dmsans_36pt_extrabold);
 LvFontWrapper regular_medium_font(&dmsans_36pt_regular_40);
-LvFontWrapper regular_large_font(&dmsans_36pt_regular_64);
+LvFontWrapper regular_large_font(&dm_sans_bold_62);
 
 MainMenuView main_menu_view(
   &option_ctrl, &volume_ctrl, &persistent_data, &state_machine, regular_bold_font, digit_droid_sans_font);
@@ -160,11 +160,16 @@ void draw_standby(const bool has_state_changed = true)
     {
       zzz_count = 1;
       display.draw_rectangle(
-        start_x, top_y, start_x + number_of_ZZZ * spacing_x, top_y + font.get_height_px(), BLACK_COLOR);
+        start_x,
+        top_y - 3 * number_of_ZZZ,
+        start_x + number_of_ZZZ * spacing_x,
+        top_y + font.get_height_px(),
+        BLACK_COLOR);
     }
     for (int i = 0; i < zzz_count; ++i)
     {
-      draw_string_fast(display, "Z", start_x + i * spacing_x, top_y, start_x + (i + 1) * spacing_x, font);
+      const auto height = top_y - 2 * i;
+      draw_string_fast(display, "Z", start_x + i * spacing_x, height, start_x + (i + 1) * spacing_x, font);
     }
     ++zzz_count;
   }
@@ -252,6 +257,9 @@ void setup()
   display.init();
   display.clear_screen(BLACK_COLOR);
   display.blip_framebuffer();
+
+  main_menu_view.init();
+  option_view.init();
 
   option_ctrl.power_on();
 }

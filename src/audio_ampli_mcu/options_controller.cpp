@@ -116,8 +116,10 @@ void OptionController::update_gpio()
   // Basically all non-phono GPIOs
   update_io_expander_gpio();
 
-  update_phono_gpio();
-
+  if (has_phono_card())
+  {
+    update_phono_gpio();
+  }
   // Set PWM for bias
   if (prev_bias_ != persistent_data_ptr_->bias)
   {
@@ -202,6 +204,8 @@ void OptionController::update_phono_gpio()
         out_gain_1 = LOW;
         out_gain_2 = LOW;
         break;
+      case MMPhonoGain::enum_length:
+        break;
     }
   }
   else
@@ -222,6 +226,8 @@ void OptionController::update_phono_gpio()
         out_gain_0 = HIGH;
         out_gain_1 = LOW;
         out_gain_2 = LOW;
+        break;
+      case MCPhonoGain::enum_length:
         break;
     }
   }
@@ -277,9 +283,9 @@ AudioInput get_audio_input_from_rename_option(const Option option)
   }
 }
 
-std::optional<const char*> OptionController::get_input_rename_value(const AudioInput& audio_input) const
+std::optional<const char*> OptionController::get_input_rename_value(const AudioInput& audio_input)
 {
-  if (audio_input == AudioInput::rca_3)
+  if (has_phono_card() && audio_input == AudioInput::rca_3)
   {
     return "PHONO";
   }
@@ -417,6 +423,9 @@ void OptionController::increment_option(const Option& option, const IncrementDir
     case Option::phono_mode:
       change_enum(PhonoMode::enum_length, persistent_data_ptr_->phono_mode_option, increment_dir);
       break;
+    case Option::mute_channel:
+      change_enum(MuteChannel::enum_length, persistent_data_ptr_->mute_channel, increment_dir);
+      break;
     case Option::phono_gain:
       if (persistent_data_ptr_->phono_mode_option == PhonoMode::mm)
       {
@@ -451,4 +460,9 @@ void OptionController::increment_option(const Option& option, const IncrementDir
   };
   update_gpio();
   volume_ctrl_ptr_->on_option_change();
+}
+
+bool OptionController::has_phono_card()
+{
+  return phono_io_expander_ptr_->is_connected();
 }
