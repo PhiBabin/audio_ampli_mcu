@@ -39,22 +39,22 @@ RP2040_PWM* PWM_Instance;
 void LCD_GPIO_Init(void)
 {
 
-  pinMode(DEV_CS_PIN, OUTPUT);
-  pinMode(DEV_RST_PIN, OUTPUT);
-  pinMode(DEV_DC_PIN, OUTPUT);
-  pinMode(DEV_BL_PIN, OUTPUT);
-  pinMode(DEV_DIN_PIN, OUTPUT);
-  pinMode(DEV_DOUT_PIN, INPUT);
+  pinMode(pin_out::lcd_chip_select.pin, OUTPUT);
+  pinMode(pin_out::lcd_reset.pin, OUTPUT);
+  pinMode(pin_out::lcd_dc.pin, OUTPUT);
+  pinMode(pin_out::lcd_backlight.pin, OUTPUT);
+  pinMode(pin_out::spi_mosi.pin, OUTPUT);
+  pinMode(pin_out::spi_miso.pin, INPUT);
 
   // Frequency high enough to be filter out by the ampli
   constexpr uint32_t pwm_frequency = 100000;
-  PWM_Instance = new RP2040_PWM(DEV_BL_PIN, pwm_frequency, LCD_BACKLIGHT);
-  PWM_Instance->setPWM(DEV_BL_PIN, pwm_frequency, LCD_BACKLIGHT);
+  PWM_Instance = new RP2040_PWM(pin_out::lcd_backlight.pin, pwm_frequency, LCD_BACKLIGHT);
+  PWM_Instance->setPWM(pin_out::lcd_backlight.pin, pwm_frequency, LCD_BACKLIGHT);
 
-  SPI.setSCK(DEV_CLK_PIN);
-  SPI.setCS(DEV_CS_PIN);
-  SPI.setRX(DEV_DOUT_PIN);
-  SPI.setTX(DEV_DIN_PIN);
+  SPI.setSCK(pin_out::spi_clk.pin);
+  SPI.setCS(pin_out::lcd_chip_select.pin);
+  SPI.setRX(pin_out::spi_miso.pin);
+  SPI.setTX(pin_out::spi_mosi.pin);
   SPI.begin(/*hwCS = */ false);
 }
 
@@ -64,9 +64,9 @@ function:
 *******************************************************************************/
 void LCD_Reset(void)
 {
-  DEV_Digital_Write(DEV_RST_PIN, 0);
+  DEV_Digital_Write(pin_out::lcd_reset.pin, 0);
   delay(200);
-  DEV_Digital_Write(DEV_RST_PIN, 1);
+  DEV_Digital_Write(pin_out::lcd_reset.pin, 1);
   delay(200);
 }
 
@@ -76,26 +76,26 @@ function:
 *******************************************************************************/
 inline void LCD_Write_Command(uint8_t data)
 {
-  DEV_Digital_Write(DEV_CS_PIN, 0);
-  DEV_Digital_Write(DEV_DC_PIN, 0);
+  DEV_Digital_Write(pin_out::lcd_chip_select.pin, 0);
+  DEV_Digital_Write(pin_out::lcd_dc.pin, 0);
   DEV_SPI_WRITE(data);
 }
 
 inline void LCD_WriteData_Byte(uint8_t data)
 {
-  DEV_Digital_Write(DEV_CS_PIN, 0);
-  DEV_Digital_Write(DEV_DC_PIN, 1);
+  DEV_Digital_Write(pin_out::lcd_chip_select.pin, 0);
+  DEV_Digital_Write(pin_out::lcd_dc.pin, 1);
   DEV_SPI_WRITE(data);
-  DEV_Digital_Write(DEV_CS_PIN, 1);
+  DEV_Digital_Write(pin_out::lcd_chip_select.pin, 1);
 }
 
 inline void LCD_WriteData_Word(uint16_t data)
 {
-  DEV_Digital_Write(DEV_CS_PIN, 0);
-  DEV_Digital_Write(DEV_DC_PIN, 1);
+  DEV_Digital_Write(pin_out::lcd_chip_select.pin, 0);
+  DEV_Digital_Write(pin_out::lcd_dc.pin, 1);
   DEV_SPI_WRITE((data >> 8) & 0xff);
   DEV_SPI_WRITE(data);
-  DEV_Digital_Write(DEV_CS_PIN, 1);
+  DEV_Digital_Write(pin_out::lcd_chip_select.pin, 1);
 }
 
 /******************************************************************************
@@ -242,10 +242,10 @@ void Display::blip_framebuffer()
 
   DEV_SPI_BEGIN_TRANS;
   set_window(0, 0, LCD_WIDTH, LCD_HEIGHT);
-  DEV_Digital_Write(DEV_CS_PIN, 0);
-  DEV_Digital_Write(DEV_DC_PIN, 1);
+  DEV_Digital_Write(pin_out::lcd_chip_select.pin, 0);
+  DEV_Digital_Write(pin_out::lcd_dc.pin, 1);
   SPI.transfer(frame_buffer_, nullptr, FRAME_BUFFER_LEN);
-  DEV_Digital_Write(DEV_CS_PIN, 1);
+  DEV_Digital_Write(pin_out::lcd_chip_select.pin, 1);
   DEV_SPI_END_TRANS;
 }
 

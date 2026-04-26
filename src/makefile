@@ -32,10 +32,10 @@ COMMON_SRC = sim/lcd_simulator.cpp \
 	  audio_ampli_mcu/io_expander.cpp \
 	  audio_ampli_mcu/volume_controller.cpp \
 	  audio_ampli_mcu/remote_controller.cpp \
-	  audio_ampli_mcu/audio_input_controller.cpp\
 	  audio_ampli_mcu/options_view.cpp \
 	  audio_ampli_mcu/interaction_handler.cpp \
 	  audio_ampli_mcu/main_menu_view.cpp \
+	  audio_ampli_mcu/gpio_handler.cpp \
 	  audio_ampli_mcu/state_machine.cpp
 COMMON_OBJ = $(patsubst %.cpp,$(OBJ_DIR)/%.o,$(COMMON_SRC))
 # Targets

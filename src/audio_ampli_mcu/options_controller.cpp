@@ -82,30 +82,22 @@ void change_integer_within_range(
 OptionController::OptionController(
   StateMachine* state_machine_ptr,
   PersistentData* persistent_data_ptr,
-  IoExpander* io_expander_ptr,
-  IoExpander* phono_io_expander_ptr,
   VolumeController* volume_ctrl_ptr,
-  const pin_size_t bias_out_pin,
-  const int power_enable_pin,
-  OptionContollerPins pins)
+  GpioHandler* gpio_handler_ptr)
   : state_machine_ptr_(state_machine_ptr)
   , persistent_data_ptr_(persistent_data_ptr)
-  , bias_out_pin_(bias_out_pin)
-  , power_enable_pin_(power_enable_pin)
-  , pins_(pins)
-  , io_expander_ptr_(io_expander_ptr)
-  , phono_io_expander_ptr_(phono_io_expander_ptr)
+  , gpio_handler_ptr_(gpio_handler_ptr)
   , volume_ctrl_ptr_(volume_ctrl_ptr)
 {
-  PWM_Instance_ = new RP2040_PWM(bias_out_pin_, pwm_frequency, persistent_data_ptr_->bias);
-  PWM_Instance_->setPWM(bias_out_pin_, pwm_frequency, persistent_data_ptr_->bias);
+  PWM_Instance_ = new RP2040_PWM(pin_out::bias_pwm.pin, pwm_frequency, persistent_data_ptr_->bias);
+  PWM_Instance_->setPWM(pin_out::bias_pwm.pin, pwm_frequency, persistent_data_ptr_->bias);
   prev_bias_ = persistent_data_ptr_->bias;
 }
 
 void OptionController::init()
 {
-  pinMode(power_enable_pin_, OUTPUT);
-  digitalWrite(power_enable_pin_, LOW);
+  gpio_handler_ptr_->cache_init_output(pin_out::power_enable, LOW);
+  gpio_handler_ptr_->apply();
   // select_button_.setup(select_button_pin_, BUTTON_DEBOUNCE_DELAY, InputDebounce::PIM_INT_PULL_UP_RES);
   // Initialize GPIOs
   update_gpio();
@@ -123,7 +115,7 @@ void OptionController::update_gpio()
   // Set PWM for bias
   if (prev_bias_ != persistent_data_ptr_->bias)
   {
-    PWM_Instance_->setPWM(bias_out_pin_, pwm_frequency, persistent_data_ptr_->bias);
+    PWM_Instance_->setPWM(pin_out::bias_pwm.pin, pwm_frequency, persistent_data_ptr_->bias);
     prev_bias_ = persistent_data_ptr_->bias;
   }
 }
@@ -132,24 +124,24 @@ void OptionController::update_io_expander_gpio()
 {
   // Set audio input
   const auto& audio_input = persistent_data_ptr_->selected_audio_input;
-  for (uint8_t i = 0; i < pins_.iox_gpio_pin_audio_in_select.size(); ++i)
+  for (uint8_t i = 0; i < pin_out::audio_input_pins.size(); ++i)
   {
-    const auto& pin = pins_.iox_gpio_pin_audio_in_select[i];
+    const auto& pin = pin_out::audio_input_pins[i];
     const bool is_selected = i == static_cast<uint8_t>(audio_input);
-    io_expander_ptr_->cache_write_pin(pin, is_selected ? HIGH : LOW);
+    gpio_handler_ptr_->cache_write_pin(pin, is_selected ? HIGH : LOW);
   }
 
   // Enable phono in if the RCA3 input is selected
   const int in_phono_pin = persistent_data_ptr_->selected_audio_input == AudioInput::rca_3 ? HIGH : LOW;
-  io_expander_ptr_->cache_write_pin(pins_.in_phono_pin, in_phono_pin);
+  gpio_handler_ptr_->cache_write_pin(pin_out::in_phono, in_phono_pin);
 
   // Set Low gain GPIO
-  io_expander_ptr_->cache_write_pin(
-    pins_.set_low_gain_pin, persistent_data_ptr_->get_gain() == GainOption::low ? HIGH : LOW);
+  gpio_handler_ptr_->cache_write_pin(
+    pin_out::set_low_gain, persistent_data_ptr_->get_gain() == GainOption::low ? HIGH : LOW);
 
   // Set line out / preamp output GPIO
-  io_expander_ptr_->cache_write_pin(
-    pins_.preamp_out_pin, persistent_data_ptr_->output_mode_value == OutputModeOption::line_out ? HIGH : LOW);
+  gpio_handler_ptr_->cache_write_pin(
+    pin_out::preamp_out, persistent_data_ptr_->output_mode_value == OutputModeOption::line_out ? HIGH : LOW);
 
   const bool is_bal_input = persistent_data_ptr_->selected_audio_input == AudioInput::bal;
   const bool is_bal_output = persistent_data_ptr_->output_type_value == OutputTypeOption::bal;
@@ -168,15 +160,15 @@ void OptionController::update_io_expander_gpio()
   const int out_lfe_se = is_lfe_enable && is_bal_output && !is_mute ? HIGH : LOW;
 
   // Update GPIO accordingly
-  io_expander_ptr_->cache_write_pin(pins_.out_bal_pin, output_bal_value);
-  io_expander_ptr_->cache_write_pin(pins_.out_se_pin, output_se_value);
-  io_expander_ptr_->cache_write_pin(pins_.in_out_unipolar_pin, in_out_unipolar_value);
-  io_expander_ptr_->cache_write_pin(pins_.in_out_bal_unipolar_pin, in_out_bal_unipolar_value);
-  io_expander_ptr_->cache_write_pin(pins_.out_lfe_bal_pin, out_lfe_bal);
-  io_expander_ptr_->cache_write_pin(pins_.out_lfe_se_pin, out_lfe_se);
+  gpio_handler_ptr_->cache_write_pin(pin_out::out_bal, output_bal_value);
+  gpio_handler_ptr_->cache_write_pin(pin_out::out_se, output_se_value);
+  gpio_handler_ptr_->cache_write_pin(pin_out::in_out_unipolar, in_out_unipolar_value);
+  gpio_handler_ptr_->cache_write_pin(pin_out::in_out_bal_unipolar, in_out_bal_unipolar_value);
+  gpio_handler_ptr_->cache_write_pin(pin_out::out_lfe_bal, out_lfe_bal);
+  gpio_handler_ptr_->cache_write_pin(pin_out::out_lfe_se, out_lfe_se);
 
   // Actually apply the change to the GPIOs
-  io_expander_ptr_->apply_write();
+  gpio_handler_ptr_->apply();
 }
 
 void OptionController::update_phono_gpio()
@@ -231,9 +223,9 @@ void OptionController::update_phono_gpio()
         break;
     }
   }
-  phono_io_expander_ptr_->cache_write_pin(pins_.out_gain_0_pin, out_gain_0);
-  phono_io_expander_ptr_->cache_write_pin(pins_.out_gain_1_pin, out_gain_1);
-  phono_io_expander_ptr_->cache_write_pin(pins_.out_gain_2_pin, out_gain_2);
+  gpio_handler_ptr_->cache_write_pin(pin_out::out_gain_0, out_gain_0);
+  gpio_handler_ptr_->cache_write_pin(pin_out::out_gain_1, out_gain_1);
+  gpio_handler_ptr_->cache_write_pin(pin_out::out_gain_2, out_gain_2);
 
   // Resistance Load
   auto resistance_load_enum = persistent_data_ptr_->phono_resistance_load;
@@ -243,9 +235,9 @@ void OptionController::update_phono_gpio()
   }
   // Enums's integer value matches the 3bits of the IO output
   const auto out_resistance_load = static_cast<uint8_t>(resistance_load_enum);
-  phono_io_expander_ptr_->cache_write_pin(pins_.out_res_0_pin, (out_resistance_load >> 0) & 1);
-  phono_io_expander_ptr_->cache_write_pin(pins_.out_res_1_pin, (out_resistance_load >> 1) & 1);
-  phono_io_expander_ptr_->cache_write_pin(pins_.out_res_2_pin, (out_resistance_load >> 2) & 1);
+  gpio_handler_ptr_->cache_write_pin(pin_out::out_res_0, (out_resistance_load >> 0) & 1);
+  gpio_handler_ptr_->cache_write_pin(pin_out::out_res_1, (out_resistance_load >> 1) & 1);
+  gpio_handler_ptr_->cache_write_pin(pin_out::out_res_2, (out_resistance_load >> 2) & 1);
 
   // Capacity Load
   auto capacitance_load_enum = persistent_data_ptr_->phono_capacitance_load;
@@ -255,15 +247,15 @@ void OptionController::update_phono_gpio()
   }
   // Enums's integer value matches the 3bits of the IO output
   const auto out_capacitance_load = static_cast<uint8_t>(capacitance_load_enum);
-  phono_io_expander_ptr_->cache_write_pin(pins_.out_cap_0_pin, (out_capacitance_load >> 0) & 1);
-  phono_io_expander_ptr_->cache_write_pin(pins_.out_cap_1_pin, (out_capacitance_load >> 1) & 1);
+  gpio_handler_ptr_->cache_write_pin(pin_out::out_cap_0, (out_capacitance_load >> 0) & 1);
+  gpio_handler_ptr_->cache_write_pin(pin_out::out_cap_1, (out_capacitance_load >> 1) & 1);
 
   // Rumble filter
   const int out_rumble_filter = persistent_data_ptr_->phono_rumble_filter == OnOffOption::on ? HIGH : LOW;
-  phono_io_expander_ptr_->cache_write_pin(pins_.out_rumble_filter_pin, out_rumble_filter);
+  gpio_handler_ptr_->cache_write_pin(pin_out::out_rumble_filter, out_rumble_filter);
 
   // Actually apply the change to the GPIOs
-  phono_io_expander_ptr_->apply_write();
+  gpio_handler_ptr_->apply();
 }
 
 AudioInput get_audio_input_from_rename_option(const Option option)
@@ -280,6 +272,23 @@ AudioInput get_audio_input_from_rename_option(const Option option)
       return AudioInput::rca_3;
     default:
       return AudioInput::bal;
+  }
+}
+
+const char* audio_input_to_string(const AudioInput audio_in)
+{
+  switch (audio_in)
+  {
+    case AudioInput::rca_1:
+      return "RCA 1";
+    case AudioInput::rca_2:
+      return "RCA 2";
+    case AudioInput::rca_3:
+      return "RCA 3";
+    case AudioInput::bal:
+      return "BAL";
+    default:
+      return "INVALID";
   }
 }
 
@@ -325,20 +334,19 @@ void OptionController::power_off()
   delay(50);
 
   // 3) Power off
-  digitalWrite(power_enable_pin_, LOW);
+  gpio_handler_ptr_->write_pin(pin_out::power_enable, LOW);
 
   // 4) Wait for power off to be applied
   delay(500);
 
   // 5) Turn off external power
-  io_expander_ptr_->cache_write_pin(pins_.trigger_12v, LOW);
-  io_expander_ptr_->apply_write();
+  gpio_handler_ptr_->write_pin(pin_out::trigger_12v, LOW);
 }
 
 void OptionController::power_on()
 {
   // 1) Power off
-  digitalWrite(power_enable_pin_, LOW);
+  gpio_handler_ptr_->write_pin(pin_out::power_enable, LOW);
 
   // 2) Mute output
   volume_ctrl_ptr_->set_mute(true);
@@ -349,7 +357,7 @@ void OptionController::power_on()
   delay(50);
 
   // 4) Power on
-  digitalWrite(power_enable_pin_, HIGH);
+  gpio_handler_ptr_->write_pin(pin_out::power_enable, HIGH);
 
   // 5) Wait for power on to be applied
   delay(500);
@@ -360,8 +368,7 @@ void OptionController::power_on()
   update_gpio();
 
   // 7) Turn on external power
-  io_expander_ptr_->cache_write_pin(pins_.trigger_12v, HIGH);
-  io_expander_ptr_->apply_write();
+  gpio_handler_ptr_->write_pin(pin_out::trigger_12v, HIGH);
 }
 
 void OptionController::increment_option(const Option& option, const IncrementDir& increment_dir)
@@ -464,5 +471,5 @@ void OptionController::increment_option(const Option& option, const IncrementDir
 
 bool OptionController::has_phono_card()
 {
-  return phono_io_expander_ptr_->is_connected();
+  return gpio_handler_ptr_->is_module_connected(GpioModule::io_expander_phono);
 }

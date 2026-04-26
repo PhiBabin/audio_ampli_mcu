@@ -14,9 +14,7 @@ public:
     MainMenuView* main_menu_view_ptr,
     VolumeController* volume_ctrl_ptr,
     StateMachine* state_machine_ptr,
-    PioEncoder* option_encoder_ptr,
-    const pin_size_t select_button_pin,
-    const pin_size_t mute_button_pin);
+    PioEncoder* option_encoder_ptr);
 
   void init();
   bool update();
@@ -41,10 +39,6 @@ private:
   StateMachine* state_machine_ptr_;
   /// Non-owning pointer to the quadrature encoder
   PioEncoder* option_encoder_ptr_;
-  // Pin for the select toggle button
-  pin_size_t select_button_pin_;
-  // Pin for the mute toggle button and standby button
-  pin_size_t mute_button_pin_;
   /// Toggle button for the selection
   ToggleButton select_button_;
   /// Toggle button for the mutting and power off

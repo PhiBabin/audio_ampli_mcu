@@ -41,16 +41,35 @@ void IoExpander::begin()
   value_gpio_[1] = 0;
 }
 
-void IoExpander::cache_write_pin(int pin, const uint8_t value)
+uint8_t IoExpander::port_enum_to_port_idx(const GpioPort& port)
 {
-  size_t port = 0;
-  if (pin > 7)
-  {
-    port = 1;
-    pin -= 8;
-  }
-  auto& current_direction = direction_gpio_[port];
-  auto& current_value = value_gpio_[port];
+  return static_cast<uint8_t>(port) - static_cast<uint8_t>(GpioPort::a);
+}
+
+void IoExpander::init_input(const GpioPort& port, const uint8_t pin)
+{
+  const auto port_idx = port_enum_to_port_idx(port);
+  auto& current_direction = direction_gpio_[port_idx];
+  const uint8_t mask = 1 << pin;
+  // Set direction to 1 (INPUT)
+  current_direction |= mask;
+  io_expander_.pinMode8(port_idx, current_direction);
+}
+
+void IoExpander::cache_init_input(const GpioPort& port, const uint8_t pin)
+{
+  const auto port_idx = port_enum_to_port_idx(port);
+  auto& current_direction = direction_gpio_[port_idx];
+  const uint8_t mask = 1 << pin;
+  // Set direction to 1 (INPUT)
+  current_direction |= mask;
+}
+
+void IoExpander::cache_init_output(const GpioPort& port, const uint8_t pin, const uint8_t value)
+{
+  const auto port_idx = port_enum_to_port_idx(port);
+  auto& current_direction = direction_gpio_[port_idx];
+  auto& current_value = value_gpio_[port_idx];
 
   const uint8_t mask = 1 << pin;
 
@@ -68,7 +87,38 @@ void IoExpander::cache_write_pin(int pin, const uint8_t value)
   }
 }
 
-void IoExpander::apply_write()
+void IoExpander::cache_write_pin(const GpioPort& port, const uint8_t pin, const uint8_t value)
+{
+  cache_init_output(port, pin, value);
+}
+// void IoExpander::cache_write_pin(int pin, const uint8_t value)
+// {
+//   size_t port = 0;
+//   if (pin > 7)
+//   {
+//     port = 1;
+//     pin -= 8;
+//   }
+//   auto& current_direction = direction_gpio_[port];
+//   auto& current_value = value_gpio_[port];
+
+//   const uint8_t mask = 1 << pin;
+
+//   // Set direction to 0 (OUTPUT)
+//   current_direction &= ~mask;
+
+//   // Set value
+//   if (value != 0)
+//   {
+//     current_value |= mask;
+//   }
+//   else
+//   {
+//     current_value &= ~mask;
+//   }
+// }
+
+void IoExpander::apply()
 {
   for (int port = 0; port < 2; ++port)
   {
@@ -77,11 +127,17 @@ void IoExpander::apply_write()
   }
 }
 
-void IoExpander::write_pin(const int pin, const uint8_t value)
+void IoExpander::write_pin(const GpioPort& port, const uint8_t pin, const uint8_t value)
 {
-  cache_write_pin(pin, value);
-
-  const size_t port = pin > 7 ? 1 : 0;
-  io_expander_.pinMode8(port, direction_gpio_[port]);
-  io_expander_.write8(port, value_gpio_[port]);
+  cache_init_output(port, pin, value);
+  apply();
 }
+
+// void IoExpander::write_pin(const int pin, const uint8_t value)
+// {
+//   cache_write_pin(pin, value);
+
+//   const size_t port = pin > 7 ? 1 : 0;
+//   io_expander_.pinMode8(port, direction_gpio_[port]);
+//   io_expander_.write8(port, value_gpio_[port]);
+// }

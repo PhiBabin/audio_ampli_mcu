@@ -5,23 +5,19 @@ InteractionHandler::InteractionHandler(
   MainMenuView* main_menu_view_ptr,
   VolumeController* volume_ctrl_ptr,
   StateMachine* state_machine_ptr,
-  PioEncoder* option_encoder_ptr,
-  const pin_size_t select_button_pin,
-  const pin_size_t mute_button_pin)
+  PioEncoder* option_encoder_ptr)
   : option_view_ptr_(option_view_ptr)
   , main_menu_view_ptr_(main_menu_view_ptr)
   , volume_ctrl_ptr_(volume_ctrl_ptr)
   , state_machine_ptr_(state_machine_ptr)
   , option_encoder_ptr_(option_encoder_ptr)
-  , select_button_pin_(select_button_pin)
-  , mute_button_pin_(mute_button_pin)
 {
 }
 
 void InteractionHandler::init()
 {
-  select_button_.setup(select_button_pin_, BUTTON_DEBOUNCE_DELAY, InputDebounce::PIM_INT_PULL_UP_RES);
-  mute_button_.setup(mute_button_pin_, BUTTON_DEBOUNCE_DELAY, InputDebounce::PIM_INT_PULL_UP_RES);
+  select_button_.setup(pin_out::select_button.pin, BUTTON_DEBOUNCE_DELAY, InputDebounce::PIM_INT_PULL_UP_RES);
+  mute_button_.setup(pin_out::mute_button.pin, BUTTON_DEBOUNCE_DELAY, InputDebounce::PIM_INT_PULL_UP_RES);
 }
 
 bool InteractionHandler::update()

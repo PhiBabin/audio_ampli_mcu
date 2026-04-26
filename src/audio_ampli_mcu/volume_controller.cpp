@@ -5,16 +5,12 @@
 VolumeController::VolumeController(
   StateMachine* state_machine_ptr,
   PersistentData* persistent_data_ptr,
-  const std::array<pin_size_t, 6> gpio_pin_vol_select,
   PioEncoder* vol_encoder_ptr,
-  const int latch_left_vol,
-  const int latch_right_vol,
+  GpioHandler* gpio_handler_ptr,
   const int32_t total_tick_for_63db)
   : state_machine_ptr_(state_machine_ptr)
   , persistent_data_ptr_(persistent_data_ptr)
-  , gpio_pin_vol_select_(gpio_pin_vol_select)
-  , latch_left_vol_(latch_left_vol)
-  , latch_right_vol_(latch_right_vol)
+  , gpio_handler_ptr_(gpio_handler_ptr)
   , prev_encoder_count_(0)
   , total_tick_for_63db_(total_tick_for_63db)
   , tick_per_db_(total_tick_for_63db_ / 64)
@@ -24,10 +20,9 @@ VolumeController::VolumeController(
 
 void VolumeController::init()
 {
-  pinMode(latch_left_vol_, OUTPUT);
-  pinMode(latch_right_vol_, OUTPUT);
-  digitalWrite(latch_left_vol_, LOW);
-  digitalWrite(latch_right_vol_, LOW);
+  gpio_handler_ptr_->cache_init_output(pin_out::latch_left_vol, LOW);
+  gpio_handler_ptr_->cache_init_output(pin_out::latch_right_vol, LOW);
+  gpio_handler_ptr_->apply();
 
   // pinMode(set_mute_pin_, OUTPUT);
   // digitalWrite(set_mute_pin_, is_muted() ? LOW : HIGH);  // Mute is active low
@@ -35,10 +30,11 @@ void VolumeController::init()
   // Restore the volume db from the flash
   reset_volume_tick_count_based_volume_db();
 
-  for (const auto& pin : gpio_pin_vol_select_)
+  for (const auto& pin : pin_out::volume_bits)
   {
-    pinMode(pin, OUTPUT);
+    gpio_handler_ptr_->cache_init_output(pin, LOW);
   }
+  gpio_handler_ptr_->apply();
   set_gpio_based_on_volume();
 }
 
@@ -61,20 +57,21 @@ void VolumeController::reset_volume_tick_count_based_volume_db()
 void VolumeController::set_gpio_volume(const uint8_t vol_6bit, const uint8_t mask)
 {
 
-  for (size_t i = 0; i < gpio_pin_vol_select_.size(); ++i)
+  for (size_t i = 0; i < pin_out::volume_bits.size(); ++i)
   {
     const auto should_set_it = ((mask >> i) & 1) == 1;
     if (should_set_it)
     {
-      const auto& pin = gpio_pin_vol_select_[i];
+      const auto& pin = pin_out::volume_bits[i];
       const auto is_set = ((vol_6bit >> i) & 1) == 1;
-      digitalWrite(pin, is_set ? HIGH : LOW);
+      gpio_handler_ptr_->cache_write_pin(pin, is_set ? HIGH : LOW);
     }
   }
+  gpio_handler_ptr_->apply();
 }
 
 void VolumeController::latch_volume_gpio_one_side(
-  const uint8_t prev_vol_6bit, const uint8_t vol_6bit, const pin_size_t latch_pin)
+  const uint8_t prev_vol_6bit, const uint8_t vol_6bit, const GpioPin& latch_pin)
 {
   constexpr uint32_t relay_0_to_1_transition_time_us = 800;
   constexpr uint32_t relay_1_to_0_transition_time_us = 1500;
@@ -83,7 +80,7 @@ void VolumeController::latch_volume_gpio_one_side(
   set_gpio_volume(prev_vol_6bit);
 
   // Start latching
-  digitalWrite(latch_pin, HIGH);
+  gpio_handler_ptr_->write_pin(latch_pin, HIGH);
 
   // Changing a relay from 0 -> 1 (~0.8ms) is must faster than 1 -> 0 (~1.5ms), so to make it look like all the relay
   // are changing at the same time we need to set the GPIO in two stages.
@@ -102,7 +99,7 @@ void VolumeController::latch_volume_gpio_one_side(
   delayMicroseconds(1);
 
   // Unlatch
-  digitalWrite(latch_pin, LOW);
+  gpio_handler_ptr_->write_pin(latch_pin, LOW);
 }
 
 std::tuple<int16_t, int16_t> VolumeController::get_left_right_bias_compensation()
@@ -150,12 +147,12 @@ void VolumeController::set_gpio_based_on_volume()
   }
 
 #ifdef USE_V2_PCB
-  latch_volume_gpio_one_side(prev_vol_6bit_set_on_left_, left_vol_6bit, latch_left_vol_);
-  latch_volume_gpio_one_side(prev_vol_6bit_set_on_right_, right_vol_6bit, latch_right_vol_);
+  latch_volume_gpio_one_side(prev_vol_6bit_set_on_left_, left_vol_6bit, pin_out::latch_left_vol);
+  latch_volume_gpio_one_side(prev_vol_6bit_set_on_right_, right_vol_6bit, pin_out::latch_right_vol);
   prev_vol_6bit_set_on_left_ = left_vol_6bit;
   prev_vol_6bit_set_on_right_ = right_vol_6bit;
 #else
-  latch_volume_gpio_one_side(prev_vol_6bit_set_on_left_, left_vol_6bit, latch_left_vol_);
+  latch_volume_gpio_one_side(prev_vol_6bit_set_on_left_, left_vol_6bit, pin_out::latch_left_vol);
   prev_vol_6bit_set_on_left_ = left_vol_6bit;
 #endif
 }

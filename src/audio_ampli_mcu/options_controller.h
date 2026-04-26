@@ -9,8 +9,7 @@
 #include "toggle_button.h"
 #endif
 
-#include "audio_input_controller.h"
-#include "io_expander.h"
+#include "gpio_handler.h"
 #include "option_enums.h"
 #include "persistent_data.h"
 #include "state_machine.h"
@@ -22,37 +21,8 @@ class RP2040_PWM;
 /// Convert option to a human readable string.
 AudioInput get_audio_input_from_rename_option(const Option option);
 
-struct OptionContollerPins
-{
-  const std::array<pin_size_t, 4> iox_gpio_pin_audio_in_select;
-  const int in_out_unipolar_pin;
-  const int in_out_bal_unipolar_pin;
-  const int in_phono_pin;
-  const int set_low_gain_pin;
-  const int out_bal_pin;
-  const int preamp_out_pin;
-  const int bias_out_pin;
-  const int out_se_pin;
-  const int out_lfe_bal_pin;
-  const int out_lfe_se_pin;
-  const int trigger_12v;
-
-  // Phono IO expander pins
-  const int out_gain_0_pin;
-  const int out_gain_1_pin;
-  const int out_gain_2_pin;
-  const int out_res_0_pin;
-  const int out_res_1_pin;
-  const int out_res_2_pin;
-  const int out_cap_0_pin;
-  const int out_cap_1_pin;
-  const int out_rumble_filter_pin;
-};
-
-class ValueControlerInterface
-{
-  virtual char* get_string() = 0;
-};
+/// Convert a audio input enum into string.
+const char* audio_input_to_string(const AudioInput audio_in);
 
 class OptionController
 {
@@ -61,12 +31,8 @@ public:
   OptionController(
     StateMachine* state_machine_ptr,
     PersistentData* persistent_data_ptr,
-    IoExpander* io_expander_ptr,
-    IoExpander* phono_io_expander_ptr,
     VolumeController* volume_ctrl_ptr,
-    const pin_size_t bias_out_pin,
-    const int power_enable_pin,
-    OptionContollerPins pins);
+    GpioHandler* gpio_handler_ptr);
 
   // Init GPIO pins
   void init();
@@ -95,20 +61,8 @@ private:
   // Non-owning pointer to the persistent data
   PersistentData* persistent_data_ptr_;
 
-  // PWM pin that control the bias level.
-  pin_size_t bias_out_pin_;
-
-  // Output pin to turn power on/off
-  pin_size_t power_enable_pin_;
-
-  // The various pins on the IO expander that are controled by the options
-  OptionContollerPins pins_;
-
-  /// Non-owning pointer to the io expander
-  IoExpander* io_expander_ptr_;
-
-  /// Non-owning pointer to the phono's io expander
-  IoExpander* phono_io_expander_ptr_;
+  // Handler to read/write to GPIO from the pico or to IO expander
+  GpioHandler* gpio_handler_ptr_;
 
   /// Non-owning pointer to the volume controler
   VolumeController* volume_ctrl_ptr_;

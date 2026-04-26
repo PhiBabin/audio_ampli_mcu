@@ -136,13 +136,13 @@ void LCD_write_mem()
 void LCD_process_spi_data(const uint8_t data)
 {
   // Skip if no chip select
-  if (digitalRead(DEV_CS_PIN) == 1)
+  if (digitalRead(pin_out::lcd_chip_select.pin) == 1)
   {
     return;
   }
 
   // Is command?
-  if (digitalRead(DEV_DC_PIN) == 0)
+  if (digitalRead(pin_out::lcd_dc.pin) == 0)
   {
     if (maybe_command && maybe_command.value() != data)
     {

@@ -35,6 +35,8 @@
 #ifndef __LCD_DRIVER_H
 #define __LCD_DRIVER_H
 
+#include "pinout_config.h"
+
 #include <SPI.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -48,18 +50,6 @@
 
 #define LCD_WIDTH 320   // LCD width
 #define LCD_HEIGHT 240  // LCD height
-
-/**
- * GPIO config
- **/
-#define DEV_CS_PIN 1
-#define DEV_DC_PIN 8
-#define DEV_RST_PIN 12
-#define DEV_BL_PIN 13
-
-#define DEV_CLK_PIN 2
-#define DEV_DIN_PIN 3
-#define DEV_DOUT_PIN 0
 
 /**
  * Registers
@@ -85,7 +75,7 @@
 /**
  * PWM_BL
  **/
-#define DEV_Set_PWM(_Value) analogWrite(DEV_BL_PIN, _Value)
+#define DEV_Set_PWM(_Value) analogWrite(pin_out::lcd_backlight.pin, _Value)
 
 #define FRAME_BUFFER_LEN (LCD_WIDTH * LCD_HEIGHT * 3 / 2)
 

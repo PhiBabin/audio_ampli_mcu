@@ -9,6 +9,7 @@
 #include "toggle_button.h"
 #endif
 
+#include "gpio_handler.h"
 #include "persistent_data.h"
 #include "state_machine.h"
 
@@ -22,10 +23,8 @@ public:
   VolumeController(
     StateMachine* state_machine_ptr,
     PersistentData* persistent_data_ptr,
-    const std::array<pin_size_t, 6> gpio_pin_vol_select,
     PioEncoder* vol_encoder_ptr,
-    const int latch_left_vol,
-    const int latch_right_vol,
+    GpioHandler* gpio_handler_ptr,
     const int32_t total_tick_for_63db);
 
   // Init GPIO pins
@@ -77,7 +76,7 @@ private:
 
   // Update the volume of one stereo side.
   // Since relays don't take the same time to change from 0 -> 1 than to 1 -> 0, so delay logic is applied.
-  void latch_volume_gpio_one_side(const uint8_t prev_vol_6bit, const uint8_t vol_6bit, const pin_size_t latch_pin);
+  void latch_volume_gpio_one_side(const uint8_t prev_vol_6bit, const uint8_t vol_6bit, const GpioPin& latch_pin);
 
   /// Update the GPIOs pins of the volume based on @c vol_6bit.
   /// @param[in] vol_6bit Values of the GPIOs
@@ -89,13 +88,9 @@ private:
   // Non-owning pointer to the persistent data
   PersistentData* persistent_data_ptr_;
   // GPIO pin for each of the 6 bit of the volume
-  std::array<pin_size_t, 6> gpio_pin_vol_select_;
-  // Output pin to mute / unmute
-  pin_size_t set_mute_pin_;
-  // Latch the volume to the left stereo
-  pin_size_t latch_left_vol_;
-  // Latch the volume to the right stereo
-  pin_size_t latch_right_vol_;
+  // std::array<pin_size_t, 6> gpio_pin_vol_select_;
+  // Handler to read/write to GPIO from the pico or to IO expander
+  GpioHandler* gpio_handler_ptr_;
   /// Previous count of the encoder
   int32_t prev_encoder_count_;
   /// How many encoder tick correspond to the full range of 0-100%

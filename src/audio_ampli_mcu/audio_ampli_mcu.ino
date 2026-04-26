@@ -37,66 +37,23 @@
 // GPAX -> X pin on port A of the IO expander
 // GPBX -> X pin on port B of the IO expander
 
-PioEncoder volume_encoder(18);            // GP18 and GP19 are the encoder's pins
-PioEncoder menu_select_encoder(20);       // GP20 and GP21 are the encoder's pins
-const pin_size_t mute_button_pin = 16;    // Button for the volume encoder
-const pin_size_t select_button_pin = 17;  // Button for the menu select encoder
-IoExpander io_expander(7);                // GP7 is the chip select of the IO expander
-IoExpander phono_io_expander(26);         // GP26 is the chip select of the IO expander on the phono board
-const pin_size_t set_mute_pin = 27;       // Output pin that mute / unmute
-const pin_size_t bias_pwm_pin = 27;       // Output pin that mute / unmute
-const pin_size_t power_enable_pin = 14;   // Output pin that power on / off the amplification part of the system
-const pin_size_t latch_left_vol = 28;     // Apply volume to the left side
-const pin_size_t latch_right_vol = 15;    // Apply volume to the right side
+PioEncoder volume_encoder(pin_out::volume_encoder_b.pin);            // GP18 and GP19 are the encoder's pins
+PioEncoder menu_select_encoder(pin_out::menu_select_encoder_b.pin);  // GP20 and GP21 are the encoder's pins
+IoExpander io_expander(pin_out::io_expander_chip_select.pin);        // GP7 is the chip select of the IO expander
+IoExpander phono_io_expander(
+  pin_out::phono_io_expander_chip_select.pin);  // GP26 is the chip select of the IO expander on the phono board
 
-// 6bit output to control the volume in least signifiant bit order
-const std::array<pin_size_t, 6> volume_gpio_pins = {22, 4, 5, 9, 10, 11};
-// IO expander pins for the audio input selection. BAL, RCA 1, RCA 2 and RCA 3   respectively
-OptionContollerPins option_ctrl_pins{
-  .iox_gpio_pin_audio_in_select = {0, 1, 2, 3},  // GPA0, GPA1, GPA2 & GPA3
-  .in_out_unipolar_pin = 4,                      // GPA4
-  .in_out_bal_unipolar_pin = 5,                  // GPA5
-  .in_phono_pin = 6,                             // GPA6
-  .set_low_gain_pin = 8,                         // GPB0
-  .out_bal_pin = 9,                              // GPB1
-  .preamp_out_pin = 10,                          // GPB2
-  .out_se_pin = 11,                              // GPB3
-  .out_lfe_bal_pin = 12,                         // GPB4
-  .out_lfe_se_pin = 13,                          // GPB5
-  .trigger_12v = 15,                             // GPB7
-
-  // Phono IO expander pins
-  .out_gain_0_pin = 15,         // GPB7
-  .out_gain_1_pin = 1,          // GPA1
-  .out_gain_2_pin = 2,          // GPA2
-  .out_res_0_pin = 7,           // GPA7
-  .out_res_1_pin = 6,           // GPA6
-  .out_res_2_pin = 5,           // GPA5
-  .out_cap_0_pin = 4,           // GPA4
-  .out_cap_1_pin = 3,           // GPA3
-  .out_rumble_filter_pin = 14,  // GPB6
-};
+GpioHandler gpio_handler(
+  std::vector<GpioHandler::ModuleEnumExpanderPair>{
+    std::make_pair(GpioModule::io_expander_a, &io_expander),
+    std::make_pair(GpioModule::io_expander_phono, &phono_io_expander)});
 
 PersistentData persistent_data{};
 PersistentDataFlasher persistent_data_flasher;
 StateMachine state_machine;
 VolumeController volume_ctrl(
-  &state_machine,
-  &persistent_data,
-  volume_gpio_pins,
-  &volume_encoder,
-  latch_left_vol,
-  latch_right_vol,
-  TOTAL_TICK_FOR_FULL_VOLUME);
-OptionController option_ctrl(
-  &state_machine,
-  &persistent_data,
-  &io_expander,
-  &phono_io_expander,
-  &volume_ctrl,
-  bias_pwm_pin,
-  power_enable_pin,
-  option_ctrl_pins);
+  &state_machine, &persistent_data, &volume_encoder, &gpio_handler, TOTAL_TICK_FOR_FULL_VOLUME);
+OptionController option_ctrl(&state_machine, &persistent_data, &volume_ctrl, &gpio_handler);
 
 Display display;
 
@@ -117,13 +74,7 @@ OptionsView option_view(
   regular_medium_font,
   regular_large_font);
 InteractionHandler interaction_handler(
-  &option_view,
-  &main_menu_view,
-  &volume_ctrl,
-  &state_machine,
-  &menu_select_encoder,
-  select_button_pin,
-  mute_button_pin);
+  &option_view, &main_menu_view, &volume_ctrl, &state_machine, &menu_select_encoder);
 RemoteController remote_ctrl(&state_machine, &interaction_handler, &volume_ctrl);
 
 void draw_standby(const bool has_state_changed = true)
