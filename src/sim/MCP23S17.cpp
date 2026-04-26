@@ -7,17 +7,28 @@
 #include <tuple>
 #include <vector>
 
-MCP23S17::MCP23S17(uint8_t chip_select) : chip_select_(chip_select)
+// MCP23S17::MCP23S17(uint8_t select, uint8_t dataIn, uint8_t dataOut, uint8_t clock, uint8_t address)
+//   : MCP23S17(select, address)
+// {
+// }
+
+// MCP23S17(int select, SPIClass* spi) : MCP23S17(select)
+// {
+// }
+
+MCP23S17::MCP23S17(int chip_select, int address, SPIClass* spi) : chip_select_(chip_select), address_(address)
 {
   value_gpio_[0] = 0;
   value_gpio_[1] = 0;
   direction_gpio_[0] = 0xff;
   direction_gpio_[1] = 0xff;
 }
+
 bool MCP23S17::begin(bool pullup)
 {
   return true;
 }
+
 bool MCP23S17::write8(uint8_t port, uint8_t value)
 {
   assert(port < 2);

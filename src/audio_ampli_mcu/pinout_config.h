@@ -1,20 +1,31 @@
 #ifndef PINOUT_CONFIG_GUARD_H_
 #define PINOUT_CONFIG_GUARD_H_
 
+#include "config.h"
+
 #include <array>
 #include <stdint.h>
+
+// IR remote pin, the IRremote library requires this to be set via a #define
+#define IR_RECEIVE_PIN 6  // GP6
 
 enum class GpioModule : uint8_t
 {
   // GPIO directly connected to pico
   // Named GPX e.g. GP22
   pico = 0,
-  // GPIO connected to main IO expander
+  // GPIO connected to main IO expander with hardware address 0x0
   // Named GPAX or GPBX e.g. GPB3
-  io_expander_a = 1,
+  io_expander_1 = 1,
   // GPIO connected to the IO expander on the optional Phono card
   // Named GPAX or GPBX e.g. GPB3
   io_expander_phono = 2,
+
+#if defined(USE_V2_PCB)
+  // GPIO connected to second IO expander with hardware address 0x1
+  // Named GPAX or GPBX e.g. GPB3
+  io_expander_2 = 3,
+#endif
 
   enum_length
 };
@@ -26,11 +37,7 @@ enum class GpioPort : uint8_t
   // Bus A (e.g. GPA3)
   a = 1,
   // Bus B (e.g. GPB3)
-  b = 2,
-  // Bus C (e.g. GPC3)
-  c = 3,
-  // Bus D (e.g. GPD3)
-  d = 4
+  b = 2
 };
 
 struct GpioPin
@@ -42,6 +49,31 @@ struct GpioPin
 
 namespace pin_out
 {
+
+#if defined(USE_V2_PCB)
+static constexpr GpioPin l_volume_bit0{GpioModule::io_expander_1, GpioPort::b, 0};
+static constexpr GpioPin l_volume_bit1{GpioModule::io_expander_1, GpioPort::b, 1};
+static constexpr GpioPin l_volume_bit2{GpioModule::io_expander_1, GpioPort::b, 2};
+static constexpr GpioPin l_volume_bit3{GpioModule::io_expander_1, GpioPort::b, 3};
+static constexpr GpioPin l_volume_bit4{GpioModule::io_expander_2, GpioPort::a, 2};
+static constexpr GpioPin l_volume_bit5{GpioModule::io_expander_2, GpioPort::a, 1};
+static constexpr GpioPin l_volume_bit6{GpioModule::io_expander_2, GpioPort::a, 0};
+
+static constexpr GpioPin r_volume_bit0{GpioModule::io_expander_1, GpioPort::b, 4};
+static constexpr GpioPin r_volume_bit1{GpioModule::io_expander_1, GpioPort::b, 5};
+static constexpr GpioPin r_volume_bit2{GpioModule::io_expander_1, GpioPort::b, 6};
+static constexpr GpioPin r_volume_bit3{GpioModule::io_expander_1, GpioPort::b, 7};
+static constexpr GpioPin r_volume_bit4{GpioModule::io_expander_2, GpioPort::a, 6};
+static constexpr GpioPin r_volume_bit5{GpioModule::io_expander_2, GpioPort::a, 5};
+static constexpr GpioPin r_volume_bit6{GpioModule::io_expander_2, GpioPort::a, 4};
+
+// Ignore bit 0, because we need to add support for 7bit volume firts
+inline constexpr std::array left_volume_bits{
+  l_volume_bit1, l_volume_bit2, l_volume_bit3, l_volume_bit4, l_volume_bit5, l_volume_bit6};
+inline constexpr std::array right_volume_bits{
+  r_volume_bit1, r_volume_bit2, r_volume_bit3, r_volume_bit4, r_volume_bit5, r_volume_bit6};
+
+#else
 static constexpr GpioPin volume_bit0{GpioModule::pico, GpioPort::na, 22};
 static constexpr GpioPin volume_bit1{GpioModule::pico, GpioPort::na, 4};
 static constexpr GpioPin volume_bit2{GpioModule::pico, GpioPort::na, 5};
@@ -49,7 +81,11 @@ static constexpr GpioPin volume_bit3{GpioModule::pico, GpioPort::na, 9};
 static constexpr GpioPin volume_bit4{GpioModule::pico, GpioPort::na, 10};
 static constexpr GpioPin volume_bit5{GpioModule::pico, GpioPort::na, 11};
 
+static constexpr GpioPin latch_left_vol{GpioModule::pico, GpioPort::na, 28};
+static constexpr GpioPin latch_right_vol{GpioModule::pico, GpioPort::na, 15};
+
 inline constexpr std::array volume_bits{volume_bit0, volume_bit1, volume_bit2, volume_bit3, volume_bit4, volume_bit5};
+#endif
 
 static constexpr GpioPin volume_encoder_b{GpioModule::pico, GpioPort::na, 18};
 static constexpr GpioPin volume_encoder_a{GpioModule::pico, GpioPort::na, 19};
@@ -65,9 +101,6 @@ static constexpr GpioPin phono_io_expander_chip_select{GpioModule::pico, GpioPor
 static constexpr GpioPin bias_pwm{GpioModule::pico, GpioPort::na, 27};
 static constexpr GpioPin power_enable{GpioModule::pico, GpioPort::na, 14};
 
-static constexpr GpioPin latch_left_vol{GpioModule::pico, GpioPort::na, 28};
-static constexpr GpioPin latch_right_vol{GpioModule::pico, GpioPort::na, 15};
-
 static constexpr GpioPin lcd_chip_select{GpioModule::pico, GpioPort::na, 1};
 static constexpr GpioPin lcd_dc{GpioModule::pico, GpioPort::na, 8};
 static constexpr GpioPin lcd_reset{GpioModule::pico, GpioPort::na, 12};
@@ -79,25 +112,51 @@ static constexpr GpioPin spi_miso{GpioModule::pico, GpioPort::na, 0};
 
 static constexpr GpioPin ir_receive{GpioModule::pico, GpioPort::na, 6};
 
-static constexpr GpioPin audio_in_select_bal{GpioModule::io_expander_a, GpioPort::a, 0};
-static constexpr GpioPin audio_in_select_rca1{GpioModule::io_expander_a, GpioPort::a, 1};
-static constexpr GpioPin audio_in_select_rca2{GpioModule::io_expander_a, GpioPort::a, 2};
-static constexpr GpioPin audio_in_select_rca3{GpioModule::io_expander_a, GpioPort::a, 3};
+#if defined(USE_V2_PCB)
+static constexpr GpioPin audio_in_select_bal{GpioModule::io_expander_1, GpioPort::a, 5};
+static constexpr GpioPin audio_in_select_rca1{GpioModule::io_expander_1, GpioPort::a, 3};
+static constexpr GpioPin audio_in_select_rca2{GpioModule::io_expander_1, GpioPort::a, 1};
+static constexpr GpioPin audio_in_select_rca3{GpioModule::io_expander_1, GpioPort::a, 0};
 
+static constexpr GpioPin in_out_unipolar{GpioModule::io_expander_1, GpioPort::a, 6};
+static constexpr GpioPin in_out_bal_unipolar{GpioModule::io_expander_1, GpioPort::a, 7};
+static constexpr GpioPin in_phono{GpioModule::io_expander_1, GpioPort::a, 2};
+static constexpr GpioPin set_low_gain{GpioModule::io_expander_2, GpioPort::b, 7};
+static constexpr GpioPin out_bal{GpioModule::io_expander_2, GpioPort::b, 6};
+static constexpr GpioPin preamp_out{GpioModule::io_expander_2, GpioPort::b, 5};
+static constexpr GpioPin out_se{GpioModule::io_expander_2, GpioPort::b, 4};
+static constexpr GpioPin out_lfe_bal{GpioModule::io_expander_2, GpioPort::b, 3};
+static constexpr GpioPin out_lfe_se{GpioModule::io_expander_2, GpioPort::b, 2};
+
+static constexpr GpioPin trigger_12v{GpioModule::pico, GpioPort::na, 15};
+
+// New pins in v2
+static constexpr GpioPin led_unip{GpioModule::pico, GpioPort::na, 4};
+static constexpr GpioPin led_bip{GpioModule::pico, GpioPort::na, 5};
+static constexpr GpioPin power_detect{GpioModule::pico, GpioPort::na, 9};
+static constexpr GpioPin high_gain{GpioModule::io_expander_1, GpioPort::a, 4};
+static constexpr GpioPin set_mono{GpioModule::io_expander_2, GpioPort::b, 1};
+
+#else
+static constexpr GpioPin audio_in_select_bal{GpioModule::io_expander_1, GpioPort::a, 0};
+static constexpr GpioPin audio_in_select_rca1{GpioModule::io_expander_1, GpioPort::a, 1};
+static constexpr GpioPin audio_in_select_rca2{GpioModule::io_expander_1, GpioPort::a, 2};
+static constexpr GpioPin audio_in_select_rca3{GpioModule::io_expander_1, GpioPort::a, 3};
+
+static constexpr GpioPin in_out_unipolar{GpioModule::io_expander_1, GpioPort::a, 4};
+static constexpr GpioPin in_out_bal_unipolar{GpioModule::io_expander_1, GpioPort::a, 5};
+static constexpr GpioPin in_phono{GpioModule::io_expander_1, GpioPort::a, 6};
+static constexpr GpioPin set_low_gain{GpioModule::io_expander_1, GpioPort::b, 0};
+static constexpr GpioPin out_bal{GpioModule::io_expander_1, GpioPort::b, 1};
+static constexpr GpioPin preamp_out{GpioModule::io_expander_1, GpioPort::b, 2};
+static constexpr GpioPin out_se{GpioModule::io_expander_1, GpioPort::b, 3};
+static constexpr GpioPin out_lfe_bal{GpioModule::io_expander_1, GpioPort::b, 4};
+static constexpr GpioPin out_lfe_se{GpioModule::io_expander_1, GpioPort::b, 5};
+
+static constexpr GpioPin trigger_12v{GpioModule::io_expander_1, GpioPort::b, 7};
+#endif
 inline constexpr std::array audio_input_pins{
   audio_in_select_bal, audio_in_select_rca1, audio_in_select_rca2, audio_in_select_rca3};
-
-static constexpr GpioPin in_out_unipolar{GpioModule::io_expander_a, GpioPort::a, 4};
-static constexpr GpioPin in_out_bal_unipolar{GpioModule::io_expander_a, GpioPort::a, 5};
-static constexpr GpioPin in_phono{GpioModule::io_expander_a, GpioPort::a, 6};
-static constexpr GpioPin set_low_gain{GpioModule::io_expander_a, GpioPort::b, 0};
-static constexpr GpioPin out_bal{GpioModule::io_expander_a, GpioPort::b, 1};
-static constexpr GpioPin preamp_out{GpioModule::io_expander_a, GpioPort::b, 2};
-static constexpr GpioPin out_se{GpioModule::io_expander_a, GpioPort::b, 3};
-static constexpr GpioPin out_lfe_bal{GpioModule::io_expander_a, GpioPort::b, 4};
-static constexpr GpioPin out_lfe_se{GpioModule::io_expander_a, GpioPort::b, 5};
-
-static constexpr GpioPin trigger_12v{GpioModule::io_expander_a, GpioPort::b, 7};
 
 static constexpr GpioPin out_gain_0{GpioModule::io_expander_phono, GpioPort::b, 7};
 static constexpr GpioPin out_gain_1{GpioModule::io_expander_phono, GpioPort::a, 1};

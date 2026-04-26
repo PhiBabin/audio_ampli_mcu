@@ -39,14 +39,26 @@
 
 PioEncoder volume_encoder(pin_out::volume_encoder_b.pin);            // GP18 and GP19 are the encoder's pins
 PioEncoder menu_select_encoder(pin_out::menu_select_encoder_b.pin);  // GP20 and GP21 are the encoder's pins
-IoExpander io_expander(pin_out::io_expander_chip_select.pin);        // GP7 is the chip select of the IO expander
+IoExpander io_expander_1(
+  pin_out::io_expander_chip_select.pin, /*address=*/0);  // GP7 is the chip select of the IO expander
 IoExpander phono_io_expander(
   pin_out::phono_io_expander_chip_select.pin);  // GP26 is the chip select of the IO expander on the phono board
 
-GpioHandler gpio_handler(
-  std::vector<GpioHandler::ModuleEnumExpanderPair>{
-    std::make_pair(GpioModule::io_expander_a, &io_expander),
-    std::make_pair(GpioModule::io_expander_phono, &phono_io_expander)});
+#if defined(USE_V2_PCB)
+// Same chip select as io expander 1, but with a different hardware address
+IoExpander io_expander_2(pin_out::io_expander_chip_select.pin, /*address=*/1);
+
+std::vector<GpioHandler::ModuleEnumExpanderPair> io_expanders{
+  std::make_pair(GpioModule::io_expander_1, &io_expander_1),
+  std::make_pair(GpioModule::io_expander_phono, &phono_io_expander),
+  std::make_pair(GpioModule::io_expander_2, &io_expander_2)};
+#else
+std::vector<GpioHandler::ModuleEnumExpanderPair> io_expanders{
+  std::make_pair(GpioModule::io_expander_1, &io_expander_1),
+  std::make_pair(GpioModule::io_expander_phono, &phono_io_expander)};
+#endif
+
+GpioHandler gpio_handler(io_expanders);
 
 PersistentData persistent_data{};
 PersistentDataFlasher persistent_data_flasher;
@@ -194,8 +206,12 @@ void setup()
   }
 
   display.gpio_init();
-  io_expander.begin();
-  phono_io_expander.begin();
+
+  // Init all IO expander
+  for (const auto& [_, io_expander_ptr] : io_expanders)
+  {
+    io_expander_ptr->begin();
+  }
 
   volume_encoder.begin();
   menu_select_encoder.begin();

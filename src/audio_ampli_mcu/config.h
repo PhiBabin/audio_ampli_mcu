@@ -25,11 +25,11 @@
 #define STR(x) STR_HELPER(x)
 #define VERSION_STRING "V" STR(MAJOR_VERSION) "." STR(MINOR_VERSION) "." STR(PATCH_VERSION)
 
-// V2 PCB has some hence features (such as power on/off, subwoofer and different volume for left/right)
+// V2 PCB has 7bit volume and dedicated volume latch for left and right. Most of the GPIO have change location.
 #define USE_V2_PCB
-
-// IR remote pin, the IRremote library requires this to be set via a #define
-#define IR_RECEIVE_PIN 6  // GP6
+// V1 PCB has some hence features (such as power on/off, subwoofer and different volume for left/right)
+// which V2 doesn't
+// #define USE_V1_PCB
 
 #define BUTTON_DEBOUNCE_DELAY 20  // [ms]
 

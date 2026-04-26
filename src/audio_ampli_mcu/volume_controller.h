@@ -74,14 +74,19 @@ private:
   // Read current volume db on the current audio input and reset the volume tick count
   void reset_volume_tick_count_based_volume_db();
 
-  // Update the volume of one stereo side.
+  // Update the volume of one stereo side for firmware version v1.
   // Since relays don't take the same time to change from 0 -> 1 than to 1 -> 0, so delay logic is applied.
-  void latch_volume_gpio_one_side(const uint8_t prev_vol_6bit, const uint8_t vol_6bit, const GpioPin& latch_pin);
+  void latch_volume_gpio_one_side_v1(const uint8_t prev_vol_6bit, const uint8_t vol_6bit, const GpioPin& latch_pin, const std::array<GpioPin, 6U>& volume_pins);
+
+  // Update the volume of one stereo side for firmware version v1.
+  // Since relays don't take the same time to change from 0 -> 1 than to 1 -> 0, so delay logic is applied.
+  void latch_volume_gpio_one_side_v2(
+    const uint8_t prev_vol_6bit, const uint8_t vol_6bit, const std::array<GpioPin, 6U>& volume_pins);
 
   /// Update the GPIOs pins of the volume based on @c vol_6bit.
   /// @param[in] vol_6bit Values of the GPIOs
   /// @param[in] mask Only the (mask & vol_6bit) GPIO will be updated.
-  void set_gpio_volume(const uint8_t vol_6bit, const uint8_t mask = 0xff);
+  void set_gpio_volume(const std::array<GpioPin, 6U>& volume_pins, const uint8_t vol_6bit, const uint8_t mask = 0xff);
 
   // Non-owning pointer to the state machine
   StateMachine* state_machine_ptr_;

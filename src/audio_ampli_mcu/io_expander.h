@@ -16,7 +16,7 @@
 class IoExpander
 {
 public:
-  IoExpander(const int iox_chip_select_pin);
+  IoExpander(const int iox_chip_select_pin, const uint8_t address = 0x00);
   void begin();
   bool is_connected();
   // void write_pin(const int pin, const uint8_t value);

@@ -8,6 +8,7 @@
 #include "config.h"
 #include "interaction_handler.h"
 #include "options_controller.h"
+#include "pinout_config.h"
 #include "volume_controller.h"
 
 #include <functional>

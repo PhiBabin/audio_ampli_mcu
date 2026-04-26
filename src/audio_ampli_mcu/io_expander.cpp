@@ -1,6 +1,13 @@
 #include "io_expander.h"
 
-IoExpander::IoExpander(const int iox_chip_select_pin) : io_expander_(iox_chip_select_pin)
+#ifdef SIM
+#include "sim/SPI.h"
+#endif
+
+#include <assert.h>
+
+IoExpander::IoExpander(const int iox_chip_select_pin, const uint8_t address)
+  : io_expander_(iox_chip_select_pin, static_cast<int>(address))
 {
 }
 
@@ -43,6 +50,12 @@ void IoExpander::begin()
 
 uint8_t IoExpander::port_enum_to_port_idx(const GpioPort& port)
 {
+  if (static_cast<uint8_t>(port) < static_cast<uint8_t>(GpioPort::a))
+  {
+    assert(static_cast<uint8_t>(port) < static_cast<uint8_t>(GpioPort::a));
+    return 0;
+  }
+
   return static_cast<uint8_t>(port) - static_cast<uint8_t>(GpioPort::a);
 }
 
