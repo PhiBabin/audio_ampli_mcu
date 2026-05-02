@@ -158,8 +158,6 @@ void PersistentDataFlasher::force_save(const PersistentData& curr_data)
 {
   auto curr_data_copy = curr_data;
   Serial.println("Saving data to flash...");
-  Serial.print("volume=");
-  Serial.println(curr_data_copy.get_volume_db());
 
   // Update checksum
   curr_data_copy.checksum = curr_data_copy.compute_checksum();

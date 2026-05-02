@@ -21,11 +21,9 @@ enum class GpioModule : uint8_t
   // Named GPAX or GPBX e.g. GPB3
   io_expander_phono = 2,
 
-#if defined(USE_V2_PCB)
   // GPIO connected to second IO expander with hardware address 0x1
   // Named GPAX or GPBX e.g. GPB3
   io_expander_2 = 3,
-#endif
 
   enum_length
 };

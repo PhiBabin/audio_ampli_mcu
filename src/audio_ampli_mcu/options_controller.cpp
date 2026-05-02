@@ -112,6 +112,7 @@ void OptionController::update_gpio()
   {
     update_phono_gpio();
   }
+  gpio_handler_ptr_->apply();
   // Set PWM for bias
   if (prev_bias_ != persistent_data_ptr_->bias)
   {
@@ -166,9 +167,6 @@ void OptionController::update_io_expander_gpio()
   gpio_handler_ptr_->cache_write_pin(pin_out::in_out_bal_unipolar, in_out_bal_unipolar_value);
   gpio_handler_ptr_->cache_write_pin(pin_out::out_lfe_bal, out_lfe_bal);
   gpio_handler_ptr_->cache_write_pin(pin_out::out_lfe_se, out_lfe_se);
-
-  // Actually apply the change to the GPIOs
-  gpio_handler_ptr_->apply();
 }
 
 void OptionController::update_phono_gpio()
@@ -253,9 +251,6 @@ void OptionController::update_phono_gpio()
   // Rumble filter
   const int out_rumble_filter = persistent_data_ptr_->phono_rumble_filter == OnOffOption::on ? HIGH : LOW;
   gpio_handler_ptr_->cache_write_pin(pin_out::out_rumble_filter, out_rumble_filter);
-
-  // Actually apply the change to the GPIOs
-  gpio_handler_ptr_->apply();
 }
 
 AudioInput get_audio_input_from_rename_option(const Option option)

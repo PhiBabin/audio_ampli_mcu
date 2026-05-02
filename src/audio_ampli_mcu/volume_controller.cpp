@@ -6,14 +6,12 @@ VolumeController::VolumeController(
   StateMachine* state_machine_ptr,
   PersistentData* persistent_data_ptr,
   PioEncoder* vol_encoder_ptr,
-  GpioHandler* gpio_handler_ptr,
-  const int32_t total_tick_for_63db)
+  GpioHandler* gpio_handler_ptr)
   : state_machine_ptr_(state_machine_ptr)
   , persistent_data_ptr_(persistent_data_ptr)
   , gpio_handler_ptr_(gpio_handler_ptr)
   , prev_encoder_count_(0)
-  , total_tick_for_63db_(total_tick_for_63db)
-  , tick_per_db_(total_tick_for_63db_ / 64)
+  , tick_per_db_(TICK_PER_VOLUME_INCREMENT)
   , vol_encoder_ptr_(vol_encoder_ptr)
 {
 }
@@ -90,6 +88,12 @@ void VolumeController::latch_volume_gpio_one_side_v2(
 {
   constexpr uint32_t relay_0_to_1_transition_time_us = 1500;
   constexpr uint32_t relay_1_to_0_transition_time_us = 680;
+
+  // If volume didn't change -> noop
+  if (prev_vol_6bit == vol_6bit)
+  {
+    return;
+  }
 
   // Changing a relay from 1 -> 0 (~0.68ms) is must faster than 0 -> 1 (~1.5ms), so to make it look like all the relay
   // are changing at the same time we need to set the GPIO in two stages.
@@ -187,6 +191,8 @@ void VolumeController::set_gpio_based_on_volume()
 #if defined(USE_V2_PCB)
   latch_volume_gpio_one_side_v2(prev_vol_6bit_set_on_left_, left_vol_6bit, pin_out::left_volume_bits);
   latch_volume_gpio_one_side_v2(prev_vol_6bit_set_on_right_, right_vol_6bit, pin_out::right_volume_bits);
+  prev_vol_6bit_set_on_left_ = left_vol_6bit;
+  prev_vol_6bit_set_on_right_ = right_vol_6bit;
 
 #elif defined(USE_V1_PCB)
   latch_volume_gpio_one_side_v1(
@@ -240,6 +246,7 @@ bool VolumeController::update_volume()
     return false;
   }
 
+  // e.g. 4 - 8 => -4
   const auto delta_tick = current_count - prev_encoder_count_;
   if (delta_tick >= tick_per_db_)
   {
@@ -248,10 +255,15 @@ bool VolumeController::update_volume()
     prev_encoder_count_ = prev_encoder_count_ + delta_tick - remainder;
     return true;
   }
+  // e.g. -4 <= 3
   if (delta_tick <= -tick_per_db_)
   {
+    // e.g -4 / 3 => increase_volume_db(-1)
     increase_volume_db(delta_tick / tick_per_db_);
+    // e.g. (-(-4)) % 3 => 1
     const auto remainder = (-delta_tick) % tick_per_db_;
+    /// 8 - 4 + 1 => 5
+    /// so if count stay the same there will be current_count == 4 and prev_encoder_count == 5 so a delta of -1
     prev_encoder_count_ = prev_encoder_count_ + delta_tick + remainder;
     return true;
   }

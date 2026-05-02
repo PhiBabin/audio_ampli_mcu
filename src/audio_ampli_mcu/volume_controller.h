@@ -24,8 +24,7 @@ public:
     StateMachine* state_machine_ptr,
     PersistentData* persistent_data_ptr,
     PioEncoder* vol_encoder_ptr,
-    GpioHandler* gpio_handler_ptr,
-    const int32_t total_tick_for_63db);
+    GpioHandler* gpio_handler_ptr);
 
   // Init GPIO pins
   void init();
@@ -98,8 +97,6 @@ private:
   GpioHandler* gpio_handler_ptr_;
   /// Previous count of the encoder
   int32_t prev_encoder_count_;
-  /// How many encoder tick correspond to the full range of 0-100%
-  int32_t total_tick_for_63db_;
   /// How many encoder tick per db of volume
   int32_t tick_per_db_;
   /// Pointer to the quadrature encoder

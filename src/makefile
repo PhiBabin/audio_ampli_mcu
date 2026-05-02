@@ -4,7 +4,7 @@ CC = g++
 COMPILER_FLAGS = -Wall -O0
 # -DSIM creates a macro named SIM that would allow to override the MCU libraries calls
 LINKER_FLAGS = -I. -Isim  `sdl2-config --cflags --libs` -DSIM
-CCFLAGS = $(COMPILER_FLAGS) -x c++ 
+CCFLAGS = $(COMPILER_FLAGS) -x c++
 
 # $(PROGRAM).o: $(PROGRAM).cpp
 OBJ_DIR = obj
@@ -43,11 +43,11 @@ all: $(SIMULATOR_BIN) $(GIF_GENERATOR_BIN)
 
 $(SIMULATOR_BIN): $(SIMULATOR_SRC)
 	@mkdir -p $(BIN_DIR)
-	$(CC) $(CCFLAGS) $(COMMON_SRC) $(SIMULATOR_SRC) -o $@ $(LINKER_FLAGS) 
+	$(CC) $(CCFLAGS) $(COMMON_SRC) $(SIMULATOR_SRC) -o $@ $(LINKER_FLAGS)
 
 $(GIF_GENERATOR_BIN): $(GIF_GENERATOR_SRC)
 	@mkdir -p $(BIN_DIR)
-	$(CC) $(CCFLAGS) $(COMMON_SRC) $(GIF_GENERATOR_SRC) -o $@ $(LINKER_FLAGS) 
+	$(CC) $(CCFLAGS) $(COMMON_SRC) $(GIF_GENERATOR_SRC) -o $@ $(LINKER_FLAGS)
 
 clean:
 	rm -rf $(OBJ_DIR) $(BIN_DIR)

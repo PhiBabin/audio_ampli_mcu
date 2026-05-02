@@ -35,6 +35,8 @@ void IoExpander::begin()
   {
     Serial.println("Failed to initialize io expander communication");
   }
+  io_expander_.enableHardwareAddress();
+
   // Set all io as input
   io_expander_.pinMode8(0, 0xFF);
   io_expander_.pinMode8(1, 0xFF);

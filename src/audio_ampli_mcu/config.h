@@ -6,15 +6,6 @@
 // Default volume
 #define STARTUP_VOLUME_DB -20
 
-// Number of tick per rotation of the encoder
-#define ENCODER_TICK_PER_ROTATION 24
-
-// How many encoder tick is required to go from -63db to 0db
-#define TOTAL_TICK_FOR_FULL_VOLUME (9 * ENCODER_TICK_PER_ROTATION)
-
-// Number of encoder tick to change audio input
-#define TICK_PER_AUDIO_IN (ENCODER_TICK_PER_ROTATION / NUM_AUDIO_INPUT)
-
 // Changing the version will make previously saved settings unusable
 #define MAJOR_VERSION 1
 #define MINOR_VERSION 3
@@ -30,6 +21,18 @@
 // V1 PCB has some hence features (such as power on/off, subwoofer and different volume for left/right)
 // which V2 doesn't
 // #define USE_V1_PCB
+
+// Number of tick per rotation of the encoder
+#if defined(USE_V2_PCB)
+#define ENCODER_TICK_PER_ROTATION 12
+#else
+#define ENCODER_TICK_PER_ROTATION 24
+#endif
+
+#define TICK_PER_VOLUME_INCREMENT 2
+
+// Number of encoder tick to change audio input
+#define TICK_PER_AUDIO_IN (ENCODER_TICK_PER_ROTATION / NUM_AUDIO_INPUT)
 
 #define BUTTON_DEBOUNCE_DELAY 20  // [ms]
 

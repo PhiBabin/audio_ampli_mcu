@@ -40,7 +40,7 @@
 PioEncoder volume_encoder(pin_out::volume_encoder_b.pin);            // GP18 and GP19 are the encoder's pins
 PioEncoder menu_select_encoder(pin_out::menu_select_encoder_b.pin);  // GP20 and GP21 are the encoder's pins
 IoExpander io_expander_1(
-  pin_out::io_expander_chip_select.pin, /*address=*/0);  // GP7 is the chip select of the IO expander
+  pin_out::io_expander_chip_select.pin);  // GP7 is the chip select of the IO expander address == 0x0
 IoExpander phono_io_expander(
   pin_out::phono_io_expander_chip_select.pin);  // GP26 is the chip select of the IO expander on the phono board
 
@@ -64,7 +64,7 @@ PersistentData persistent_data{};
 PersistentDataFlasher persistent_data_flasher;
 StateMachine state_machine;
 VolumeController volume_ctrl(
-  &state_machine, &persistent_data, &volume_encoder, &gpio_handler, TOTAL_TICK_FOR_FULL_VOLUME);
+  &state_machine, &persistent_data, &volume_encoder, &gpio_handler);
 OptionController option_ctrl(&state_machine, &persistent_data, &volume_ctrl, &gpio_handler);
 
 Display display;
