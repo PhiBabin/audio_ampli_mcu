@@ -15,6 +15,8 @@
 #include "state_machine.h"
 #include "volume_controller.h"
 
+#include <optional>
+
 // Forward declaration
 class RP2040_PWM;
 

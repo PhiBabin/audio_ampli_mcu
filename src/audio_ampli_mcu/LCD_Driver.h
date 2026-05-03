@@ -37,13 +37,14 @@
 
 #include "pinout_config.h"
 
-#include <SPI.h>
 #include <stdint.h>
 #include <stdio.h>
 
 #ifdef SIM
 #include "sim/arduino.h"
+#include "sim/SPI.h"
 #else
+#include "SPI.h"
 #endif
 
 #define LCD_BACKLIGHT 57  // Between 0-256 for 0 to 100% brightness

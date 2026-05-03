@@ -2,7 +2,6 @@
 #include "sim/external/gif.h"
 #include "sim/lcd_simulator.h"
 #include "sim/pio_encoder.h"
-#include "sim/toggle_button.h"
 
 #include <SDL.h>
 #include <stdio.h>

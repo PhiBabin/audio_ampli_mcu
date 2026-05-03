@@ -1,6 +1,6 @@
 #include "volume_controller.h"
 
-#include <iostream>
+#include <cstdlib>
 
 VolumeController::VolumeController(
   StateMachine* state_machine_ptr,
