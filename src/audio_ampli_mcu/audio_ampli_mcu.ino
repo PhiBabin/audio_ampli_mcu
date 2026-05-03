@@ -12,6 +12,7 @@
 #include "digit_font_droid_sans_mono.h"
 #include "dm_sans_bold_62.h"
 #include "dm_sans_extrabold.h"
+#include "consolas_regular_26.h"
 #include "dm_sans_regular_40.h"
 #include "interaction_handler.h"
 #include "io_expander.h"
@@ -71,7 +72,7 @@ Display display;
 
 LvFontWrapper digit_droid_sans_font(&droid_sans_mono, true);
 LvFontWrapper digit_light_font(&dmsans_36pt_light, true);
-LvFontWrapper regular_bold_font(&dmsans_36pt_extrabold);
+LvFontWrapper regular_bold_font(&consolas_regular_26);//&dmsans_36pt_extrabold);
 LvFontWrapper regular_medium_font(&dmsans_36pt_regular_40);
 LvFontWrapper regular_large_font(&dm_sans_bold_62);
 
