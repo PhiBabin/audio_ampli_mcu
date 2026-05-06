@@ -1,4 +1,5 @@
 #include "options_controller.h"
+#include "pinout_config.h"
 
 #ifdef SIM
 #include "sim/RP2040_PWM.h"
@@ -139,6 +140,15 @@ void OptionController::update_io_expander_gpio()
   // Set Low gain GPIO
   gpio_handler_ptr_->cache_write_pin(
     pin_out::set_low_gain, persistent_data_ptr_->get_gain() == GainOption::low ? HIGH : LOW);
+
+#if defined (USE_V2_PCB)
+  gpio_handler_ptr_->cache_write_pin(
+    pin_out::set_high_gain, persistent_data_ptr_->get_gain() == GainOption::high ? HIGH : LOW);
+
+
+  gpio_handler_ptr_->cache_write_pin(
+    pin_out::set_mono, persistent_data_ptr_->mono_value == MonoOption::mono ? HIGH : LOW);
+#endif
 
   // Set line out / preamp output GPIO
   gpio_handler_ptr_->cache_write_pin(
@@ -372,17 +382,13 @@ void OptionController::increment_option(const Option& option, const IncrementDir
   {
     case Option::gain:
     {
-      constexpr auto volume_change = 14;
-      // When the gain is set from low to high, reduce the volume by 14db.
-      if (persistent_data_ptr_->get_gain_mutable() == GainOption::low)
-      {
-        volume_ctrl_ptr_->set_volume_db(volume_ctrl_ptr_->get_volume_db() - volume_change);
-      }
-      else
-      {
-        volume_ctrl_ptr_->set_volume_db(volume_ctrl_ptr_->get_volume_db() + volume_change);
-      }
+      constexpr int16_t volume_change = 12;
+      const auto old_value = persistent_data_ptr_->get_gain_mutable();
       change_enum(GainOption::enum_length, persistent_data_ptr_->get_gain_mutable(), increment_dir);
+      const auto new_value = persistent_data_ptr_->get_gain_mutable();
+      const int16_t change = static_cast<int16_t>(old_value) - static_cast<int16_t>(new_value) ;
+      // E.g. high(2) -> low(0) -> 2 - 0 -> 2 -> 2 * 12db -> +24db to volume
+      volume_ctrl_ptr_->set_volume_db(volume_ctrl_ptr_->get_volume_db() + change * volume_change);
       break;
     }
     case Option::output_mode:
@@ -391,6 +397,11 @@ void OptionController::increment_option(const Option& option, const IncrementDir
     case Option::output_type:
       change_enum(OutputTypeOption::enum_length, persistent_data_ptr_->output_type_value, increment_dir);
       break;
+#if defined (USE_V2_PCB)
+    case Option::mono:
+      change_enum(MonoOption::enum_length, persistent_data_ptr_->mono_value, increment_dir);
+      break;
+#endif
     case Option::subwoofer:
       change_enum(OnOffOption::enum_length, persistent_data_ptr_->sufwoofer_enable_value, increment_dir);
       break;

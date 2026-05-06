@@ -8,7 +8,7 @@
 
 // Changing the version will make previously saved settings unusable
 #define MAJOR_VERSION 1
-#define MINOR_VERSION 3
+#define MINOR_VERSION 4
 // Change to the patch will not impact save settings
 #define PATCH_VERSION 0
 
@@ -35,5 +35,6 @@
 #define TICK_PER_AUDIO_IN (ENCODER_TICK_PER_ROTATION / NUM_AUDIO_INPUT)
 
 #define BUTTON_DEBOUNCE_DELAY 20  // [ms]
+#define INACTIVITY_TIMER_THRESHOLD_MS 54000000 // 15min
 
 #endif  // CONFIG_OPTION_GUARD_H_

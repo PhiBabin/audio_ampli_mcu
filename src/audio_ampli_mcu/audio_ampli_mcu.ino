@@ -21,6 +21,8 @@
 #include "options_view.h"
 #include "persistent_data.h"
 #include "state_machine.h"
+#include <optional>
+#include <ratio>
 
 #ifdef SIM
 #include "sim/pio_encoder.h"
@@ -72,7 +74,7 @@ Display display;
 
 LvFontWrapper digit_droid_sans_font(&droid_sans_mono, true);
 LvFontWrapper digit_light_font(&dmsans_36pt_light, true);
-LvFontWrapper regular_bold_font(&consolas_regular_26);//&dmsans_36pt_extrabold);
+LvFontWrapper regular_bold_font(&dmsans_36pt_extrabold);//&dmsans_36pt_extrabold);
 LvFontWrapper regular_medium_font(&dmsans_36pt_regular_40);
 LvFontWrapper regular_large_font(&dm_sans_bold_62);
 
@@ -230,6 +232,47 @@ void setup()
   option_view.init();
 
   option_ctrl.power_on();
+
+  gpio_handler.cache_init_input(pin_out::power_detect);
+}
+
+void update_low_power_timer()
+{
+  if (state_machine.get_state() != State::main_menu)
+  {
+    return;
+  }
+  static std::optional<unsigned long> maybe_timer;
+  static bool prev_power_detected = true;
+
+  const bool is_power_detected = digitalRead(pin_out::power_detect.pin) == HIGH;
+
+  // Detected -> not detected
+  if (!is_power_detected && prev_power_detected)
+  {
+    Serial.println("Starting inactive timer...");
+    maybe_timer.emplace(millis());
+  } // not detected -> not detected
+  else if (!is_power_detected && !prev_power_detected)
+  {
+    if (maybe_timer.has_value() && (millis() - maybe_timer.value()) > INACTIVITY_TIMER_THRESHOLD_MS)
+    {
+      Serial.println("Turning off...");
+      option_view.power_off();
+      state_machine.change_state(State::standby);
+      maybe_timer = std::nullopt;
+    }
+  } // not detected -> detected
+  else if (is_power_detected && !prev_power_detected)
+  {
+    Serial.println("End inactive timer...");
+    maybe_timer = std::nullopt;
+  } // detected -> detected
+  else
+  {
+  }
+
+  prev_power_detected = is_power_detected;
 }
 
 void loop()
@@ -256,6 +299,8 @@ void loop()
       draw_standby(has_state_changed);
       break;
   }
+
+  update_low_power_timer();
 
   persistent_data_flasher.save(persistent_data);
   display.blip_framebuffer();

@@ -25,6 +25,7 @@ enum class Option : uint8_t
   subwoofer,
   balance,
   bias,
+  mono,
   rename_bal,
   rename_rca1,
   rename_rca2,
@@ -45,6 +46,9 @@ enum class Option : uint8_t
 enum class GainOption : uint8_t
 {
   low = 0,
+#if defined (USE_V2_PCB)
+  medium,
+#endif
   high,
   enum_length
 };
@@ -55,6 +59,14 @@ enum class OutputModeOption : uint8_t
   line_out,
   enum_length
 };
+
+enum class MonoOption : uint8_t
+{
+  stereo = 0,
+  mono,
+  enum_length
+};
+
 
 enum class PhonoMode : uint8_t
 {

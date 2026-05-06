@@ -102,7 +102,7 @@ void MCP23S17::print_status()
      {stringify_var(in_out_unipolar)},
      {stringify_var(in_out_bal_unipolar)},
      {stringify_var(in_phono)},
-     {stringify_var(high_gain)}}};
+     {stringify_var(set_high_gain)}}};
 
   const static NameToGpioVector table_iox2 = {{
     {stringify_var(l_volume_bit4)},

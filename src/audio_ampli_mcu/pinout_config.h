@@ -132,7 +132,7 @@ static constexpr GpioPin trigger_12v{GpioModule::pico, GpioPort::na, 15};
 static constexpr GpioPin led_unip{GpioModule::pico, GpioPort::na, 4};
 static constexpr GpioPin led_bip{GpioModule::pico, GpioPort::na, 5};
 static constexpr GpioPin power_detect{GpioModule::pico, GpioPort::na, 9};
-static constexpr GpioPin high_gain{GpioModule::io_expander_1, GpioPort::a, 4};
+static constexpr GpioPin set_high_gain{GpioModule::io_expander_1, GpioPort::a, 4};
 static constexpr GpioPin set_mono{GpioModule::io_expander_2, GpioPort::b, 1};
 
 #else

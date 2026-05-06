@@ -73,9 +73,12 @@ void OptionsView::init()
     std::vector<MenuItem> items{
       MenuItem{Option::balance, "L/R BALANCE", MenuItemType::focus_item},  // real focus
       MenuItem{Option::subwoofer, "SUBWOOFER", MenuItemType::increment_item},
-      MenuItem{Option::gain, "GAIN", MenuItemType::increment_item},
+      MenuItem{Option::gain, "GAIN", MenuItemType::focus_item},
       MenuItem{Option::output_mode, "OUTPUT MODE", MenuItemType::increment_item},
       MenuItem{Option::output_type, "OUTPUT TYPE", MenuItemType::increment_item},
+#if defined (USE_V2_PCB)
+      MenuItem{Option::mono, "MONO/STEREO", MenuItemType::increment_item},
+#endif
     };
 
     std::vector<MenuItem> adv_option_items{
@@ -559,6 +562,10 @@ std::optional<const char*> OptionsView::string_format_option(const Option& optio
       {
         case GainOption::low:
           return "LOW";
+#if defined (USE_V2_PCB)
+        case GainOption::medium:
+          return "MEDIUM";
+#endif
         case GainOption::high:
           return "HIGH";
         default:
@@ -584,6 +591,18 @@ std::optional<const char*> OptionsView::string_format_option(const Option& optio
         default:
           return "ERR3";
       }
+#if defined (USE_V2_PCB)
+      case Option::mono:
+        switch (persistent_data_ptr_->mono_value)
+        {
+          case MonoOption::mono:
+            return "MONO";
+          case MonoOption::stereo:
+            return "STEREO";
+          default:
+            return "ERR44";
+        }
+#endif
     case Option::subwoofer:
       return format_on_off_option(persistent_data_ptr_->sufwoofer_enable_value);
     case Option::balance:
