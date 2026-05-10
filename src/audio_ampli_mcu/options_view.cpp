@@ -396,7 +396,36 @@ void OptionsView::draw_menu(Display& display, const bool has_state_changed)
     }
     const auto& menu_item = maybe_menu_item.value().get();
 
+    if (has_menu_changed)
+    {
+      // Checkerboard dissolve: blacken every other pixel, blip once (~200ms),
+      // then clear and draw the new menu.
+      display.checkerboard_dissolve();
+      display.blip_framebuffer();
+    }
+
     display.clear_screen(BLACK_COLOR);
+
+    // Page counter: show "N / M" in the lower-right corner
+    {
+      snprintf(page_count_buffer_, sizeof(page_count_buffer_), "%d / %d",
+               static_cast<int>(menu.maybe_selected_index.value_or(0) + 1),
+               static_cast<int>(menu.items.size()));
+      draw_string_fast(display, page_count_buffer_, LCD_WIDTH - 80, LCD_HEIGHT - font_.get_height_px() - 6, LCD_WIDTH, font_, true, false, TextAlign::right);
+
+      // Progress bar: a thin white line proportional to the position in the menu.
+      // Drawn just below the text, spanning the full width.
+      constexpr uint16_t bar_height = 3;
+      const uint16_t bar_y = LCD_HEIGHT - bar_height - 1;
+      const auto num_items = static_cast<int>(menu.items.size());
+      if (num_items > 1)
+      {
+        const auto selected_idx = static_cast<uint32_t>(menu.maybe_selected_index.value_or(0));
+        const uint16_t filled_width = static_cast<uint16_t>(
+         selected_idx * LCD_WIDTH / (num_items - 1));
+        display.draw_rectangle(0, bar_y, filled_width, bar_y + bar_height, WHITE_COLOR);
+      }
+    }
 
     constexpr uint16_t top_bar_width_px = 5;
     constexpr uint16_t bar_height_px = 56;
@@ -493,8 +522,12 @@ void OptionsView::draw_menu(Display& display, const bool has_state_changed)
   else
   {
 
-    if (has_menu_changed)  // || prev_option_menu != option_ctrl.get_current_menu_screen())
+    if (has_menu_changed)
     {
+      // Checkerboard dissolve: blacken every other pixel, blip once (~200ms),
+      // then clear and draw the new menu.
+      display.checkerboard_dissolve();
+      display.blip_framebuffer();
       display.clear_screen(BLACK_COLOR);
     }
 

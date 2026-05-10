@@ -369,6 +369,37 @@ void Display::set_pixel_unsafe(const uint16_t x, const uint16_t y, const uint32_
   has_screen_changed = true;
 }
 
+void Display::checkerboard_dissolve()
+{
+  // Packed 12-bit RGB444: 2 pixels per 3 bytes.
+  // Even pixel: byte0 = RRRRGGGG, byte1[7:4] = BBBB
+  // Odd pixel:  byte1[3:0] = RRRR, byte2 = GGGGBBBB
+  // Black (0x000): all nibbles zero.
+  for (uint16_t y = 0; y < LCD_HEIGHT; ++y)
+  {
+    for (uint16_t x = 0; x < LCD_WIDTH; x += 2)
+    {
+      const uint32_t bo = (static_cast<uint32_t>(y) * LCD_WIDTH + x) * 3 / 2;
+
+      // Even pixel at (x, y) and odd pixel at (x+1, y) are always opposites,
+      // so a single XOR check suffices.
+      if ((x ^ y) & 1)
+      {
+        // Even pixel -> black, preserve odd pixel
+        frame_buffer_[bo] = 0;
+        frame_buffer_[bo + 1] &= 0x0F;
+      }
+      else
+      {
+        // Odd pixel -> black, preserve even pixel
+        frame_buffer_[bo + 1] &= 0xF0;
+        frame_buffer_[bo + 2] = 0;
+      }
+    }
+  }
+  has_screen_changed = true;
+}
+
 void Display::set_pixel(const uint16_t x, const uint16_t y, const uint32_t color_12bit)
 {
   if (x >= LCD_WIDTH || y >= LCD_HEIGHT)

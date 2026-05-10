@@ -301,6 +301,9 @@ void loop()
   if (has_state_changed)
   {
     Serial.println("state changed!");
+    // Checkerboard dissolve before transitioning to the new state
+    display.checkerboard_dissolve();
+    display.blip_framebuffer();
     display.clear_screen(BLACK_COLOR);
   }
   switch (state_machine.get_state())

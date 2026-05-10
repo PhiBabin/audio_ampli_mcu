@@ -100,6 +100,9 @@ private:
   // Force partial redraw on button press
   bool on_button_press_{false};
 
+  // Page counter buffer (reused each frame)
+  char page_count_buffer_[12];
+
   // Temporary buffer used for string_format_option().
   constexpr static size_t tmp_format_str_len_ = 100;
   char tmp_format_str_buffer_[tmp_format_str_len_];

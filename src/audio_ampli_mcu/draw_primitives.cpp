@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <cassert>
-#include <cmath>
 #include <cstring>
 #include <stdlib.h>
 
@@ -487,6 +486,58 @@ void draw_image_from_top_left(
   // DEV_SPI_END_TRANS;
 }
 
+/// Maximum supported corner radius for the arc table.
+/// Limited by the screen dimensions (LCD_WIDTH / 2 = 160, LCD_HEIGHT / 2 = 120).
+constexpr int32_t k_max_arc_radius = 128;
+
+/// Precompute the corner arc for a given radius.
+/// For each y (1..r), computes x_high_precision = floor(sqrt((r^2 - y^2) * 256))
+/// using integer-only binary search (avoids double sqrt on RP2040 with no FPU).
+/// Results are cached for up to 5 different radii.
+/// Returns a pointer to a static array where arc[y] is the high-precision x value.
+static const int32_t* get_arc_table(const int32_t r)
+{
+  constexpr int32_t max_cached_radii = 3;
+  static int32_t cached_radii[max_cached_radii] = {-1, -1, -1};
+  static int32_t cached_arcs[max_cached_radii][k_max_arc_radius];
+  static int32_t next_slot = 0;
+
+  // Check if already cached
+  for (int32_t i = 0; i < max_cached_radii; ++i)
+  {
+    if (cached_radii[i] == r)
+    {
+      return cached_arcs[i];
+    }
+  }
+
+  // Compute and cache
+  int32_t* arc_x = cached_arcs[next_slot];
+  cached_radii[next_slot] = r;
+  next_slot = (next_slot + 1) % max_cached_radii;
+
+  for (int32_t ay = 1; ay <= r; ++ay)
+  {
+    const uint32_t val = static_cast<uint32_t>(r * r - ay * ay) * 256;
+    uint32_t lo = 0;
+    uint32_t hi = static_cast<uint32_t>(r) * 16;
+    while (lo < hi)
+    {
+      const uint32_t mid = (lo + hi + 1) / 2;
+      if (mid * mid <= val)
+      {
+        lo = mid;
+      }
+      else
+      {
+        hi = mid - 1;
+      }
+    }
+    arc_x[ay] = static_cast<int32_t>(lo);
+  }
+  return arc_x;
+}
+
 /// Implementation of a fast anti-aliased rounded rectangle.
 /// Based on Fast Anti-Aliased Circle Generation". In James Arvo (ed.). Graphics Gems II.
 void draw_rounded_rectangle(
@@ -537,6 +588,14 @@ void draw_rounded_rectangle(
     return;
   }
 
+  // Clamp to the maximum supported radius to avoid out-of-bounds access in the arc table.
+  // This can only happen if the caller passes a radius > kMaxArcRadius, which is already
+  // bounded by the screen dimensions above, but we guard defensively.
+  if (r > k_max_arc_radius)
+  {
+    return;
+  }
+
   // Use ORIGINAL (unclipped) coordinates for corner centers so that when a
   // corner is partially off-screen it is clipped naturally rather than
   // squashed into the visible region.
@@ -573,16 +632,15 @@ void draw_rounded_rectangle(
   int32_t x = r;
   int32_t y = 0;
 
+  const int32_t* arc_x = get_arc_table(r);
+
   // The loop computes the antialiased pixels of 1/8 of a circle. Because of
   // symmetry, this 1/8 is mirrored 8 times to make the 4 rounded corners.
   while (x > y)
   {
     ++y;
-    // TODO: Should precompute all values of x and save them in a table.
-    constexpr int32_t precision = 0x10;
-    const int32_t x_high_precision =
-      sqrt((double)((r * r - y * y) * precision * precision));
-    x = x_high_precision / precision;
+    const int32_t x_high_precision = arc_x[y];
+    x = x_high_precision / 16;
     // Equivalent of x - floor(x)
     const auto color_4bit = x_high_precision & 0xf;
 

@@ -99,6 +99,10 @@ public:
   void set_pixel(const uint16_t x, const uint16_t y, const uint32_t color_12bit);
   void set_pixel_unsafe(const uint16_t x, const uint16_t y, const uint32_t color_12bit);
 
+  /// Replace every other pixel with black (checkerboard pattern) for a dissolve transition.
+  /// Operates directly on the framebuffer for maximum speed.
+  void checkerboard_dissolve();
+
 private:
   void set_window(const uint16_t x_start, const uint16_t y_start, const uint16_t x_end, const uint16_t y_end);
 
