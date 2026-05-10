@@ -34,6 +34,8 @@
 #include "remote_controller.h"
 
 #include <algorithm>
+#include <math.h>
+#include <stdio.h>
 
 // Convention for GPIO names:
 // GPX -> X pin on the PI Pico
@@ -191,6 +193,65 @@ void test_clear_rectangle()
   }
 }
 
+/// Animated test that exercises the new Rect-based clipping.
+/// Shapes and text are deliberately driven off all four screen edges
+/// to prove that set_pixel_unsafe is never called with out-of-bounds coordinates.
+void test_bounds_check()
+{
+  static uint32_t frame = 0;
+  ++frame;
+
+  const float t = frame * 0.02f;
+  display.clear_screen(BLACK_COLOR);
+
+  // --- 1. Image: wide ellipse, goes off ALL edges ---
+  {
+    const int32_t cx = static_cast<int32_t>(sinf(t) * (LCD_WIDTH * 0.65f));
+    const int32_t cy = static_cast<int32_t>(cosf(t * 1.3f) * (LCD_HEIGHT * 0.65f));
+    const int32_t img_x = LCD_WIDTH / 2 + cx - static_cast<int32_t>(cat_sleep_image.w_px / 2);
+    const int32_t img_y = LCD_HEIGHT / 2 + cy - static_cast<int32_t>(cat_sleep_image.h_px / 2);
+    draw_image_from_top_left(display, cat_sleep_image, img_x, img_y);
+  }
+
+  // --- 2. Rounded rectangle: diagonal sweep, goes off ALL edges ---
+  {
+    const int32_t rr_w = 110;
+    const int32_t rr_h = 70;
+    const int32_t rr_x = static_cast<int32_t>((frame * 2) % (LCD_WIDTH + rr_w + 40)) - (rr_w + 20);
+    const int32_t rr_y = static_cast<int32_t>((frame * 3) % (LCD_HEIGHT + rr_h + 40)) - (rr_h + 20);
+    draw_rounded_rectangle(display, rr_x, rr_y, rr_x + rr_w, rr_y + rr_h, true, true, true, 14);
+  }
+
+  // --- 3. Text: horizontal scroll, goes off right edge ---
+  {
+    const int32_t txt_x = static_cast<int32_t>((frame * 2) % (LCD_WIDTH + 120)) - 60;
+    draw_string_fast(display, "RIGHT-CLIP", txt_x, 10, txt_x + 260, regular_bold_font, true, false, TextAlign::left);
+  }
+
+  // --- 4. Text: vertical scroll, goes off top & bottom ---
+  {
+    const int32_t txt_y = static_cast<int32_t>((frame * 3) % (LCD_HEIGHT + 80)) - 40;
+    draw_string_fast(display, "BOTTOM", 10, txt_y, 200, regular_medium_font, true, false, TextAlign::left);
+  }
+
+  // --- 5. Centered text: oscillates past left & right edges ---
+  {
+    const int32_t offset = static_cast<int32_t>(sinf(t * 0.7f) * (LCD_WIDTH * 0.55f));
+    const int32_t box_cx = LCD_WIDTH / 2 + offset;
+    draw_string_fast(display, "CENTER", box_cx, LCD_HEIGHT / 2 - 20, box_cx + 160, regular_bold_font, true, false, TextAlign::center);
+  }
+
+  // --- 6. Small frame counter (always visible) ---
+  {
+    char buf[16];
+    snprintf(buf, sizeof(buf), "%u", frame);
+    draw_string_fast(display, buf, 5, LCD_HEIGHT - 35, 120, regular_medium_font, true, false, TextAlign::left);
+  }
+
+  display.blip_framebuffer();
+  // delay(16);  // ~60 fps
+}
+
 void setup()
 {
   Serial.begin(115200);
@@ -277,6 +338,7 @@ void update_low_power_timer()
 
 void loop()
 {
+  // test_bounds_check();
   remote_ctrl.decode_command();
   interaction_handler.update();
   volume_ctrl.update();

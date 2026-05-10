@@ -15,6 +15,49 @@
 const uint32_t WHITE_COLOR = 0xfff;
 const uint32_t BLACK_COLOR = 0x0;
 
+// Lightweight rectangle for clipping. Uses exclusive-end (x_end,y_end is first pixel outside).
+// All methods should be inlined by the compiler with any optimization level.
+struct Rect
+{
+  int32_t x_start{0};  // left, inclusive
+  int32_t y_start{0};  // top, inclusive
+  int32_t x_end{LCD_WIDTH};  // right, exclusive
+  int32_t y_end{LCD_HEIGHT};  // bottom, exclusive
+
+  void clip_to_screen()
+  {
+    if (x_start < 0)
+    {
+      x_start = 0;
+    }
+    if (y_start < 0)
+    {
+      y_start = 0;
+    }
+    if (x_end > static_cast<int32_t>(LCD_WIDTH))
+    {
+      x_end = static_cast<int32_t>(LCD_WIDTH);
+    }
+    if (y_end > static_cast<int32_t>(LCD_HEIGHT))
+    {
+      y_end = static_cast<int32_t>(LCD_HEIGHT);
+    }
+  }
+
+  inline bool is_empty() const
+  {
+    return x_start >= x_end || y_start >= y_end;
+  }
+  inline uint32_t width() const
+  {
+    return static_cast<uint32_t>(x_end - x_start);
+  }
+  inline uint32_t height() const
+  {
+    return static_cast<uint32_t>(y_end - y_start);
+  }
+};
+
 // New format for glyph descriptor, it includes a bounding box offset, so the bitmap doesn't have to include
 // transparent pixels.
 struct lv_font_fmt_txt_glyph_dsc_t
@@ -108,9 +151,10 @@ private:
 void draw_character_fast(
   Display& display,
   const LvFontWrapper::LvGlyph* glyph,
-  const uint32_t start_x,
-  const uint32_t start_y,
-  bool is_white_on_black = true);
+  const int32_t start_x,
+  const int32_t start_y,
+  bool is_white_on_black = true,
+  bool draw_spacing = true);
 
 enum class TextAlign : uint8_t
 {
@@ -123,9 +167,9 @@ enum class TextAlign : uint8_t
 void draw_string_fast(
   Display& display,
   const char* str,
-  const uint32_t start_x,
-  const uint32_t start_y,
-  const uint32_t end_x,
+  const int32_t start_x,
+  const int32_t start_y,
+  const int32_t end_x,
   const LvFontWrapper& font,
   bool is_white_on_black = true,
   bool clear_side = true,
@@ -134,9 +178,9 @@ void draw_string_fast(
 void draw_multilines_string(
   Display& display,
   const char* str,
-  const uint32_t start_x,
-  const uint32_t start_y,
-  const uint32_t end_x,
+  const int32_t start_x,
+  const int32_t start_y,
+  const int32_t end_x,
   const LvFontWrapper& font,
   bool is_white_on_black = true,
   bool clear_side = true,

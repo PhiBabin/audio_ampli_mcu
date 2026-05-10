@@ -14,44 +14,54 @@
 void draw_character_fast(
   Display& display,
   const LvFontWrapper::LvGlyph* glyph,
-  const uint32_t start_x,
-  const uint32_t start_y,
+  const int32_t start_x,
+  const int32_t start_y,
   bool is_white_on_black,
   bool draw_spacing)
 {
-  uint32_t end_x = start_x + (draw_spacing ? glyph->width_with_spacing_px : glyph->width_px);
-  uint32_t end_y = start_y + glyph->height_px;
-  if (end_y > LCD_HEIGHT)
+  Rect rect{
+    .x_start = start_x,
+    .y_start = start_y,
+    .x_end = start_x + static_cast<int32_t>(draw_spacing ? glyph->width_with_spacing_px : glyph->width_px),
+    .y_end = start_y + static_cast<int32_t>(glyph->height_px)
+  };
+  rect.clip_to_screen();
+  if (rect.is_empty())
   {
-    end_y = LCD_HEIGHT;
+    return;
   }
+
+  // When the glyph is partially off-screen on the left/top, offset into the glyph bitmap
+  const uint32_t glyph_x_offset = static_cast<uint32_t>(rect.x_start - static_cast<int32_t>(start_x));
+  const uint32_t glyph_y_offset = static_cast<uint32_t>(rect.y_start - static_cast<int32_t>(start_y));
 
   // Make sure that we have an even number of columns, that way we don't have to worry about write call with only one
   // column
-  if ((end_x - start_x) % 2 != 0)
+  if (rect.width() % 2 != 0)
   {
-    ++end_x;
+    rect.x_end += 1;
+    // Re-clamp after the +1 in case we pushed past the screen edge
+    if (rect.x_end > static_cast<int32_t>(LCD_WIDTH))
+    {
+      rect.x_end = static_cast<int32_t>(LCD_WIDTH);
+    }
   }
 
-  //   Serial.print("\tstart_x=");
-  //   Serial.print(start_x);
-  //   Serial.print("end_x=");
-  //   Serial.print(end_x);
-  //   Serial.println("");
-
-  for (uint32_t y = 0; y < end_y - start_y; ++y)
+  const auto width = rect.width();
+  const auto height = rect.height();
+  for (uint32_t y = 0; y < height; ++y)
   {
     uint32_t rgb444_color = 0;
-    for (uint32_t x = 0; x < end_x - start_x; ++x)
+    for (uint32_t x = 0; x < width; ++x)
     {
-      auto color_4bit = glyph->get_color(x, y);
+      auto color_4bit = glyph->get_color(x + glyph_x_offset, y + glyph_y_offset);
       if (!is_white_on_black)
       {
         color_4bit = 0xf - (color_4bit & 0xf);
       }
       // Convert 4bit grayscale to four 4bit RGB
       rgb444_color = (color_4bit << 8 | color_4bit << 4 | color_4bit);
-      display.set_pixel_unsafe(x + start_x, y + start_y, rgb444_color);
+      display.set_pixel_unsafe(static_cast<uint16_t>(rect.x_start + x), static_cast<uint16_t>(rect.y_start + y), rgb444_color);
     }
   }
 
@@ -86,17 +96,17 @@ void draw_character_fast(
 void draw_multilines_string(
   Display& display,
   const char* str,
-  const uint32_t start_x,
-  const uint32_t start_y,
-  const uint32_t end_x,
+  const int32_t start_x,
+  const int32_t start_y,
+  const int32_t end_x,
   const LvFontWrapper& font,
   bool is_white_on_black,
   bool clear_side,
   const TextAlign txt_align)
 {
   const char* start = str;
-  uint32_t top_y = start_y;
-  const uint32_t line_spacing = font.get_height_px() + font.get_height_px() / 2;
+  int32_t top_y = start_y;
+  const int32_t line_spacing = static_cast<int32_t>(font.get_height_px() + font.get_height_px() / 2);
   for (;; ++str)
   {
     const ptrdiff_t length = str - start;
@@ -121,9 +131,9 @@ void draw_multilines_string(
 void draw_string_fast(
   Display& display,
   const char* str,
-  const uint32_t start_x,
-  const uint32_t start_y,
-  const uint32_t end_x,
+  const int32_t start_x,
+  const int32_t start_y,
+  const int32_t end_x,
   const LvFontWrapper& font,
   bool is_white_on_black,
   bool clear_side,
@@ -149,37 +159,12 @@ void draw_string_fast(
   }
   text_width_px +=
     (strlen(str) - 1) * font.get_spacing_px();  // This kind of assumes that every character in string has a glyph
-  uint32_t end_y = start_y + font.get_height_px();
-  if (end_y > LCD_HEIGHT)
-  {
-    end_y = LCD_HEIGHT;
-  }
 
-  uint32_t start_text_x = 0;
-  uint32_t end_text_x = 0;
-  switch (txt_align)
-  {
-    case TextAlign::center:
-    {
-      const int32_t middle_x = static_cast<int32_t>((end_x - start_x) / 2 + start_x);
-      start_text_x = static_cast<uint32_t>(MAX(0L, middle_x - static_cast<int32_t>(text_width_px / 2)));
-      end_text_x = middle_x + text_width_px / 2;
-      break;
-    }
-    case TextAlign::right:
-    {
-      start_text_x = end_x > text_width_px ? end_x - text_width_px : 0;
-      end_text_x = end_x;
-      break;
-    }
-    default:
-    case TextAlign::left:
-    {
-      start_text_x = start_x;
-      end_text_x = start_x + text_width_px;
-      break;
-    }
-  }
+  const int32_t end_y = start_y + static_cast<int32_t>(font.get_height_px());
+
+  // Clamp start_x and end_x to screen bounds for the clear-side rectangles
+  const int32_t clamped_start_x = std::max(start_x, 0);
+  const int32_t clamped_end_x = std::min(end_x, static_cast<int32_t>(LCD_WIDTH));
 
   // Serial.print("start_x=");
   // Serial.print(start_x);
@@ -191,18 +176,65 @@ void draw_string_fast(
   // Serial.print(end_x);
   // Serial.println("");
 
-  if (start_x < start_text_x && clear_side)
+  int32_t start_text_x = 0;
+  int32_t end_text_x = 0;
+  switch (txt_align)
+  {
+    case TextAlign::center:
+    {
+      const int32_t middle_x = (end_x - start_x) / 2 + start_x;
+      start_text_x = std::max(0, middle_x - static_cast<int32_t>(text_width_px / 2));
+      end_text_x = middle_x + static_cast<int32_t>(text_width_px / 2);
+      break;
+    }
+    case TextAlign::right:
+    {
+      start_text_x = end_x > static_cast<int32_t>(text_width_px) ? end_x - static_cast<int32_t>(text_width_px) : 0;
+      end_text_x = end_x;
+      break;
+    }
+    default:
+    case TextAlign::left:
+    {
+      start_text_x = start_x;
+      end_text_x = start_x + static_cast<int32_t>(text_width_px);
+      break;
+    }
+  }
+
+  // If the entire text is off-screen horizontally, nothing to do.
+  if (end_text_x <= 0 || start_text_x >= static_cast<int32_t>(LCD_WIDTH))
+  {
+    return;
+  }
+
+  // If the entire text is off-screen vertically, nothing to do.
+  if (end_y <= 0 || start_y >= static_cast<int32_t>(LCD_HEIGHT))
+  {
+    return;
+  }
+
+  if (clamped_start_x < start_text_x && clear_side)
   {
     // whiteout
-    // LCD_ClearWindow_12bitRGB(
-    display.draw_rectangle(start_x, start_y, start_text_x + 1, end_y, is_white_on_black ? BLACK_COLOR : WHITE_COLOR);
+    display.draw_rectangle(
+      static_cast<uint16_t>(clamped_start_x),
+      static_cast<uint16_t>(std::max(start_y, 0)),
+      static_cast<uint16_t>(std::min(start_text_x + 1, static_cast<int32_t>(LCD_WIDTH))),
+      static_cast<uint16_t>(std::min(end_y, static_cast<int32_t>(LCD_HEIGHT))),
+      is_white_on_black ? BLACK_COLOR : WHITE_COLOR);
   }
-  if (end_text_x < end_x && clear_side)
+  if (end_text_x < clamped_end_x && clear_side)
   {
     // whiteout
-    // LCD_ClearWindow_12bitRGB(
-    display.draw_rectangle(end_text_x, start_y, end_x + 1, end_y, is_white_on_black ? BLACK_COLOR : WHITE_COLOR);
+    display.draw_rectangle(
+      static_cast<uint16_t>(std::max(end_text_x, 0)),
+      static_cast<uint16_t>(std::max(start_y, 0)),
+      static_cast<uint16_t>(clamped_end_x + 1),
+      static_cast<uint16_t>(std::min(end_y, static_cast<int32_t>(LCD_HEIGHT))),
+      is_white_on_black ? BLACK_COLOR : WHITE_COLOR);
   }
+
   str_temp = str;
   auto current_text_x = start_text_x;
   while (*str_temp != '\0')
@@ -364,29 +396,39 @@ void draw_image(Display& display, const lv_img_dsc_t& img, const uint32_t center
 void draw_image_from_top_left(
   Display& display, const lv_img_dsc_t& img, const uint32_t start_x, const uint32_t start_y, const bool vertical_mirror)
 {
-  uint32_t end_x = start_x + img.w_px;
-  const uint32_t end_y = start_y + img.h_px;
+  Rect rect{
+    .x_start = static_cast<int32_t>(start_x),
+    .y_start = static_cast<int32_t>(start_y),
+    .x_end = static_cast<int32_t>(start_x + img.w_px),
+    .y_end = static_cast<int32_t>(start_y + img.h_px)
+  };
+  rect.clip_to_screen();
+  if (rect.is_empty())
+  {
+    return;
+  }
 
-  //   Serial.print("\tstart_x=");
-  //   Serial.print(start_x);
-  //   Serial.print("end_x=");
-  //   Serial.print(end_x);
-  //   Serial.println("");
+  // When the image is partially off-screen on the left/top, offset into the bitmap
+  const uint32_t bitmap_x_offset = static_cast<uint32_t>(rect.x_start - static_cast<int32_t>(start_x));
+  const uint32_t bitmap_y_offset = static_cast<uint32_t>(rect.y_start - static_cast<int32_t>(start_y));
 
   const uint32_t span = img.has_alpha ? 4 : 3;
-  for (uint32_t y = 0; y < end_y - start_y; ++y)
+  const auto width = rect.width();
+  const auto height = rect.height();
+  for (uint32_t y = 0; y < height; ++y)
   {
     uint32_t rgb444_color = 0;
-    for (uint32_t x = 0; x < end_x - start_x; ++x)
+    for (uint32_t x = 0; x < width; ++x)
     {
       uint32_t r = 0;
       uint32_t g = 0;
       uint32_t b = 0;
-      if (x < img.w_px && y < img.h_px)
       {
+        const uint32_t bitmap_x = x + bitmap_x_offset;
+        const uint32_t bitmap_y = y + bitmap_y_offset;
         // If vertically mirror change the x offset
-        const auto x_mirror = vertical_mirror ? img.w_px - x - 1 : x;
-        const auto offset = y * img.w_px * span + x_mirror * span;
+        const auto x_mirror = vertical_mirror ? img.w_px - bitmap_x - 1 : bitmap_x;
+        const auto offset = bitmap_y * img.w_px * span + x_mirror * span;
         // Due to little endianness it's BGR, not RGB
         b = img.data[offset];
         g = img.data[offset + 1];
@@ -398,15 +440,7 @@ void draw_image_from_top_left(
       b >>= 4;
       // Convert 4bit grayscale to four 4bit RGB
       rgb444_color = ((r << 8) | (g << 4) | b);
-      display.set_pixel_unsafe(x + start_x, y + start_y, rgb444_color);
-      // color_2pixels = (color_2pixels << 12) | ((r << 8) | (g << 4) | b);
-      // ++px_count;
-      // if (px_count == 2)
-      // {
-      //   LCD_write_2pixel_color(color_2pixels);
-      //   px_count = 0;
-      //   color_2pixels = 0;
-      // }
+      display.set_pixel_unsafe(static_cast<uint16_t>(rect.x_start + x), static_cast<uint16_t>(rect.y_start + y), rgb444_color);
     }
   }
   // DEV_SPI_BEGIN_TRANS;
@@ -461,49 +495,90 @@ void draw_rounded_rectangle(
   const bool rounded_right,
   const int32_t corner_radius_px)
 {
-  assert(start_x >= 0);
-  assert(start_y >= 0);
-  assert(end_x <= LCD_WIDTH);
-  assert(end_y <= LCD_HEIGHT);
-  assert(start_x <= end_x);
-  assert(start_y <= end_y);
+  // Clip the rectangle to the screen.
+  Rect rect{
+    .x_start = start_x,
+    .y_start = start_y,
+    .x_end = end_x,
+    .y_end = end_y
+  };
+  rect.clip_to_screen();
+  if (rect.is_empty())
+  {
+    return;
+  }
 
-  const int32_t left_corner_center_x = start_x + corner_radius_px - 1;
-  const int32_t top_corner_center_y = start_y + corner_radius_px - 1;
-  const int32_t right_corner_center_x = end_x - corner_radius_px;
-  const int32_t bot_corner_center_y = end_y - corner_radius_px;
+  const int32_t clipped_start_x = rect.x_start;
+  const int32_t clipped_start_y = rect.y_start;
+  const int32_t clipped_end_x = rect.x_end;
+  const int32_t clipped_end_y = rect.y_end;
 
-  auto draw_pixel_mirrored_8 = [&](int32_t x, int32_t y, uint32_t rgb444_color) {
-    const auto& left_color = rounded_left ? rgb444_color : WHITE_COLOR;
-    const auto& right_color = rounded_right ? rgb444_color : WHITE_COLOR;
-    // Top left quadrant
-    display.set_pixel_unsafe(left_corner_center_x - x, top_corner_center_y - y, left_color);
-    display.set_pixel_unsafe(left_corner_center_x - y, top_corner_center_y - x, left_color);
-    // Bottom left quadrant
-    display.set_pixel_unsafe(left_corner_center_x - x, bot_corner_center_y + y, left_color);
-    display.set_pixel_unsafe(left_corner_center_x - y, bot_corner_center_y + x, left_color);
-    // Top right quadrant
-    display.set_pixel_unsafe(right_corner_center_x + x, top_corner_center_y - y, right_color);
-    display.set_pixel_unsafe(right_corner_center_x + y, top_corner_center_y - x, right_color);
-    // Bottom right quadrant
-    display.set_pixel_unsafe(right_corner_center_x + x, bot_corner_center_y + y, right_color);
-    display.set_pixel_unsafe(right_corner_center_x + y, bot_corner_center_y + x, right_color);
+  const int32_t width = end_x - start_x;
+  const int32_t height = end_y - start_y;
+
+  // Reduce corner radius if the clipped rectangle is smaller than 2*radius.
+  const int32_t r = std::min(corner_radius_px, std::min(width / 2, height / 2));
+
+  if (r <= 0)
+  {
+    // Degenerate to a plain filled rectangle.
+    for (int32_t j = clipped_start_y; j < clipped_end_y; ++j)
+    {
+      for (int32_t i = clipped_start_x; i < clipped_end_x; ++i)
+      {
+        display.set_pixel_unsafe(static_cast<uint16_t>(i), static_cast<uint16_t>(j), WHITE_COLOR);
+      }
+    }
+    return;
+  }
+
+  // Use ORIGINAL (unclipped) coordinates for corner centers so that when a
+  // corner is partially off-screen it is clipped naturally rather than
+  // squashed into the visible region.
+  const int32_t left_corner_center_x = start_x + r - 1;
+  const int32_t top_corner_center_y = start_y + r - 1;
+  const int32_t right_corner_center_x = end_x - r;
+  const int32_t bot_corner_center_y = end_y - r;
+
+  // Inline bounds check for corner pixels (AA fringe can bleed 1 px outside the rect).
+  auto pixel_safe = [&](int32_t px, int32_t py, uint32_t color) {
+    if (static_cast<uint32_t>(px) < LCD_WIDTH && static_cast<uint32_t>(py) < LCD_HEIGHT)
+    {
+      display.set_pixel_unsafe(static_cast<uint16_t>(px), static_cast<uint16_t>(py), color);
+    }
   };
 
-  int32_t x = corner_radius_px;
+  auto draw_pixel_mirrored_8 = [&](int32_t x, int32_t y, uint32_t rgb444_color) {
+    const auto left_color = rounded_left ? rgb444_color : WHITE_COLOR;
+    const auto right_color = rounded_right ? rgb444_color : WHITE_COLOR;
+    // Top left quadrant
+    pixel_safe(left_corner_center_x - x, top_corner_center_y - y, left_color);
+    pixel_safe(left_corner_center_x - y, top_corner_center_y - x, left_color);
+    // Bottom left quadrant
+    pixel_safe(left_corner_center_x - x, bot_corner_center_y + y, left_color);
+    pixel_safe(left_corner_center_x - y, bot_corner_center_y + x, left_color);
+    // Top right quadrant
+    pixel_safe(right_corner_center_x + x, top_corner_center_y - y, right_color);
+    pixel_safe(right_corner_center_x + y, top_corner_center_y - x, right_color);
+    // Bottom right quadrant
+    pixel_safe(right_corner_center_x + x, bot_corner_center_y + y, right_color);
+    pixel_safe(right_corner_center_x + y, bot_corner_center_y + x, right_color);
+  };
+
+  int32_t x = r;
   int32_t y = 0;
 
-  // The loop computes the antiliased pixels of 1/8 of a circle, because of symmetry, this 1/8 is a mirrored 8 times to
-  // make the 4 rounded corners.
+  // The loop computes the antialiased pixels of 1/8 of a circle. Because of
+  // symmetry, this 1/8 is mirrored 8 times to make the 4 rounded corners.
   while (x > y)
   {
     ++y;
-    // TODO: Should precompute all value of x's value and save it in a table.
+    // TODO: Should precompute all values of x and save them in a table.
     constexpr int32_t precision = 0x10;
     const int32_t x_high_precision =
-      sqrt((double)((corner_radius_px * corner_radius_px - y * y) * precision * precision));
+      sqrt((double)((r * r - y * y) * precision * precision));
     x = x_high_precision / precision;
-    // Equivalent of  x - floor(x)
+    // Equivalent of x - floor(x)
     const auto color_4bit = x_high_precision & 0xf;
 
     const auto rgb444_color = color_4bit << 8 | color_4bit << 4 | color_4bit;
@@ -515,30 +590,48 @@ void draw_rounded_rectangle(
       draw_pixel_mirrored_8(i, y, WHITE_COLOR);
     }
     // Fill corner's exterior
-    for (int32_t i = x + 1; i < corner_radius_px; ++i)
+    for (int32_t i = x + 1; i < r; ++i)
     {
       draw_pixel_mirrored_8(i, y, BLACK_COLOR);
     }
   }
 
-  // Now that the corners are drawn, we can draw the not-corners, it's basically a cross-shaped area.
+  // --- Fill the interior (cross-shaped area) ---
+  // All loops are clamped to the clipped bounds so we never call
+  // set_pixel_unsafe with out-of-screen coordinates.
 
-  // Horizontal lines
-  for (int32_t j = top_corner_center_y; j <= bot_corner_center_y; ++j)
+  // Horizontal band (full width)
+  const int32_t h_y_start = std::max(top_corner_center_y, clipped_start_y);
+  const int32_t h_y_end = std::min(bot_corner_center_y, clipped_end_y - 1);
+  for (int32_t j = h_y_start; j <= h_y_end; ++j)
   {
-    for (int32_t i = start_x; i < end_x; ++i)
+    for (int32_t i = clipped_start_x; i < clipped_end_x; ++i)
     {
-      display.set_pixel_unsafe(i, j, WHITE_COLOR);
+      display.set_pixel_unsafe(static_cast<uint16_t>(i), static_cast<uint16_t>(j), WHITE_COLOR);
     }
   }
-  // Vertical lines
-  for (int32_t j = 0; j < corner_radius_px; ++j)
+
+  // Top vertical strip (between the left and right corner arcs)
+  const int32_t top_y_start = clipped_start_y;
+  const int32_t top_y_end = std::min(clipped_start_y + r - 1, clipped_end_y - 1);
+  const int32_t mid_x_start = std::max(left_corner_center_x, clipped_start_x);
+  const int32_t mid_x_end = std::min(right_corner_center_x, clipped_end_x - 1);
+  for (int32_t j = top_y_start; j <= top_y_end; ++j)
   {
-    for (int32_t i = left_corner_center_x; i <= right_corner_center_x; ++i)
+    for (int32_t i = mid_x_start; i <= mid_x_end; ++i)
     {
-      // Mirror horizontally
-      display.set_pixel_unsafe(i, start_y + j, WHITE_COLOR);
-      display.set_pixel_unsafe(i, end_y - j - 1, WHITE_COLOR);
+      display.set_pixel_unsafe(static_cast<uint16_t>(i), static_cast<uint16_t>(j), WHITE_COLOR);
+    }
+  }
+
+  // Bottom vertical strip (between the left and right corner arcs)
+  const int32_t bot_y_start = std::max(clipped_end_y - r, clipped_start_y);
+  const int32_t bot_y_end = clipped_end_y - 1;
+  for (int32_t j = bot_y_start; j <= bot_y_end; ++j)
+  {
+    for (int32_t i = mid_x_start; i <= mid_x_end; ++i)
+    {
+      display.set_pixel_unsafe(static_cast<uint16_t>(i), static_cast<uint16_t>(j), WHITE_COLOR);
     }
   }
 }
