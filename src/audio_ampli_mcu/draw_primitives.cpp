@@ -11,6 +11,11 @@
 #endif
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
+#ifdef MIN
+#undef MIN
+#endif
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+
 void draw_character_fast(
   Display& display,
   const LvFontWrapper::LvGlyph* glyph,
@@ -163,8 +168,8 @@ void draw_string_fast(
   const int32_t end_y = start_y + static_cast<int32_t>(font.get_height_px());
 
   // Clamp start_x and end_x to screen bounds for the clear-side rectangles
-  const int32_t clamped_start_x = std::max(start_x, 0);
-  const int32_t clamped_end_x = std::min(end_x, static_cast<int32_t>(LCD_WIDTH));
+  const int32_t clamped_start_x = MAX(start_x, 0);
+  const int32_t clamped_end_x = MIN(end_x, static_cast<int32_t>(LCD_WIDTH));
 
   // Serial.print("start_x=");
   // Serial.print(start_x);
@@ -183,7 +188,7 @@ void draw_string_fast(
     case TextAlign::center:
     {
       const int32_t middle_x = (end_x - start_x) / 2 + start_x;
-      start_text_x = std::max(0, middle_x - static_cast<int32_t>(text_width_px / 2));
+      start_text_x = MAX(0, middle_x - static_cast<int32_t>(text_width_px / 2));
       end_text_x = middle_x + static_cast<int32_t>(text_width_px / 2);
       break;
     }
@@ -219,19 +224,19 @@ void draw_string_fast(
     // whiteout
     display.draw_rectangle(
       static_cast<uint16_t>(clamped_start_x),
-      static_cast<uint16_t>(std::max(start_y, 0)),
-      static_cast<uint16_t>(std::min(start_text_x + 1, static_cast<int32_t>(LCD_WIDTH))),
-      static_cast<uint16_t>(std::min(end_y, static_cast<int32_t>(LCD_HEIGHT))),
+      static_cast<uint16_t>(MAX(start_y, 0)),
+      static_cast<uint16_t>(MIN(start_text_x + 1, static_cast<int32_t>(LCD_WIDTH))),
+      static_cast<uint16_t>(MIN(end_y, static_cast<int32_t>(LCD_HEIGHT))),
       is_white_on_black ? BLACK_COLOR : WHITE_COLOR);
   }
   if (end_text_x < clamped_end_x && clear_side)
   {
     // whiteout
     display.draw_rectangle(
-      static_cast<uint16_t>(std::max(end_text_x, 0)),
-      static_cast<uint16_t>(std::max(start_y, 0)),
+      static_cast<uint16_t>(MAX(end_text_x, 0)),
+      static_cast<uint16_t>(MAX(start_y, 0)),
       static_cast<uint16_t>(clamped_end_x + 1),
-      static_cast<uint16_t>(std::min(end_y, static_cast<int32_t>(LCD_HEIGHT))),
+      static_cast<uint16_t>(MIN(end_y, static_cast<int32_t>(LCD_HEIGHT))),
       is_white_on_black ? BLACK_COLOR : WHITE_COLOR);
   }
 
@@ -601,8 +606,8 @@ void draw_rounded_rectangle(
   // set_pixel_unsafe with out-of-screen coordinates.
 
   // Horizontal band (full width)
-  const int32_t h_y_start = std::max(top_corner_center_y, clipped_start_y);
-  const int32_t h_y_end = std::min(bot_corner_center_y, clipped_end_y - 1);
+  const int32_t h_y_start = MAX(top_corner_center_y, clipped_start_y);
+  const int32_t h_y_end = MIN(bot_corner_center_y, clipped_end_y - 1);
   for (int32_t j = h_y_start; j <= h_y_end; ++j)
   {
     for (int32_t i = clipped_start_x; i < clipped_end_x; ++i)
@@ -613,9 +618,9 @@ void draw_rounded_rectangle(
 
   // Top vertical strip (between the left and right corner arcs)
   const int32_t top_y_start = clipped_start_y;
-  const int32_t top_y_end = std::min(clipped_start_y + r - 1, clipped_end_y - 1);
-  const int32_t mid_x_start = std::max(left_corner_center_x, clipped_start_x);
-  const int32_t mid_x_end = std::min(right_corner_center_x, clipped_end_x - 1);
+  const int32_t top_y_end = MIN(clipped_start_y + r - 1, clipped_end_y - 1);
+  const int32_t mid_x_start = MAX(left_corner_center_x, clipped_start_x);
+  const int32_t mid_x_end = MIN(right_corner_center_x, clipped_end_x - 1);
   for (int32_t j = top_y_start; j <= top_y_end; ++j)
   {
     for (int32_t i = mid_x_start; i <= mid_x_end; ++i)
@@ -625,7 +630,7 @@ void draw_rounded_rectangle(
   }
 
   // Bottom vertical strip (between the left and right corner arcs)
-  const int32_t bot_y_start = std::max(clipped_end_y - r, clipped_start_y);
+  const int32_t bot_y_start = MAX(clipped_end_y - r, clipped_start_y);
   const int32_t bot_y_end = clipped_end_y - 1;
   for (int32_t j = bot_y_start; j <= bot_y_end; ++j)
   {

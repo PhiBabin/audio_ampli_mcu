@@ -20,6 +20,7 @@
 #include "options_controller.h"
 #include "options_view.h"
 #include "persistent_data.h"
+#include "standby_view.h"
 #include "state_machine.h"
 #include <optional>
 #include <ratio>
@@ -90,58 +91,12 @@ OptionsView option_view(
   regular_bold_font,
   regular_medium_font,
   regular_large_font);
+StandbyView standby_view(&state_machine, &display, &regular_bold_font, &cat_sleep_image);
+
 InteractionHandler interaction_handler(
   &option_view, &main_menu_view, &volume_ctrl, &state_machine, &menu_select_encoder);
 RemoteController remote_ctrl(&state_machine, &interaction_handler, &volume_ctrl);
 
-void draw_standby(const bool has_state_changed = true)
-{
-  constexpr int wait_time_between_drawing_ZZZ = 2000;
-  constexpr int number_of_ZZZ = 4;
-  static int timer = 0;
-  static int zzz_count = 0;
-  if (state_machine.get_state() != State::standby)
-  {
-    return;
-  }
-  // We just switch to standby
-  if (has_state_changed)
-  {
-    display.clear_screen(BLACK_COLOR);
-    draw_image_from_top_left(
-      display, cat_sleep_image, LCD_WIDTH - cat_sleep_image.w_px - 1, LCD_HEIGHT - cat_sleep_image.h_px - 1);
-    timer = millis();
-    zzz_count = 1;
-  }
-
-  if (has_state_changed || millis() - timer > wait_time_between_drawing_ZZZ)
-  {
-    timer = millis();
-
-    const auto& font = regular_bold_font;
-    constexpr int16_t start_x = 220;
-    constexpr int16_t top_y = 120;
-    const auto maybe_z_glyph = font.get_glyph('Z');
-    const int16_t spacing_x = maybe_z_glyph ? maybe_z_glyph.value()->width_px + font.get_spacing_px() + 2 : 20;
-
-    if (zzz_count > number_of_ZZZ)
-    {
-      zzz_count = 1;
-      display.draw_rectangle(
-        start_x,
-        top_y - 3 * number_of_ZZZ,
-        start_x + number_of_ZZZ * spacing_x,
-        top_y + font.get_height_px(),
-        BLACK_COLOR);
-    }
-    for (int i = 0; i < zzz_count; ++i)
-    {
-      const auto height = top_y - 2 * i;
-      draw_string_fast(display, "Z", start_x + i * spacing_x, height, start_x + (i + 1) * spacing_x, font);
-    }
-    ++zzz_count;
-  }
-}
 
 void test_draw_speed()
 {
@@ -251,7 +206,6 @@ void test_bounds_check()
   display.blip_framebuffer();
   // delay(16);  // ~60 fps
 }
-
 void setup()
 {
   Serial.begin(115200);
@@ -358,7 +312,7 @@ void loop()
       option_view.draw(display, has_state_changed);
       break;
     case State::standby:
-      draw_standby(has_state_changed);
+      standby_view.draw(has_state_changed);
       break;
   }
 

@@ -34,7 +34,7 @@
 #include <cassert>
 
 /// PWM instance to control backlight
-RP2040_PWM* PWM_Instance;
+RP2040_PWM pwm_backlight(pin_out::lcd_backlight.pin, 100000, LCD_BACKLIGHT);
 
 void LCD_GPIO_Init(void)
 {
@@ -48,8 +48,7 @@ void LCD_GPIO_Init(void)
 
   // Frequency high enough to be filter out by the ampli
   constexpr uint32_t pwm_frequency = 100000;
-  PWM_Instance = new RP2040_PWM(pin_out::lcd_backlight.pin, pwm_frequency, LCD_BACKLIGHT);
-  PWM_Instance->setPWM(pin_out::lcd_backlight.pin, pwm_frequency, LCD_BACKLIGHT);
+  pwm_backlight.setPWM(pin_out::lcd_backlight.pin, pwm_frequency, LCD_BACKLIGHT);
 
   SPI.setSCK(pin_out::spi_clk.pin);
   SPI.setCS(pin_out::lcd_chip_select.pin);
@@ -284,6 +283,10 @@ void Display::draw_rectangle(
   const auto y_end = y_end_ > LCD_HEIGHT ? LCD_HEIGHT : y_end_;
   const auto y_start = y_start_ > y_end ? y_end : y_start_;
 
+  if (x_start >= x_end || y_start >= y_end)
+  {
+    return;
+  }
   // Serial.print("\tx_start=");
   // Serial.print(x_start);
   // Serial.print(" x_end=");
@@ -294,72 +297,46 @@ void Display::draw_rectangle(
   // Serial.print(y_end);
   // Serial.println("");
 
+  // Precompute the 3-byte pattern for two identical RGB444 pixels.
+  // Even pixel (first in pair):  byte0 = RRRRGGGG, byte1 upper nibble = BBBB
+  // Odd pixel  (second in pair): byte1 lower nibble = RRRR, byte2 = GGGGBBBB
+  const uint8_t byte_pair_0 = (color_12bit >> 4) & 0xFF;
+  const uint8_t byte_pair_1 = ((color_12bit & 0xF) << 4) | ((color_12bit >> 8) & 0xF);
+  const uint8_t byte_pair_2 = color_12bit & 0xFF;
+
   for (uint16_t y = y_start; y < y_end; ++y)
   {
-    for (uint16_t x = x_start; x < x_end; ++x)
+    uint32_t px = static_cast<uint32_t>(y) * LCD_WIDTH + x_start;
+    const uint32_t px_end = static_cast<uint32_t>(y) * LCD_WIDTH + x_end;
+    uint32_t bo = px * 3 / 2;
+
+    // Case 1: leading odd pixel shares a byte with the pixel before the rectangle.
+    if ((px & 1) == 1)
     {
-      set_pixel_unsafe(x, y, color_12bit);
+      frame_buffer_[bo] = (frame_buffer_[bo] & 0xF0) | ((color_12bit >> 8) & 0x0F);
+      frame_buffer_[bo + 1] = byte_pair_2;
+      ++px;
+      bo = px * 3 / 2;
+    }
+
+    // Case 2: bulk-write aligned pairs (3 bytes per 2 pixels).
+    for (; px + 1 < px_end; px += 2)
+    {
+      frame_buffer_[bo] = byte_pair_0;
+      frame_buffer_[bo + 1] = byte_pair_1;
+      frame_buffer_[bo + 2] = byte_pair_2;
+      bo += 3;
+    }
+
+    // Case 3: trailing even pixel shares a byte with the pixel after the rectangle.
+    if (px < px_end)
+    {
+      frame_buffer_[bo] = byte_pair_0;
+      frame_buffer_[bo + 1] = (frame_buffer_[bo + 1] & 0x0F) | ((color_12bit & 0xF) << 4);
     }
   }
 
-  // if x_start starts on an half bytes, set the MSB nibble first for all line
-  // const uint32_t x_start_byte_offset = x_start * 3 / 2;
-  // if ((x_start_byte_offset & 1) == 1)
-  // {
-  //   Serial.print("\tx start is offset at ");
-  //   Serial.print(x_start_byte_offset);
-  //   Serial.println("");
-  //   for (uint16_t y = y_start; y < y_end; ++y)
-  //   {
-  //     const uint32_t px_offset = static_cast<uint32_t>(y) * LCD_WIDTH + x_start;
-  //     const uint32_t bytes_offset = px_offset * 3 / 2;
-  //     frame_buffer_[bytes_offset] = (frame_buffer_[bytes_offset] & 0xf0) | ((color_12bit & 0xf0) >> 4);
-  //     frame_buffer_[bytes_offset + 1] = color_12bit & 0xff;  // 8 LSb
-  //   }
-  //   // Now we can skip the first vertical line
-  //   ++x_start;
-  // }
-  // // if x_end - 1 is on lie on a bytes, we must set all the LSB nibble for all line
-  // const uint32_t x_end_byte_offset = (x_end - 1) * 3 / 2;
-  // if ((x_end_byte_offset & 1) == 0)
-  // {
-  //   Serial.print("\tx end is offset at ");
-  //   Serial.print(x_end_byte_offset);
-  //   Serial.println("");
-  //   for (uint16_t y = y_start; y < y_end; ++y)
-  //   {
-  //     const uint32_t px_offset = static_cast<uint32_t>(y) * LCD_WIDTH + (x_end - 1);
-  //     const uint32_t bytes_offset = px_offset * 3 / 2;
-
-  //     frame_buffer_[bytes_offset] = (color_12bit >> 4) & 0xff;  // 8 MSb
-  //     frame_buffer_[bytes_offset + 1] =
-  //       ((color_12bit & 0xf) << 4) | (frame_buffer_[bytes_offset + 1] & 0x0f);  // 4 LSb + next pixel's 4 MSb;
-  //   }
-  //   // Now we can skip the last vertical line
-  //   --x_end;
-  // }
-
-  // // Now that all start and end x edge case has been taken care off, we can write all the remaining pixels
-
-  // const uint8_t byte0 = (color_12bit >> 4) & 0xff;                                   // 8 MSb
-  // const uint8_t byte1 = ((color_12bit & 0xf) << 4) | ((color_12bit & 0x0f00) >> 8);  // 4 LSb + 4 MSb
-  // const uint8_t byte2 = color_12bit & 0xff;                                          // 8 LSb
-  // for (uint32_t y = y_start; y < y_end; ++y)
-  // {
-  //   if ((x_end - x_start) % 2 != 0)
-  //   {
-  //     Serial.println("failed check");
-  //   }
-  //   // assert((x_end - x_start) % 2 == 0);  // TODO: handle case where the number of pixel is not a multiple of 3
-  //   for (uint32_t x = x_start; x < x_end; x += 2)
-  //   {
-  //     const uint32_t px_offset = y * LCD_WIDTH + x;
-  //     const uint32_t bytes_offset = px_offset * 3 / 2;
-  //     frame_buffer_[bytes_offset] = byte0;
-  //     frame_buffer_[bytes_offset + 1] = byte1;
-  //     frame_buffer_[bytes_offset + 2] = byte2;
-  //   }
-  // }
+  has_screen_changed = true;
 }
 
 void Display::set_pixel_unsafe(const uint16_t x, const uint16_t y, const uint32_t color_12bit)

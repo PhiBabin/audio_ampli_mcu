@@ -91,12 +91,9 @@ void MainMenuView::draw_left_right_bal_indicator(Display& display, const bool ha
 
 void MainMenuView::draw_volume(Display& display, const bool has_state_changed)
 {
-  static bool prev_mute_state = volume_ctrl_ptr_->is_muted();
-  static auto prev_volume_db = volume_ctrl_ptr_->get_volume_db();
-
   if (
-    !has_state_changed && prev_mute_state == volume_ctrl_ptr_->is_muted() &&
-    prev_volume_db == volume_ctrl_ptr_->get_volume_db())
+    !has_state_changed && prev_mute_state_ == volume_ctrl_ptr_->is_muted() &&
+    prev_volume_db_ == volume_ctrl_ptr_->get_volume_db())
   {
     return;
   }
@@ -110,7 +107,7 @@ void MainMenuView::draw_volume(Display& display, const bool has_state_changed)
   const uint32_t start_y = middle_y - digit_font_.get_height_px() / 2;
   const uint32_t middle_x = (max_x - min_x) / 2 + min_x;
 
-  if (prev_mute_state != volume_ctrl_ptr_->is_muted())
+  if (prev_mute_state_ != volume_ctrl_ptr_->is_muted())
   {
     display.draw_rectangle(min_x, 0, max_x, LCD_HEIGHT, BLACK_COLOR);
   }
@@ -123,13 +120,12 @@ void MainMenuView::draw_volume(Display& display, const bool has_state_changed)
   {
     draw_string_fast(display, buffer, min_x, start_y, max_x, digit_font_);
   }
-  prev_mute_state = volume_ctrl_ptr_->is_muted();
-  prev_volume_db = volume_ctrl_ptr_->get_volume_db();
+  prev_mute_state_ = volume_ctrl_ptr_->is_muted();
+  prev_volume_db_ = volume_ctrl_ptr_->get_volume_db();
 }
 
 void MainMenuView::draw_audio_inputs(Display& display, const bool has_state_changed)
 {
-  static auto prev_audio_input = persistent_data_ptr_->selected_audio_input;
   const auto& selected_audio_input = persistent_data_ptr_->selected_audio_input;
 
   const auto max_enum_value = static_cast<uint8_t>(AudioInput::enum_length);
@@ -144,7 +140,7 @@ void MainMenuView::draw_audio_inputs(Display& display, const bool has_state_chan
   {
     display.draw_rectangle(0, 0, tab_width_px + 1, LCD_HEIGHT, BLACK_COLOR);
   }
-  else if (prev_audio_input == selected_audio_input)
+  else if (prev_audio_input_ == selected_audio_input)
   {
     return;
   }
@@ -157,7 +153,7 @@ void MainMenuView::draw_audio_inputs(Display& display, const bool has_state_chan
     const auto curr_option_text_top_y = curr_option_center_y - small_font_.get_height_px() / 2;
 
     const auto is_selected = selected_audio_input == audio_input;
-    const auto was_previously_selected = prev_audio_input == audio_input;
+    const auto was_previously_selected = prev_audio_input_ == audio_input;
     if (is_selected)
     {
       draw_rounded_rectangle(
@@ -185,7 +181,7 @@ void MainMenuView::draw_audio_inputs(Display& display, const bool has_state_chan
       }
     }
   }
-  prev_audio_input = selected_audio_input;
+  prev_audio_input_ = selected_audio_input;
 }
 
 // const char* MainMenuView::get_audio_input_renamed_str(const AudioInput& audio_input) const

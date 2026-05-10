@@ -44,6 +44,11 @@ private:
   const LvFontWrapper& small_font_;
   // Font use to draw the volume's digit
   const LvFontWrapper& digit_font_;
+
+  // Cached previous state for partial redraw optimization
+  bool prev_mute_state_{false};
+  int32_t prev_volume_db_{0};
+  AudioInput prev_audio_input_{AudioInput::rca_1};
 };
 
 #endif  // MAIN_MENU_VIEW_GUARD_H_

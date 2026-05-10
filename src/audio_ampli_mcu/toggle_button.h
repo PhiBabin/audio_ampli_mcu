@@ -2,8 +2,7 @@
 #define TOG_BUTTON_GUARD_H_
 
 #include "InputDebounce.h"
-
-#define BUTTON_DEBOUNCE_DELAY 20  // [ms]
+#include "config.h"
 
 class ToggleButton : public InputDebounce
 {

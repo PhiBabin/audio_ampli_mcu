@@ -44,8 +44,8 @@ void IoExpander::begin()
   direction_gpio_[1] = 0xff;
 
   // Set all value as low
-  io_expander_.pinMode8(0, 0);
-  io_expander_.pinMode8(1, 0);
+  io_expander_.write8(0, 0);
+  io_expander_.write8(1, 0);
   value_gpio_[0] = 0;
   value_gpio_[1] = 0;
 }

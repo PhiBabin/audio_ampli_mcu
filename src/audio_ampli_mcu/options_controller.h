@@ -17,8 +17,11 @@
 
 #include <optional>
 
-// Forward declaration
-class RP2040_PWM;
+#ifdef SIM
+#include "sim/RP2040_PWM.h"
+#else
+#include "RP2040_PWM.h"
+#endif
 
 /// Convert option to a human readable string.
 AudioInput get_audio_input_from_rename_option(const Option option);
@@ -69,7 +72,7 @@ private:
   /// Non-owning pointer to the volume controler
   VolumeController* volume_ctrl_ptr_;
 
-  RP2040_PWM* PWM_Instance_;
+  RP2040_PWM pwm_bias_;
 
   /// Previous bias set
   uint8_t prev_bias_;
