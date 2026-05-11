@@ -21,7 +21,8 @@ void draw_character_fast(
   const int32_t start_x,
   const int32_t start_y,
   bool is_white_on_black,
-  bool draw_spacing)
+  bool draw_spacing,
+  uint32_t color)
 {
   Rect rect{
     .x_start = start_x,
@@ -59,13 +60,26 @@ void draw_character_fast(
     for (uint32_t x = 0; x < width; ++x)
     {
       auto color_4bit = glyph->get_color(x + glyph_x_offset, y + glyph_y_offset);
-      if (!is_white_on_black)
-      {
-        color_4bit = 0xf - (color_4bit & 0xf);
-      }
-      // Convert 4bit grayscale to four 4bit RGB
-      rgb444_color = (color_4bit << 8 | color_4bit << 4 | color_4bit);
-      display.set_pixel_unsafe(static_cast<uint16_t>(rect.x_start + x), static_cast<uint16_t>(rect.y_start + y), rgb444_color);
+        if (!is_white_on_black)
+        {
+          color_4bit = 0xf - (color_4bit & 0xf);
+        }
+        if (color != WHITE_COLOR)
+        {
+          // Blend glyph grayscale with tint color. color is 12-bit RGB444.
+          const uint32_t glyph_alpha = color_4bit;  // 0-15
+          const uint32_t inv_alpha = 0xf - glyph_alpha;
+          const uint32_t r = ((color >> 8) & 0xf) * glyph_alpha + inv_alpha * 0;
+          const uint32_t g = ((color >> 4) & 0xf) * glyph_alpha + inv_alpha * 0;
+          const uint32_t b = (color & 0xf) * glyph_alpha + inv_alpha * 0;
+          rgb444_color = ((r / 0xf) << 8) | ((g / 0xf) << 4) | (b / 0xf);
+        }
+        else
+        {
+          // Convert 4bit grayscale to four 4bit RGB
+          rgb444_color = (color_4bit << 8 | color_4bit << 4 | color_4bit);
+        }
+        display.set_pixel_unsafe(static_cast<uint16_t>(rect.x_start + x), static_cast<uint16_t>(rect.y_start + y), rgb444_color);
     }
   }
 
@@ -106,7 +120,8 @@ void draw_multilines_string(
   const LvFontWrapper& font,
   bool is_white_on_black,
   bool clear_side,
-  const TextAlign txt_align)
+  const TextAlign txt_align,
+  uint32_t color)
 {
   const char* start = str;
   int32_t top_y = start_y;
@@ -119,7 +134,7 @@ void draw_multilines_string(
       char* line_buffer = static_cast<char*>(malloc(length + 2));
       strncpy(line_buffer, start, length);
       line_buffer[length] = '\0';
-      draw_string_fast(display, line_buffer, start_x, top_y, end_x, font, is_white_on_black, clear_side, txt_align);
+      draw_string_fast(display, line_buffer, start_x, top_y, end_x, font, is_white_on_black, clear_side, txt_align, color);
       free(line_buffer);
 
       start = str + 1;
@@ -141,7 +156,8 @@ void draw_string_fast(
   const LvFontWrapper& font,
   bool is_white_on_black,
   bool clear_side,
-  const TextAlign txt_align)
+  const TextAlign txt_align,
+  uint32_t color)
 {
   if (str == NULL || *str == '\0')
   {
@@ -247,7 +263,7 @@ void draw_string_fast(
     {
       // If next character is null byte, we reach end of string
       const bool do_draw_spacing = str_temp[1] != '\0';
-      draw_character_fast(display, *maybe_glyph, current_text_x, start_y, is_white_on_black, do_draw_spacing);
+      draw_character_fast(display, *maybe_glyph, current_text_x, start_y, is_white_on_black, do_draw_spacing, color);
       current_text_x += maybe_glyph.value()->width_px + font.get_spacing_px();
     }
     ++str_temp;

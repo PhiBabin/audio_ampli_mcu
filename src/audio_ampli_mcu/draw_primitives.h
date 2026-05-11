@@ -154,7 +154,8 @@ void draw_character_fast(
   const int32_t start_x,
   const int32_t start_y,
   bool is_white_on_black = true,
-  bool draw_spacing = true);
+  bool draw_spacing = true,
+  uint32_t color = WHITE_COLOR);
 
 enum class TextAlign : uint8_t
 {
@@ -173,7 +174,8 @@ void draw_string_fast(
   const LvFontWrapper& font,
   bool is_white_on_black = true,
   bool clear_side = true,
-  const TextAlign txt_align = TextAlign::center);
+  const TextAlign txt_align = TextAlign::center,
+  uint32_t color = WHITE_COLOR);
 
 void draw_multilines_string(
   Display& display,
@@ -184,7 +186,8 @@ void draw_multilines_string(
   const LvFontWrapper& font,
   bool is_white_on_black = true,
   bool clear_side = true,
-  const TextAlign txt_align = TextAlign::center);
+  const TextAlign txt_align = TextAlign::center,
+  uint32_t color = WHITE_COLOR);
 
 struct lv_img_dsc_t
 {
