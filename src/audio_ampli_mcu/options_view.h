@@ -48,10 +48,10 @@ class OptionsView
 {
 public:
   OptionsView(
-    OptionController* option_ctrl_ptr,
-    VolumeController* volume_ctrl_ptr,
-    PersistentData* persistent_data_ptr,
-    StateMachine* state_machine_ptr,
+    OptionController& option_ctrl,
+    VolumeController& volume_ctrl,
+    PersistentData& persistent_data,
+    StateMachine& state_machine,
     const LvFontWrapper& font,
     const LvFontWrapper& medium_font,
     const LvFontWrapper& large_font);
@@ -76,14 +76,14 @@ private:
   // Whether we are using the large size menu theme or the small size
   bool use_large_ui_{true};
 
-  // Non-owning pointer to the option controler
-  OptionController* option_ctrl_ptr_;
-  /// Non-owning pointer to the volume controler
-  VolumeController* volume_ctrl_ptr_;
-  // Non-owning pointer to the persistent data
-  PersistentData* persistent_data_ptr_;
-  // Non-owning pointer to the state machine
-  StateMachine* state_machine_ptr_;
+  // Reference to the option controler
+  OptionController& option_ctrl_;
+  /// Reference to the volume controler
+  VolumeController& volume_ctrl_;
+  // Reference to the persistent data
+  PersistentData& persistent_data_;
+  // Reference to the state machine
+  StateMachine& state_machine_;
   // Font use to draw the menu (preferably small)
   const LvFontWrapper& font_;
   // Font use to draw the menu titles

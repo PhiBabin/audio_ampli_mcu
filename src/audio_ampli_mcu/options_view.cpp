@@ -48,17 +48,17 @@ const char* Menu::get_label() const
 }
 
 OptionsView::OptionsView(
-  OptionController* option_ctrl_ptr,
-  VolumeController* volume_ctrl_ptr,
-  PersistentData* persistent_data_ptr,
-  StateMachine* state_machine_ptr,
+  OptionController& option_ctrl,
+  VolumeController& volume_ctrl,
+  PersistentData& persistent_data,
+  StateMachine& state_machine,
   const LvFontWrapper& font,
   const LvFontWrapper& medium_font,
   const LvFontWrapper& large_font)
-  : option_ctrl_ptr_(option_ctrl_ptr)
-  , volume_ctrl_ptr_(volume_ctrl_ptr)
-  , persistent_data_ptr_(persistent_data_ptr)
-  , state_machine_ptr_(state_machine_ptr)
+  : option_ctrl_(option_ctrl)
+  , volume_ctrl_(volume_ctrl)
+  , persistent_data_(persistent_data)
+  , state_machine_(state_machine)
   , font_(font)
   , medium_font_(medium_font)
   , large_font_(large_font)
@@ -89,7 +89,7 @@ void OptionsView::init()
       MenuItem{Option::rename_rca2, "RENAME RCA2", MenuItemType::focus_item}};
 
     // Add phono menu if a phono card has been detected
-    if (option_ctrl_ptr_->has_phono_card())
+    if (option_ctrl_.has_phono_card())
     {
       items.emplace_back(MenuItem{Option::back, "PHONO OPTION", MenuItemType::change_menu, OptionMenuScreen::phono});
 
@@ -232,11 +232,11 @@ Menu& OptionsView::get_selected_menu()
 }
 void OptionsView::power_on()
 {
-  option_ctrl_ptr_->power_on();
+  option_ctrl_.power_on();
 }
 void OptionsView::power_off()
 {
-  option_ctrl_ptr_->power_off();
+  option_ctrl_.power_off();
 }
 
 void OptionsView::on_menu_press()
@@ -251,7 +251,7 @@ void OptionsView::on_menu_press()
   switch (menu_item.type)
   {
     case MenuItemType::increment_item:
-      option_ctrl_ptr_->increment_option(menu_item.option, IncrementDir::increment);
+      option_ctrl_.increment_option(menu_item.option, IncrementDir::increment);
       break;
     case MenuItemType::focus_item:
       is_focus_ = !is_focus_;
@@ -259,7 +259,7 @@ void OptionsView::on_menu_press()
     case MenuItemType::change_menu:
       if (menu_item.menu_to_swap == OptionMenuScreen::exit)
       {
-        state_machine_ptr_->change_state(State::main_menu);
+        state_machine_.change_state(State::main_menu);
       }
       else
       {
@@ -303,7 +303,7 @@ void OptionsView::menu_change(const IncrementDir& dir)
     {
       if (is_focus_)
       {
-        option_ctrl_ptr_->increment_option(menu_item.option, dir);
+        option_ctrl_.increment_option(menu_item.option, dir);
       }
       else
       {
@@ -327,8 +327,8 @@ void OptionsView::draw(Display& display, const bool has_state_changed)
 void OptionsView::draw_volume(Display& display, const bool has_state_changed)
 {
   const int max_time_since_last_change = 5000;
-  static auto prev_volume = volume_ctrl_ptr_->get_volume_db();
-  const bool has_volume_changed = volume_ctrl_ptr_->get_volume_db() != prev_volume;
+  static auto prev_volume = volume_ctrl_.get_volume_db();
+  const bool has_volume_changed = volume_ctrl_.get_volume_db() != prev_volume;
 
   if (!has_state_changed && !has_volume_changed)
   {
@@ -339,7 +339,7 @@ void OptionsView::draw_volume(Display& display, const bool has_state_changed)
   if (has_volume_changed)
   {
     time_since_last_change = millis();
-    prev_volume = volume_ctrl_ptr_->get_volume_db();
+    prev_volume = volume_ctrl_.get_volume_db();
   }
 
   uint32_t y_end = 40;
@@ -351,28 +351,26 @@ void OptionsView::draw_volume(Display& display, const bool has_state_changed)
     y_text_top = y_end - font_.get_height_px();
   }
 
-  // prev_state = state_machine.get_state();
   if (millis() - time_since_last_change >= max_time_since_last_change)
   {
     return;
   }
 
   char option_buffer[15] = {0};
-  if (volume_ctrl_ptr_->is_muted())
+  if (volume_ctrl_.is_muted())
   {
     strcpy(option_buffer, "[MUTED]");
   }
   else
   {
-    snprintf(option_buffer, 15, "Vol: %ddB", volume_ctrl_ptr_->get_volume_db());
+    snprintf(option_buffer, 15, "Vol: %ddB", volume_ctrl_.get_volume_db());
   }
-  draw_string_fast(display, option_buffer, 0, y_text_top, LCD_WIDTH, font_);
+  draw_string_fast(display, option_buffer, LCD_WIDTH / 4, y_text_top, LCD_WIDTH * 3 / 4, font_);
 }
 
 void OptionsView::draw_menu(Display& display, const bool has_state_changed)
 {
   static auto prev_selected_menu = selected_menu_;
-  // static auto prev_option_menu = selected_menu_;
   auto& menu = get_selected_menu();
   static auto prev_menu_selection = menu.maybe_selected_index;
   const bool has_menu_changed = prev_selected_menu != selected_menu_;
@@ -411,10 +409,9 @@ void OptionsView::draw_menu(Display& display, const bool has_state_changed)
       snprintf(page_count_buffer_, sizeof(page_count_buffer_), "%d / %d",
                static_cast<int>(menu.maybe_selected_index.value_or(0) + 1),
                static_cast<int>(menu.items.size()));
-      draw_string_fast(display, page_count_buffer_, LCD_WIDTH - 80, LCD_HEIGHT - font_.get_height_px() - 6, LCD_WIDTH, font_, true, false, TextAlign::right);
+      draw_string_fast(display, page_count_buffer_, LCD_WIDTH - 80, LCD_HEIGHT - font_.get_height_px() - 6, LCD_WIDTH - 5, font_, true, false, TextAlign::right);
 
       // Progress bar: a thin white line proportional to the position in the menu.
-      // Drawn just below the text, spanning the full width.
       constexpr uint16_t bar_height = 3;
       const uint16_t bar_y = LCD_HEIGHT - bar_height - 1;
       const auto num_items = static_cast<int>(menu.items.size());
@@ -423,7 +420,7 @@ void OptionsView::draw_menu(Display& display, const bool has_state_changed)
         const auto selected_idx = static_cast<uint32_t>(menu.maybe_selected_index.value_or(0));
         const uint16_t filled_width = static_cast<uint16_t>(
          selected_idx * LCD_WIDTH / (num_items - 1));
-        display.draw_rectangle(0, bar_y, filled_width, bar_y + bar_height, WHITE_COLOR);
+        display.draw_rectangle(0, bar_y, filled_width, LCD_HEIGHT, WHITE_COLOR);
       }
     }
 
@@ -514,10 +511,6 @@ void OptionsView::draw_menu(Display& display, const bool has_state_changed)
       case MenuItemType::enum_length:
         break;
     }
-
-    // char page_count_buffer[15] = {0};
-    // snprintf(page_count_buffer, 15, "%d of %d", menu.maybe_selected_index.value_or(0), menu.items.size());
-    // draw_string_fast(display, option_buffer, 0, y_text_top, LCD_WIDTH, font_, true, false, TextAlign::right);
   }
   else
   {
@@ -537,7 +530,6 @@ void OptionsView::draw_menu(Display& display, const bool has_state_changed)
     {
       const auto& item = menu.items[i];
       const auto curr_option_box_top_y = (i + 1) * ver_spacing + 5;
-      // const auto curr_option_center_y = (i + 1) * ver_spacing + 5;
       const auto curr_option_bot_y = curr_option_box_top_y + ver_spacing;
       const auto curr_option_center_y = curr_option_box_top_y + ver_spacing / 2;
       const auto curr_option_text_top_y = curr_option_center_y - font_.get_height_px() / 2;
@@ -591,7 +583,7 @@ std::optional<const char*> OptionsView::string_format_option(const Option& optio
   switch (option)
   {
     case Option::gain:
-      switch (persistent_data_ptr_->get_gain())
+      switch (persistent_data_.get_gain())
       {
         case GainOption::low:
           return "LOW";
@@ -605,7 +597,7 @@ std::optional<const char*> OptionsView::string_format_option(const Option& optio
           return "ERR1";
       }
     case Option::output_mode:
-      switch (persistent_data_ptr_->output_mode_value)
+      switch (persistent_data_.output_mode_value)
       {
         case OutputModeOption::phones:
           return "PHONES";
@@ -615,7 +607,7 @@ std::optional<const char*> OptionsView::string_format_option(const Option& optio
           return "ERR2";
       }
     case Option::output_type:
-      switch (persistent_data_ptr_->output_type_value)
+      switch (persistent_data_.output_type_value)
       {
         case OutputTypeOption::se:
           return "SE";
@@ -626,7 +618,7 @@ std::optional<const char*> OptionsView::string_format_option(const Option& optio
       }
 #if defined (USE_V2_PCB)
       case Option::mono:
-        switch (persistent_data_ptr_->mono_value)
+        switch (persistent_data_.mono_value)
         {
           case MonoOption::mono:
             return "MONO";
@@ -637,11 +629,11 @@ std::optional<const char*> OptionsView::string_format_option(const Option& optio
         }
 #endif
     case Option::subwoofer:
-      return format_on_off_option(persistent_data_ptr_->sufwoofer_enable_value);
+      return format_on_off_option(persistent_data_.sufwoofer_enable_value);
     case Option::balance:
     {
       const auto str_template = is_focus ? "<%+d/%+d>" : "%+d/%+d ";
-      const auto [left, right] = volume_ctrl_ptr_->get_left_right_bias_compensation();
+      const auto [left, right] = volume_ctrl_.get_left_right_bias_compensation();
       snprintf(tmp_format_str_buffer_, tmp_format_str_len_, str_template, left, right);
 
       return tmp_format_str_buffer_;
@@ -649,7 +641,7 @@ std::optional<const char*> OptionsView::string_format_option(const Option& optio
     case Option::bias:
     {
       const auto str_template = is_focus ? "<%d%%>" : " %d%% ";
-      snprintf(tmp_format_str_buffer_, tmp_format_str_len_, str_template, persistent_data_ptr_->bias);
+      snprintf(tmp_format_str_buffer_, tmp_format_str_len_, str_template, persistent_data_.bias);
 
       return tmp_format_str_buffer_;
     }
@@ -658,10 +650,10 @@ std::optional<const char*> OptionsView::string_format_option(const Option& optio
     case Option::rename_rca2:
     case Option::rename_rca3:
     {
-      return option_ctrl_ptr_->get_input_rename_value(get_audio_input_from_rename_option(option));
+      return option_ctrl_.get_input_rename_value(get_audio_input_from_rename_option(option));
     }
     case Option::phono_mode:
-      switch (persistent_data_ptr_->phono_mode_option)
+      switch (persistent_data_.phono_mode_option)
       {
         case PhonoMode::mm:
           return "MM";
@@ -672,7 +664,7 @@ std::optional<const char*> OptionsView::string_format_option(const Option& optio
       }
       break;
     case Option::mute_channel:
-      switch (persistent_data_ptr_->mute_channel)
+      switch (persistent_data_.mute_channel)
       {
         case MuteChannel::mute_left:
           return "MUTE L";
@@ -685,9 +677,9 @@ std::optional<const char*> OptionsView::string_format_option(const Option& optio
       }
       break;
     case Option::phono_gain:
-      if (persistent_data_ptr_->phono_mode_option == PhonoMode::mm)
+      if (persistent_data_.phono_mode_option == PhonoMode::mm)
       {
-        switch (persistent_data_ptr_->phono_mm_gain)
+        switch (persistent_data_.phono_mm_gain)
         {
           case MMPhonoGain::gain_40dB:
             return "40dB";
@@ -701,7 +693,7 @@ std::optional<const char*> OptionsView::string_format_option(const Option& optio
       }
       else
       {
-        switch (persistent_data_ptr_->phono_mc_gain)
+        switch (persistent_data_.phono_mc_gain)
         {
           case MCPhonoGain::gain_55dB:
             return "55dB";
@@ -715,13 +707,13 @@ std::optional<const char*> OptionsView::string_format_option(const Option& optio
       }
       break;
     case Option::resistance_load:
-      if (persistent_data_ptr_->phono_mode_option == PhonoMode::mm)
+      if (persistent_data_.phono_mode_option == PhonoMode::mm)
       {
         return "47K";
       }
       else
       {
-        switch (persistent_data_ptr_->phono_resistance_load)
+        switch (persistent_data_.phono_resistance_load)
         {
           case PhonoResistanceLoad::r_47k:
             return "47K";
@@ -746,13 +738,13 @@ std::optional<const char*> OptionsView::string_format_option(const Option& optio
       break;
     case Option::capacitance_load:
 
-      if (persistent_data_ptr_->phono_mode_option == PhonoMode::mc)
+      if (persistent_data_.phono_mode_option == PhonoMode::mc)
       {
         return "0F";
       }
       else
       {
-        switch (persistent_data_ptr_->phono_capacitance_load)
+        switch (persistent_data_.phono_capacitance_load)
         {
           case PhonoCapacitanceLoad::c_0f:
             return "0 F";
@@ -767,7 +759,7 @@ std::optional<const char*> OptionsView::string_format_option(const Option& optio
         }
       }
     case Option::rumble_filter:
-      return format_on_off_option(persistent_data_ptr_->phono_rumble_filter);
+      return format_on_off_option(persistent_data_.phono_rumble_filter);
     case Option::more_options:
       return {};
     case Option::back:

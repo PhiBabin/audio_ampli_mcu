@@ -19,12 +19,12 @@
 class VolumeController
 {
 public:
-  // Construtor
+  // Constructor
   VolumeController(
-    StateMachine* state_machine_ptr,
-    PersistentData* persistent_data_ptr,
-    PioEncoder* vol_encoder_ptr,
-    GpioHandler* gpio_handler_ptr);
+    StateMachine& state_machine,
+    PersistentData& persistent_data,
+    PioEncoder& vol_encoder,
+    GpioHandler& gpio_handler);
 
   // Init GPIO pins
   void init();
@@ -87,20 +87,18 @@ private:
   /// @param[in] mask Only the (mask & vol_6bit) GPIO will be updated.
   void set_gpio_volume(const std::array<GpioPin, 6U>& volume_pins, const uint8_t vol_6bit, const uint8_t mask = 0xff);
 
-  // Non-owning pointer to the state machine
-  StateMachine* state_machine_ptr_;
-  // Non-owning pointer to the persistent data
-  PersistentData* persistent_data_ptr_;
-  // GPIO pin for each of the 6 bit of the volume
-  // std::array<pin_size_t, 6> gpio_pin_vol_select_;
+  // Reference to the state machine
+  StateMachine& state_machine_;
+  // Reference to the persistent data
+  PersistentData& persistent_data_;
   // Handler to read/write to GPIO from the pico or to IO expander
-  GpioHandler* gpio_handler_ptr_;
+  GpioHandler& gpio_handler_;
   /// Previous count of the encoder
   int32_t prev_encoder_count_;
   /// How many encoder tick per db of volume
   int32_t tick_per_db_;
-  /// Pointer to the quadrature encoder
-  PioEncoder* vol_encoder_ptr_;
+  /// Reference to the quadrature encoder
+  PioEncoder& vol_encoder_;
   /// Is the device muted?
   bool is_muted_{false};
   /// If the volume/mute is change outside of the update_XX(), this keep latch the update

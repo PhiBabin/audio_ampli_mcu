@@ -1,16 +1,16 @@
 #include "interaction_handler.h"
 
 InteractionHandler::InteractionHandler(
-  OptionsView* option_view_ptr,
-  MainMenuView* main_menu_view_ptr,
-  VolumeController* volume_ctrl_ptr,
-  StateMachine* state_machine_ptr,
-  PioEncoder* option_encoder_ptr)
-  : option_view_ptr_(option_view_ptr)
-  , main_menu_view_ptr_(main_menu_view_ptr)
-  , volume_ctrl_ptr_(volume_ctrl_ptr)
-  , state_machine_ptr_(state_machine_ptr)
-  , option_encoder_ptr_(option_encoder_ptr)
+  OptionsView& option_view,
+  MainMenuView& main_menu_view,
+  VolumeController& volume_ctrl,
+  StateMachine& state_machine,
+  PioEncoder& option_encoder)
+  : option_view_(option_view)
+  , main_menu_view_(main_menu_view)
+  , volume_ctrl_(volume_ctrl)
+  , state_machine_(state_machine)
+  , option_encoder_(option_encoder)
 {
 }
 
@@ -39,13 +39,13 @@ bool InteractionHandler::update_selection()
   }
   else if (select_button_.is_long_press())
   {
-    if (state_machine_ptr_->get_state() == State::option_menu)
+    if (state_machine_.get_state() == State::option_menu)
     {
-      state_machine_ptr_->change_state(State::main_menu);
+      state_machine_.change_state(State::main_menu);
     }
     else
     {
-      state_machine_ptr_->change_state(State::option_menu);
+      state_machine_.change_state(State::option_menu);
     }
   }
   return select_button_.is_short_press() || select_button_.is_long_press();
@@ -53,8 +53,8 @@ bool InteractionHandler::update_selection()
 
 void InteractionHandler::on_mute_button_press()
 {
-  volume_ctrl_ptr_->toggle_mute();
-  volume_ctrl_ptr_->set_gpio_based_on_volume();
+  volume_ctrl_.toggle_mute();
+  volume_ctrl_.set_gpio_based_on_volume();
 }
 
 bool InteractionHandler::update_mute_button()
@@ -74,7 +74,7 @@ bool InteractionHandler::update_mute_button()
 
 bool InteractionHandler::update_encoder()
 {
-  const int32_t current_count = option_encoder_ptr_->getCount();
+  const int32_t current_count = option_encoder_.getCount();
 
   if (current_count - prev_encoder_count_ >= TICK_PER_AUDIO_IN)
   {
@@ -93,13 +93,13 @@ bool InteractionHandler::update_encoder()
 
 void InteractionHandler::menu_change(const IncrementDir& dir)
 {
-  switch (state_machine_ptr_->get_state())
+  switch (state_machine_.get_state())
   {
     case State::main_menu:
-      main_menu_view_ptr_->menu_change(dir);
+      main_menu_view_.menu_change(dir);
       break;
     case State::option_menu:
-      option_view_ptr_->menu_change(dir);
+      option_view_.menu_change(dir);
       break;
     case State::standby:
       // TODO standby view
@@ -109,26 +109,26 @@ void InteractionHandler::menu_change(const IncrementDir& dir)
 
 void InteractionHandler::on_power_button_press()
 {
-  if (state_machine_ptr_->get_state() != State::standby)
+  if (state_machine_.get_state() != State::standby)
   {
-    option_view_ptr_->power_off();
-    state_machine_ptr_->change_state(State::standby);
+    option_view_.power_off();
+    state_machine_.change_state(State::standby);
   }
   else
   {
-    option_view_ptr_->power_on();
-    state_machine_ptr_->change_state(State::main_menu);
+    option_view_.power_on();
+    state_machine_.change_state(State::main_menu);
   }
 }
 void InteractionHandler::on_menu_press()
 {
-  switch (state_machine_ptr_->get_state())
+  switch (state_machine_.get_state())
   {
     case State::main_menu:
-      state_machine_ptr_->change_state(State::option_menu);
+      state_machine_.change_state(State::option_menu);
       break;
     case State::option_menu:
-      option_view_ptr_->on_menu_press();
+      option_view_.on_menu_press();
       break;
     case State::standby:
       break;

@@ -4,16 +4,16 @@
 #include "small_speaker_img.h"
 
 MainMenuView::MainMenuView(
-  OptionController* option_ctrl_ptr,
-  VolumeController* volume_ctrl_ptr,
-  PersistentData* persistent_data_ptr,
-  StateMachine* state_machine_ptr,
+  OptionController& option_ctrl,
+  VolumeController& volume_ctrl,
+  PersistentData& persistent_data,
+  StateMachine& state_machine,
   const LvFontWrapper& small_font,
   const LvFontWrapper& digit_font)
-  : option_ctrl_ptr_(option_ctrl_ptr)
-  , volume_ctrl_ptr_(volume_ctrl_ptr)
-  , persistent_data_ptr_(persistent_data_ptr)
-  , state_machine_ptr_(state_machine_ptr)
+  : option_ctrl_(option_ctrl)
+  , volume_ctrl_(volume_ctrl)
+  , persistent_data_(persistent_data)
+  , state_machine_(state_machine)
   , small_font_(small_font)
   , digit_font_(digit_font)
 {
@@ -34,7 +34,7 @@ void MainMenuView::menu_change(const IncrementDir& dir)
   // When going up in the menu, we need to decrement the index, because menu items are display from top to bottom.
   // This is a bit confusing.
   const auto inversed_dir = dir == IncrementDir::increment ? IncrementDir::decrement : IncrementDir::increment;
-  option_ctrl_ptr_->increment_option(Option::audio_input, inversed_dir);
+  option_ctrl_.increment_option(Option::audio_input, inversed_dir);
 }
 
 void MainMenuView::draw(Display& display, const bool has_state_changed)
@@ -55,51 +55,29 @@ void MainMenuView::draw_left_right_bal_indicator(Display& display, const bool ha
     return;
   }
   // If there is a left/right balance, draw an indicator on top of the volume
-  if (persistent_data_ptr_->left_right_balance_db == 0)
+  if (persistent_data_.left_right_balance_db == 0)
   {
     return;
   }
   const uint32_t bal_top_y = 8;
 
-  const auto [left_bias, right_bias] = volume_ctrl_ptr_->get_left_right_bias_compensation();
+  const auto [left_bias, right_bias] = volume_ctrl_.get_left_right_bias_compensation();
   char str_buffer[40];
   snprintf(str_buffer, 40, "%+d BAL %+d", left_bias, right_bias);
   draw_string_fast(display, str_buffer, 0, bal_top_y, LCD_WIDTH, small_font_, true, false, TextAlign::center);
-
-  // const uint32_t txt_bal_top_y = bal_top_y + 4;
-  // const uint32_t middle_x = LCD_WIDTH / 2;
-
-  // draw_string_fast(
-  //   display, "R", middle_x - 20, txt_bal_top_y, middle_x - 3, small_font_, true, false, TextAlign::right);
-
-  // draw_image_from_top_left(display, small_speaker, middle_x, bal_top_y);
-
-  // const uint32_t x_after_speaker = middle_x + small_speaker.w_px;
-  // char str_buffer[10];
-  // snprintf(str_buffer, 10, "%+ddB", persistent_data_ptr_->left_right_balance_db);
-  // draw_string_fast(
-  //   display,
-  //   str_buffer,
-  //   x_after_speaker + 3,
-  //   txt_bal_top_y,
-  //   x_after_speaker + 40,
-  //   small_font_,
-  //   true,
-  //   false,
-  //   TextAlign::left);
 }
 
 void MainMenuView::draw_volume(Display& display, const bool has_state_changed)
 {
   if (
-    !has_state_changed && prev_mute_state_ == volume_ctrl_ptr_->is_muted() &&
-    prev_volume_db_ == volume_ctrl_ptr_->get_volume_db())
+    !has_state_changed && prev_mute_state_ == volume_ctrl_.is_muted() &&
+    prev_volume_db_ == volume_ctrl_.get_volume_db())
   {
     return;
   }
 
   char buffer[5];
-  sprintf(buffer, "%d", volume_ctrl_ptr_->get_volume_db());
+  sprintf(buffer, "%d", volume_ctrl_.get_volume_db());
 
   const uint32_t min_x = 100;
   const uint32_t max_x = LCD_WIDTH - 4;
@@ -107,12 +85,12 @@ void MainMenuView::draw_volume(Display& display, const bool has_state_changed)
   const uint32_t start_y = middle_y - digit_font_.get_height_px() / 2;
   const uint32_t middle_x = (max_x - min_x) / 2 + min_x;
 
-  if (prev_mute_state_ != volume_ctrl_ptr_->is_muted())
+  if (prev_mute_state_ != volume_ctrl_.is_muted())
   {
     display.draw_rectangle(min_x, 0, max_x, LCD_HEIGHT, BLACK_COLOR);
   }
 
-  if (volume_ctrl_ptr_->is_muted())
+  if (volume_ctrl_.is_muted())
   {
     draw_image(display, mute_image, middle_x + 3, middle_y);
   }
@@ -120,13 +98,13 @@ void MainMenuView::draw_volume(Display& display, const bool has_state_changed)
   {
     draw_string_fast(display, buffer, min_x, start_y, max_x, digit_font_);
   }
-  prev_mute_state_ = volume_ctrl_ptr_->is_muted();
-  prev_volume_db_ = volume_ctrl_ptr_->get_volume_db();
+  prev_mute_state_ = volume_ctrl_.is_muted();
+  prev_volume_db_ = volume_ctrl_.get_volume_db();
 }
 
 void MainMenuView::draw_audio_inputs(Display& display, const bool has_state_changed)
 {
-  const auto& selected_audio_input = persistent_data_ptr_->selected_audio_input;
+  const auto& selected_audio_input = persistent_data_.selected_audio_input;
 
   const auto max_enum_value = static_cast<uint8_t>(AudioInput::enum_length);
   const uint32_t ver_spacing =
@@ -173,7 +151,7 @@ void MainMenuView::draw_audio_inputs(Display& display, const bool has_state_chan
     }
     if (is_selected || was_previously_selected || has_state_changed)
     {
-      const auto maybe_audio_input_str = option_ctrl_ptr_->get_input_rename_value(audio_input);
+      const auto maybe_audio_input_str = option_ctrl_.get_input_rename_value(audio_input);
       if (maybe_audio_input_str)
       {
         draw_string_fast(
@@ -183,30 +161,3 @@ void MainMenuView::draw_audio_inputs(Display& display, const bool has_state_chan
   }
   prev_audio_input_ = selected_audio_input;
 }
-
-// const char* MainMenuView::get_audio_input_renamed_str(const AudioInput& audio_input) const
-// {
-//   // Get the name alias
-//   const auto& name_alias = persistent_data_ptr_->get_per_audio_input_data(audio_input).name_alias;
-//   switch (name_alias)
-//   {
-//     case InputNameAliasOption::no_alias:
-//       return audio_input_to_string(audio_input);
-//       break;
-//     case InputNameAliasOption::dac:
-//       return "DAC";
-//     case InputNameAliasOption::cd:
-//       return "CD";
-//     case InputNameAliasOption::phono:
-//       return "PHONO";
-//     case InputNameAliasOption::tuner:
-//       return "TUNER";
-//     case InputNameAliasOption::aux:
-//       return "AUX";
-//     case InputNameAliasOption::stream:
-//       return "STREAM";
-//     case InputNameAliasOption::enum_length:
-//       return "ERR1";
-//   }
-//   return "ERR2";
-// }

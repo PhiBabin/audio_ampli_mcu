@@ -7,10 +7,10 @@
 #endif
 
 RemoteController::RemoteController(
-  StateMachine* state_machine_ptr, InteractionHandler* interaction_handler_ptr, VolumeController* volume_ctrl_ptr)
-  : state_machine_ptr_(state_machine_ptr)
-  , interaction_handler_ptr_(interaction_handler_ptr)
-  , volume_ctrl_ptr_(volume_ctrl_ptr)
+  StateMachine& state_machine, InteractionHandler& interaction_handler, VolumeController& volume_ctrl)
+  : state_machine_(state_machine)
+  , interaction_handler_(interaction_handler)
+  , volume_ctrl_(volume_ctrl)
 {
   // Apple Remote 1294
   RemoteCallbacks apple;
@@ -85,12 +85,12 @@ bool RemoteController::decode_command()
 
 void RemoteController::handle_up()
 {
-  interaction_handler_ptr_->menu_change(IncrementDir::increment);
+  interaction_handler_.menu_change(IncrementDir::increment);
 }
 
 void RemoteController::handle_down()
 {
-  interaction_handler_ptr_->menu_change(IncrementDir::decrement);
+  interaction_handler_.menu_change(IncrementDir::decrement);
 }
 
 int repeat_to_volume_multiplicator(const uint8_t repeat_count)
@@ -101,38 +101,38 @@ int repeat_to_volume_multiplicator(const uint8_t repeat_count)
 
 void RemoteController::handle_vol_down()
 {
-  volume_ctrl_ptr_->increase_volume_db(-volume_change * repeat_to_volume_multiplicator(repeat_count_));
+  volume_ctrl_.increase_volume_db(-volume_change * repeat_to_volume_multiplicator(repeat_count_));
 }
 
 void RemoteController::handle_vol_up()
 {
   // The longer the button is pressed the larger the increase in volume
-  volume_ctrl_ptr_->increase_volume_db(volume_change * repeat_to_volume_multiplicator(repeat_count_));
+  volume_ctrl_.increase_volume_db(volume_change * repeat_to_volume_multiplicator(repeat_count_));
 }
 
 void RemoteController::handle_menu()
 {
-  if (state_machine_ptr_->get_state() == State::option_menu)
+  if (state_machine_.get_state() == State::option_menu)
   {
-    state_machine_ptr_->change_state(State::main_menu);
+    state_machine_.change_state(State::main_menu);
   }
   else
   {
-    state_machine_ptr_->change_state(State::option_menu);
+    state_machine_.change_state(State::option_menu);
   }
 }
 
 void RemoteController::handle_select()
 {
-  interaction_handler_ptr_->on_menu_press();
+  interaction_handler_.on_menu_press();
 }
 
 void RemoteController::handle_power_on_off()
 {
-  interaction_handler_ptr_->on_power_button_press();
+  interaction_handler_.on_power_button_press();
 }
 
 void RemoteController::handle_mute()
 {
-  interaction_handler_ptr_->on_mute_button_press();
+  interaction_handler_.on_mute_button_press();
 }

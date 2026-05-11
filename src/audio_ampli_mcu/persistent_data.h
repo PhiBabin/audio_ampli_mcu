@@ -41,7 +41,7 @@ public:
   OutputTypeOption output_type_value{OutputTypeOption::se};
   OnOffOption sufwoofer_enable_value{OnOffOption::off};
   MonoOption mono_value{MonoOption::stereo};
-  uint8_t bias{50};  // Bias in percentage, 50 == 50%
+  uint8_t bias{70};  // Bias in percentage, 70 == 70%
   // Offset in dB of the left stereo output compared to the right output
   int8_t left_right_balance_db{0};
   MuteChannel mute_channel{MuteChannel::both_channel_enabled};

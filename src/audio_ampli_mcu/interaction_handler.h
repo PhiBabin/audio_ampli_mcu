@@ -10,11 +10,11 @@ class InteractionHandler
 {
 public:
   InteractionHandler(
-    OptionsView* option_view_ptr,
-    MainMenuView* main_menu_view_ptr,
-    VolumeController* volume_ctrl_ptr,
-    StateMachine* state_machine_ptr,
-    PioEncoder* option_encoder_ptr);
+    OptionsView& option_view,
+    MainMenuView& main_menu_view,
+    VolumeController& volume_ctrl,
+    StateMachine& state_machine,
+    PioEncoder& option_encoder);
 
   void init();
   bool update();
@@ -29,16 +29,16 @@ private:
   bool update_encoder();
   bool update_mute_button();
 
-  // Non-owning pointer to the option view
-  OptionsView* option_view_ptr_;
-  // Non-owning pointer to the main menu view
-  MainMenuView* main_menu_view_ptr_;
-  /// Non-owning pointer to the volume controler
-  VolumeController* volume_ctrl_ptr_;
-  // Non-owning pointer to the state machine
-  StateMachine* state_machine_ptr_;
-  /// Non-owning pointer to the quadrature encoder
-  PioEncoder* option_encoder_ptr_;
+  // Reference to the option view
+  OptionsView& option_view_;
+  // Reference to the main menu view
+  MainMenuView& main_menu_view_;
+  /// Reference to the volume controler
+  VolumeController& volume_ctrl_;
+  // Reference to the state machine
+  StateMachine& state_machine_;
+  /// Reference to the quadrature encoder
+  PioEncoder& option_encoder_;
   /// Toggle button for the selection
   ToggleButton select_button_;
   /// Toggle button for the mutting and power off

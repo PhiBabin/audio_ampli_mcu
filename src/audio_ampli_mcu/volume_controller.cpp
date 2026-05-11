@@ -3,29 +3,26 @@
 #include <cstdlib>
 
 VolumeController::VolumeController(
-  StateMachine* state_machine_ptr,
-  PersistentData* persistent_data_ptr,
-  PioEncoder* vol_encoder_ptr,
-  GpioHandler* gpio_handler_ptr)
-  : state_machine_ptr_(state_machine_ptr)
-  , persistent_data_ptr_(persistent_data_ptr)
-  , gpio_handler_ptr_(gpio_handler_ptr)
+  StateMachine& state_machine,
+  PersistentData& persistent_data,
+  PioEncoder& vol_encoder,
+  GpioHandler& gpio_handler)
+  : state_machine_(state_machine)
+  , persistent_data_(persistent_data)
+  , gpio_handler_(gpio_handler)
   , prev_encoder_count_(0)
   , tick_per_db_(TICK_PER_VOLUME_INCREMENT)
-  , vol_encoder_ptr_(vol_encoder_ptr)
+  , vol_encoder_(vol_encoder)
 {
 }
 
 void VolumeController::init()
 {
 #if defined(USE_V1_PCB)
-  gpio_handler_ptr_->cache_init_output(pin_out::latch_left_vol, LOW);
-  gpio_handler_ptr_->cache_init_output(pin_out::latch_right_vol, LOW);
-  gpio_handler_ptr_->apply();
+  gpio_handler_.cache_init_output(pin_out::latch_left_vol, LOW);
+  gpio_handler_.cache_init_output(pin_out::latch_right_vol, LOW);
+  gpio_handler_.apply();
 #endif
-
-  // pinMode(set_mute_pin_, OUTPUT);
-  // digitalWrite(set_mute_pin_, is_muted() ? LOW : HIGH);  // Mute is active low
 
   // Restore the volume db from the flash
   reset_volume_tick_count_based_volume_db();
@@ -33,20 +30,20 @@ void VolumeController::init()
 #if defined(USE_V2_PCB)
   for (const auto& pin : pin_out::left_volume_bits)
   {
-    gpio_handler_ptr_->cache_init_output(pin, LOW);
+    gpio_handler_.cache_init_output(pin, LOW);
   }
   for (const auto& pin : pin_out::right_volume_bits)
   {
-    gpio_handler_ptr_->cache_init_output(pin, LOW);
+    gpio_handler_.cache_init_output(pin, LOW);
   }
 
 #else
   for (const auto& pin : pin_out::volume_bits)
   {
-    gpio_handler_ptr_->cache_init_output(pin, LOW);
+    gpio_handler_.cache_init_output(pin, LOW);
   }
 #endif
-  gpio_handler_ptr_->apply();
+  gpio_handler_.apply();
   set_gpio_based_on_volume();
 }
 
@@ -63,7 +60,7 @@ void VolumeController::set_mute(const bool is_mute)
 
 void VolumeController::reset_volume_tick_count_based_volume_db()
 {
-  set_volume_db(persistent_data_ptr_->get_volume_db());
+  set_volume_db(persistent_data_.get_volume_db());
 }
 
 void VolumeController::set_gpio_volume(
@@ -77,10 +74,10 @@ void VolumeController::set_gpio_volume(
     {
       const auto& pin = volume_pins[i];
       const auto is_set = ((vol_6bit >> i) & 1) == 1;
-      gpio_handler_ptr_->cache_write_pin(pin, is_set ? HIGH : LOW);
+      gpio_handler_.cache_write_pin(pin, is_set ? HIGH : LOW);
     }
   }
-  gpio_handler_ptr_->apply();
+  gpio_handler_.apply();
 }
 
 void VolumeController::latch_volume_gpio_one_side_v2(
@@ -122,7 +119,7 @@ void VolumeController::latch_volume_gpio_one_side_v1(
   set_gpio_volume(volume_pins, prev_vol_6bit);
 
   // Start latching
-  gpio_handler_ptr_->write_pin(latch_pin, HIGH);
+  gpio_handler_.write_pin(latch_pin, HIGH);
 
   // Changing a relay from 0 -> 1 (~0.8ms) is must faster than 1 -> 0 (~1.5ms), so to make it look like all the relay
   // are changing at the same time we need to set the GPIO in two stages.
@@ -141,19 +138,19 @@ void VolumeController::latch_volume_gpio_one_side_v1(
   delayMicroseconds(1);
 
   // Unlatch
-  gpio_handler_ptr_->write_pin(latch_pin, LOW);
+  gpio_handler_.write_pin(latch_pin, LOW);
 }
 
 std::tuple<int16_t, int16_t> VolumeController::get_left_right_bias_compensation()
 {
-  const int16_t sign = persistent_data_ptr_->left_right_balance_db < 0 ? -1 : 1;
-  const int16_t change = sign * abs(persistent_data_ptr_->left_right_balance_db) / 2;
+  const int16_t sign = persistent_data_.left_right_balance_db < 0 ? -1 : 1;
+  const int16_t change = sign * abs(persistent_data_.left_right_balance_db) / 2;
 
   // If there is an odd offset (e.g. +3dB), the distribution is not symmetric, so we increase the right side if the bias
   // is positive and the left side if negative.
-  if (abs(persistent_data_ptr_->left_right_balance_db) % 2 == 1)
+  if (abs(persistent_data_.left_right_balance_db) % 2 == 1)
   {
-    if (persistent_data_ptr_->left_right_balance_db > 0)
+    if (persistent_data_.left_right_balance_db > 0)
     {
       return std::make_tuple(-change, change + sign);
     }
@@ -174,7 +171,7 @@ void VolumeController::set_gpio_based_on_volume()
     const auto [left_bias, right_bias] = get_left_right_bias_compensation();
     left_vol_6bit = constrain(positive_volume + left_bias, 0, 63);
     right_vol_6bit = constrain(positive_volume + right_bias, 0, 63);
-    switch (persistent_data_ptr_->mute_channel)
+    switch (persistent_data_.mute_channel)
     {
       case MuteChannel::mute_left:
         left_vol_6bit = 0;
@@ -214,7 +211,7 @@ bool VolumeController::is_muted() const
 
 int32_t VolumeController::get_volume_db() const
 {
-  return persistent_data_ptr_->get_volume_db();
+  return persistent_data_.get_volume_db();
 }
 
 void VolumeController::increase_volume_db(const int32_t delta_volume_db)
@@ -227,14 +224,14 @@ void VolumeController::set_volume_db(const int32_t new_volume_db)
   const auto constraint_volume_db = constrain(new_volume_db, -63, 0);
 
   // Update volume DB in the persistent data
-  persistent_data_ptr_->get_volume_db_mutable() = constraint_volume_db;
+  persistent_data_.get_volume_db_mutable() = constraint_volume_db;
   set_gpio_based_on_volume();
   latched_volume_updated_ = true;
 }
 
 bool VolumeController::update_volume()
 {
-  const int32_t current_count = vol_encoder_ptr_->getCount();
+  const int32_t current_count = vol_encoder_.getCount();
   if (current_count == prev_encoder_count_)
   {
     return false;

@@ -21,7 +21,7 @@ class RemoteController
 public:
   // Constructor
   RemoteController(
-    StateMachine* state_machine_ptr, InteractionHandler* interaction_handler_ptr, VolumeController* volume_ctrl_ptr);
+    StateMachine& state_machine, InteractionHandler& interaction_handler, VolumeController& volume_ctrl);
 
   // Init IR remote interrupt pins
   void init();
@@ -42,12 +42,12 @@ private:
   static const auto volume_change = 1;
   static const auto max_delay_between_repeats_ms = 800;
 
-  // Non-owning pointer to the state machine
-  StateMachine* state_machine_ptr_;
-  // Non-owning pointer to the interaction handler
-  InteractionHandler* interaction_handler_ptr_;
-  /// Non-owning pointer to the volume controler
-  VolumeController* volume_ctrl_ptr_;
+  // Reference to the state machine
+  StateMachine& state_machine_;
+  // Reference to the interaction handler
+  InteractionHandler& interaction_handler_;
+  /// Reference to the volume controler
+  VolumeController& volume_ctrl_;
 
   using RemoteCallbacks = std::unordered_map<uint16_t, std::function<void()>>;
 

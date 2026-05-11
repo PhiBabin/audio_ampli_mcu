@@ -25,6 +25,7 @@ COMMON_SRC = sim/lcd_simulator.cpp \
       sim/arduino.cpp \
       sim/SPI.cpp \
 	  audio_ampli_mcu/audio_ampli_mcu.ino \
+	  audio_ampli_mcu/app.cpp \
 	  audio_ampli_mcu/draw_primitives.cpp \
 	  audio_ampli_mcu/LCD_Driver.cpp \
 	  audio_ampli_mcu/persistent_data.cpp \

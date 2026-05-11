@@ -32,12 +32,12 @@ const char* audio_input_to_string(const AudioInput audio_in);
 class OptionController
 {
 public:
-  // Construtor
+  // Constructor
   OptionController(
-    StateMachine* state_machine_ptr,
-    PersistentData* persistent_data_ptr,
-    VolumeController* volume_ctrl_ptr,
-    GpioHandler* gpio_handler_ptr);
+    StateMachine& state_machine,
+    PersistentData& persistent_data,
+    VolumeController& volume_ctrl,
+    GpioHandler& gpio_handler);
 
   // Init GPIO pins
   void init();
@@ -61,16 +61,16 @@ private:
   void update_io_expander_gpio();
   void update_phono_gpio();
 
-  // Non-owning pointer to the state machine
-  StateMachine* state_machine_ptr_;
-  // Non-owning pointer to the persistent data
-  PersistentData* persistent_data_ptr_;
+  // Reference to the state machine
+  StateMachine& state_machine_;
+  // Reference to the persistent data
+  PersistentData& persistent_data_;
 
   // Handler to read/write to GPIO from the pico or to IO expander
-  GpioHandler* gpio_handler_ptr_;
+  GpioHandler& gpio_handler_;
 
-  /// Non-owning pointer to the volume controler
-  VolumeController* volume_ctrl_ptr_;
+  /// Reference to the volume controler
+  VolumeController& volume_ctrl_;
 
   RP2040_PWM pwm_bias_;
 
