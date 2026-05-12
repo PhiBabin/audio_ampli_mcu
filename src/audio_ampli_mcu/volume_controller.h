@@ -87,6 +87,12 @@ private:
   /// @param[in] mask Only the (mask & vol_6bit) GPIO will be updated.
   void set_gpio_volume(const std::array<GpioPin, 6U>& volume_pins, const uint8_t vol_6bit, const uint8_t mask = 0xff);
 
+  // Determine the correct gain based on the left+right effective volume and set GPIOs
+  void set_gain_based_on_volume(const int32_t left_volume_db, const int32_t right_volume_db);
+
+  /// Update the volume of one stereo side for the V0 firmware.
+  void latch_volume_gpio_one_side(const uint8_t prev_vol_6bit, const uint8_t vol_6bit, const GpioPin& latch_pin);
+
   // Reference to the state machine
   StateMachine& state_machine_;
   // Reference to the persistent data

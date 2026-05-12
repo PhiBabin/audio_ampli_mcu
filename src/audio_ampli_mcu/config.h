@@ -8,7 +8,7 @@
 
 // Changing the version will make previously saved settings unusable
 #define MAJOR_VERSION 1
-#define MINOR_VERSION 4
+#define MINOR_VERSION 5
 // Change to the patch will not impact save settings
 #define PATCH_VERSION 0
 

@@ -73,7 +73,6 @@ void OptionsView::init()
     std::vector<MenuItem> items{
       MenuItem{Option::balance, "L/R BALANCE", MenuItemType::focus_item},  // real focus
       MenuItem{Option::subwoofer, "SUBWOOFER", MenuItemType::increment_item},
-      MenuItem{Option::gain, "GAIN", MenuItemType::focus_item},
       MenuItem{Option::output_mode, "OUTPUT MODE", MenuItemType::increment_item},
       MenuItem{Option::output_type, "OUTPUT TYPE", MenuItemType::increment_item},
 #if defined (USE_V2_PCB)
@@ -137,12 +136,11 @@ void OptionsView::init()
   }
   else
   {
-    menus_.emplace(
+menus_.emplace(
       OptionMenuScreen::main,
       Menu(
         OptionMenuScreen::main,
         {
-          MenuItem{Option::gain, "GAIN", MenuItemType::increment_item},
           MenuItem{Option::output_mode, "OUTPUT MODE", MenuItemType::increment_item},
           MenuItem{Option::output_type, "OUTPUT TYPE", MenuItemType::increment_item},
           MenuItem{Option::subwoofer, "SUBWOOFER", MenuItemType::increment_item},
@@ -582,20 +580,6 @@ std::optional<const char*> OptionsView::string_format_option(const Option& optio
 {
   switch (option)
   {
-    case Option::gain:
-      switch (persistent_data_.get_gain())
-      {
-        case GainOption::low:
-          return "LOW";
-#if defined (USE_V2_PCB)
-        case GainOption::medium:
-          return "MEDIUM";
-#endif
-        case GainOption::high:
-          return "HIGH";
-        default:
-          return "ERR1";
-      }
     case Option::output_mode:
       switch (persistent_data_.output_mode_value)
       {

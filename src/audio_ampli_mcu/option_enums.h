@@ -19,7 +19,6 @@ enum class OptionMenuScreen : uint8_t
 };
 enum class Option : uint8_t
 {
-  gain = 0,
   output_mode,
   output_type,
   subwoofer,

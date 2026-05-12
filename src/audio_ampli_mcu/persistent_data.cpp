@@ -29,8 +29,7 @@ bool PersistentData::operator==(const PersistentData& rhs) const
   for (size_t i = 0; i < NUM_INPUT_OUTPUT_PERMUTATION; ++i)
   {
     if (
-      per_audio_input_output_data[i].volume_db != rhs.per_audio_input_output_data[i].volume_db ||
-      per_audio_input_output_data[i].gain_value != rhs.per_audio_input_output_data[i].gain_value)
+      per_audio_input_output_data[i].volume_db != rhs.per_audio_input_output_data[i].volume_db)
     {
       return false;
     }
@@ -78,10 +77,6 @@ int32_t& PersistentData::get_volume_db_mutable()
 {
   return get_per_audio_input_output_data_mutable().volume_db;
 }
-GainOption& PersistentData::get_gain_mutable()
-{
-  return get_per_audio_input_output_data_mutable().gain_value;
-}
 
 void PersistentDataFlasher::init()
 {
@@ -91,10 +86,6 @@ void PersistentDataFlasher::init()
 const int32_t& PersistentData::get_volume_db() const
 {
   return get_per_audio_input_output_data().volume_db;
-}
-const GainOption& PersistentData::get_gain() const
-{
-  return get_per_audio_input_output_data().gain_value;
 }
 
 uint8_t PersistentData::compute_checksum() const

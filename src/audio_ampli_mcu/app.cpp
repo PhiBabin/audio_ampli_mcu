@@ -90,11 +90,14 @@ void App::init()
 
   option_ctrl_.power_on();
 
+#ifdef USE_V2_PCB
   gpio_handler_.cache_init_input(pin_out::power_detect);
+#endif
 }
 
 void App::update_low_power_timer()
 {
+#ifdef USE_V2_PCB
   if (state_machine_.get_state() != State::main_menu)
   {
     return;
@@ -127,6 +130,7 @@ void App::update_low_power_timer()
   }
 
   prev_power_detected = is_power_detected;
+#endif
 }
 
 void App::tick()

@@ -135,15 +135,7 @@ void OptionController::update_io_expander_gpio()
   const int in_phono_pin = persistent_data_.selected_audio_input == AudioInput::rca_3 ? HIGH : LOW;
   gpio_handler_.cache_write_pin(pin_out::in_phono, in_phono_pin);
 
-  // Set Low gain GPIO
-  gpio_handler_.cache_write_pin(
-    pin_out::set_low_gain, persistent_data_.get_gain() == GainOption::low ? HIGH : LOW);
-
 #if defined (USE_V2_PCB)
-  gpio_handler_.cache_write_pin(
-    pin_out::set_high_gain, persistent_data_.get_gain() == GainOption::high ? HIGH : LOW);
-
-
   gpio_handler_.cache_write_pin(
     pin_out::set_mono, persistent_data_.mono_value == MonoOption::mono ? HIGH : LOW);
 #endif
@@ -378,17 +370,6 @@ void OptionController::increment_option(const Option& option, const IncrementDir
 {
   switch (option)
   {
-    case Option::gain:
-    {
-      constexpr int16_t volume_change = 12;
-      const auto old_value = persistent_data_.get_gain_mutable();
-      change_enum(GainOption::enum_length, persistent_data_.get_gain_mutable(), increment_dir);
-      const auto new_value = persistent_data_.get_gain_mutable();
-      const int16_t change = static_cast<int16_t>(old_value) - static_cast<int16_t>(new_value) ;
-      // E.g. high(2) -> low(0) -> 2 - 0 -> 2 -> 2 * 12db -> +24db to volume
-      volume_ctrl_.set_volume_db(volume_ctrl_.get_volume_db() + change * volume_change);
-      break;
-    }
     case Option::output_mode:
       change_enum(OutputModeOption::enum_length, persistent_data_.output_mode_value, increment_dir);
       break;

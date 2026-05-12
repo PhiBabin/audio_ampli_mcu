@@ -17,12 +17,6 @@ public:
   struct PerAudioInputOutputData
   {
     int32_t volume_db{STARTUP_VOLUME_DB};
-
-#if defined (USE_V2_PCB)
-    GainOption gain_value{GainOption::medium};
-#elif defined (USE_V1_PCB)
-    GainOption gain_value{GainOption::low};
-#endif
   };
   struct PerAudioInputData
   {
@@ -61,8 +55,6 @@ public:
   PerAudioInputData& get_per_audio_input_data_mutable(const AudioInput& input);
   const int32_t& get_volume_db() const;
   int32_t& get_volume_db_mutable();
-  const GainOption& get_gain() const;
-  GainOption& get_gain_mutable();
 
   /// Compute checksum of the persistent data.
   uint8_t compute_checksum() const;

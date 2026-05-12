@@ -1,4 +1,5 @@
 #include "volume_controller.h"
+#include "pinout_config.h"
 
 #include <cstdlib>
 
@@ -18,6 +19,11 @@ VolumeController::VolumeController(
 
 void VolumeController::init()
 {
+  gpio_handler_.cache_init_output(pin_out::set_low_gain, LOW);
+#if defined(USE_V2_PCB)
+  gpio_handler_.cache_init_output(pin_out::set_high_gain, LOW);
+#endif
+
 #if defined(USE_V1_PCB)
   gpio_handler_.cache_init_output(pin_out::latch_left_vol, LOW);
   gpio_handler_.cache_init_output(pin_out::latch_right_vol, LOW);
@@ -159,18 +165,97 @@ std::tuple<int16_t, int16_t> VolumeController::get_left_right_bias_compensation(
   return std::make_tuple(-change, change);
 }
 
+void VolumeController::set_gain_based_on_volume(const int32_t left_volume_db, const int32_t right_volume_db)
+{
+  const int32_t max_vol = left_volume_db > right_volume_db ? left_volume_db : right_volume_db;
+
+#if defined(USE_V2_PCB)
+  if (max_vol < -12)
+  {
+    gpio_handler_.cache_write_pin(pin_out::set_low_gain, HIGH);
+    gpio_handler_.cache_write_pin(pin_out::set_high_gain, LOW);
+  }
+  else if (max_vol < 0)
+  {
+    gpio_handler_.cache_write_pin(pin_out::set_low_gain, LOW);
+    gpio_handler_.cache_write_pin(pin_out::set_high_gain, LOW);
+  }
+  else
+  {
+    gpio_handler_.cache_write_pin(pin_out::set_low_gain, LOW);
+    gpio_handler_.cache_write_pin(pin_out::set_high_gain, HIGH);
+  }
+#else
+  if (max_vol < 0)
+  {
+    gpio_handler_.cache_write_pin(pin_out::set_low_gain, HIGH);
+  }
+  else
+  {
+    gpio_handler_.cache_write_pin(pin_out::set_low_gain, LOW);
+  }
+#endif
+}
+
 void VolumeController::set_gpio_based_on_volume()
 {
   uint8_t left_vol_6bit = 0;
   uint8_t right_vol_6bit = 0;
   if (!is_muted())
   {
-    // Map volume to 6 bit, -63 -> 0,  0 -> 63
-    const uint8_t positive_volume = 63 + get_volume_db();
-
+    const int32_t volume_db = get_volume_db();
     const auto [left_bias, right_bias] = get_left_right_bias_compensation();
-    left_vol_6bit = constrain(positive_volume + left_bias, 0, 63);
-    right_vol_6bit = constrain(positive_volume + right_bias, 0, 63);
+
+#if defined(USE_V2_PCB)
+    constexpr int32_t min_vol = -75;
+    constexpr int32_t max_vol = 12;
+    constexpr int32_t low_gain_threshold = -12;
+    constexpr int32_t low_gain_boost = -12;
+    constexpr int32_t medium_gain_boost = 0;
+    constexpr int32_t high_gain_boost = 12;
+#else
+    constexpr int32_t min_vol = -63;
+    constexpr int32_t max_vol = 14;
+    constexpr int32_t low_gain_boost = 0;
+    constexpr int32_t high_gain_boost = 14;
+#endif
+
+    const int32_t left_eff_vol = constrain(volume_db + left_bias, min_vol, max_vol);
+    const int32_t right_eff_vol = constrain(volume_db + right_bias, min_vol, max_vol);
+
+    set_gain_based_on_volume(left_eff_vol, right_eff_vol);
+
+    const int32_t max_vol_eff = left_eff_vol > right_eff_vol ? left_eff_vol : right_eff_vol;
+
+#if defined(USE_V2_PCB)
+    int32_t gain_boost;
+    if (max_vol_eff < low_gain_threshold)
+    {
+      gain_boost = low_gain_boost;
+    }
+    else if (max_vol_eff < 0)
+    {
+      gain_boost = medium_gain_boost;
+    }
+    else
+    {
+      gain_boost = high_gain_boost;
+    }
+#else
+    const int32_t gain_boost = (max_vol_eff < 0) ? low_gain_boost : high_gain_boost;
+#endif
+
+    const int32_t left_relay_db = constrain(left_eff_vol - gain_boost, -63, 0);
+    const int32_t right_relay_db = constrain(right_eff_vol - gain_boost, -63, 0);
+
+    left_vol_6bit = 63 + left_relay_db;
+    right_vol_6bit = 63 + right_relay_db;
+
+    Serial.print("Vol: L=");
+    Serial.print(left_vol_6bit);
+    Serial.print(" R=");
+    Serial.println(right_vol_6bit);
+
     switch (persistent_data_.mute_channel)
     {
       case MuteChannel::mute_left:
@@ -221,7 +306,11 @@ void VolumeController::increase_volume_db(const int32_t delta_volume_db)
 
 void VolumeController::set_volume_db(const int32_t new_volume_db)
 {
-  const auto constraint_volume_db = constrain(new_volume_db, -63, 0);
+#if defined(USE_V2_PCB)
+  const auto constraint_volume_db = constrain(new_volume_db, -75, 12);
+#else
+  const auto constraint_volume_db = constrain(new_volume_db, -63, 14);
+#endif
 
   // Update volume DB in the persistent data
   persistent_data_.get_volume_db_mutable() = constraint_volume_db;

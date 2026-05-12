@@ -59,10 +59,10 @@ int main(int argc, char* args[])
               increment_encoder(20, 100);
               break;
             case SDLK_a:
-              decrement_encoder(18, 3);
+              decrement_encoder(18, 2);
               break;
             case SDLK_d:
-              increment_encoder(18, 3);
+              increment_encoder(18, 2);
               break;
             case SDLK_m:
               button_pressed(16, event.key.repeat != 0);
