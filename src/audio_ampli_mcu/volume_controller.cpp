@@ -175,7 +175,7 @@ void VolumeController::set_gain_based_on_volume(const int32_t left_volume_db, co
     gpio_handler_.cache_write_pin(pin_out::set_low_gain, HIGH);
     gpio_handler_.cache_write_pin(pin_out::set_high_gain, LOW);
   }
-  else if (max_vol < 0)
+  else if (max_vol <= 0)
   {
     gpio_handler_.cache_write_pin(pin_out::set_low_gain, LOW);
     gpio_handler_.cache_write_pin(pin_out::set_high_gain, LOW);
@@ -233,7 +233,7 @@ void VolumeController::set_gpio_based_on_volume()
     {
       gain_boost = low_gain_boost;
     }
-    else if (max_vol_eff < 0)
+    else if (max_vol_eff <= 0)
     {
       gain_boost = medium_gain_boost;
     }
