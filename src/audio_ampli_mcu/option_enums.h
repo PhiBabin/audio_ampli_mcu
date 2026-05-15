@@ -39,6 +39,7 @@ enum class Option : uint8_t
   back,
   audio_input,
   text,
+  inactivity_timer,
   enum_length
 };
 
@@ -143,6 +144,15 @@ enum class OnOffOption : uint8_t
 {
   off = 0,
   on,
+  enum_length
+};
+
+enum class InactivityTimerOption : uint8_t
+{
+  off = 0,
+  _15min,
+  _1h,
+  _3h,
   enum_length
 };
 

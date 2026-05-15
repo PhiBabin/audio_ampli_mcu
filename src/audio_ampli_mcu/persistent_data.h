@@ -47,6 +47,7 @@ public:
   PhonoResistanceLoad phono_resistance_load{PhonoResistanceLoad::r_47k};
   PhonoCapacitanceLoad phono_capacitance_load{PhonoCapacitanceLoad::c_100pf};
   OnOffOption phono_rumble_filter{OnOffOption::off};
+  InactivityTimerOption inactivity_timer_option{InactivityTimerOption::off};
 
   // Getters
   const PerAudioInputOutputData& get_per_audio_input_output_data() const;

@@ -103,6 +103,29 @@ void App::update_low_power_timer()
   {
     return;
   }
+
+  const auto timer_option = persistent_data_.inactivity_timer_option;
+  if (timer_option == InactivityTimerOption::off)
+  {
+    return;
+  }
+
+  uint32_t threshold_ms;
+  switch (timer_option)
+  {
+    case InactivityTimerOption::_15min:
+      threshold_ms = 900000;
+      break;
+    case InactivityTimerOption::_1h:
+      threshold_ms = 3600000;
+      break;
+    case InactivityTimerOption::_3h:
+      threshold_ms = 10800000;
+      break;
+    default:
+      return;
+  }
+
   static std::optional<unsigned long> maybe_timer;
   static bool prev_power_detected = true;
 
@@ -116,7 +139,7 @@ void App::update_low_power_timer()
   } // not detected -> not detected
   else if (!is_power_detected && !prev_power_detected)
   {
-    if (maybe_timer.has_value() && (millis() - maybe_timer.value()) > INACTIVITY_TIMER_THRESHOLD_MS)
+    if (maybe_timer.has_value() && (millis() - maybe_timer.value()) > threshold_ms)
     {
       Serial.println("Turning off...");
       option_view_.power_off();

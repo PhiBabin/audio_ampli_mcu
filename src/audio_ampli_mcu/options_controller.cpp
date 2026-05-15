@@ -443,6 +443,9 @@ void OptionController::increment_option(const Option& option, const IncrementDir
     case Option::rumble_filter:
       change_enum(OnOffOption::enum_length, persistent_data_.phono_rumble_filter, increment_dir);
       break;
+    case Option::inactivity_timer:
+      change_enum(InactivityTimerOption::enum_length, persistent_data_.inactivity_timer_option, increment_dir);
+      break;
     case Option::back:
       break;
     case Option::enum_length:

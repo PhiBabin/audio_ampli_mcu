@@ -22,7 +22,8 @@ bool PersistentData::operator==(const PersistentData& rhs) const
     left_right_balance_db != rhs.left_right_balance_db || mute_channel != rhs.mute_channel ||
     phono_mode_option != rhs.phono_mode_option || phono_mm_gain != rhs.phono_mm_gain ||
     phono_mc_gain != rhs.phono_mc_gain || phono_resistance_load != rhs.phono_resistance_load ||
-    phono_capacitance_load != rhs.phono_capacitance_load || phono_rumble_filter != rhs.phono_rumble_filter)
+    phono_capacitance_load != rhs.phono_capacitance_load || phono_rumble_filter != rhs.phono_rumble_filter ||
+    inactivity_timer_option != rhs.inactivity_timer_option)
   {
     return false;
   }

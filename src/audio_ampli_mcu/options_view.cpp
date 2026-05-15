@@ -87,7 +87,8 @@ void OptionsView::init()
       MenuItem{Option::mute_channel, "MUTE CHAN", MenuItemType::focus_item},
       MenuItem{Option::rename_bal, "RENAME BAL", MenuItemType::focus_item},
       MenuItem{Option::rename_rca1, "RENAME RCA1", MenuItemType::focus_item},
-      MenuItem{Option::rename_rca2, "RENAME RCA2", MenuItemType::focus_item}};
+      MenuItem{Option::rename_rca2, "RENAME RCA2", MenuItemType::focus_item},
+      MenuItem{Option::inactivity_timer, "AUTO OFF", MenuItemType::focus_item}};
 
     // Add phono menu if a phono card has been detected
     if (option_ctrl_.has_phono_card())
@@ -161,6 +162,7 @@ menus_.emplace(
           MenuItem{Option::rename_rca1, "RENAME RCA1", MenuItemType::increment_item},
           MenuItem{Option::rename_rca2, "RENAME RCA2", MenuItemType::increment_item},
           MenuItem{Option::mute_channel, "MUTE CHANNEL", MenuItemType::increment_item},
+          MenuItem{Option::inactivity_timer, "AUTO OFF", MenuItemType::increment_item},
           // MenuItem{Option::rename_rca3, "RENAME RCA3", MenuItemType::increment_item},
           MenuItem{Option::more_options, "PHONO OPTION", MenuItemType::change_menu, OptionMenuScreen::phono},
           MenuItem{
@@ -777,6 +779,20 @@ std::optional<const char*> OptionsView::string_format_option(const Option& optio
       }
     case Option::rumble_filter:
       return format_on_off_option(persistent_data_.phono_rumble_filter);
+    case Option::inactivity_timer:
+      switch (persistent_data_.inactivity_timer_option)
+      {
+        case InactivityTimerOption::off:
+          return "OFF";
+        case InactivityTimerOption::_15min:
+          return "15MIN";
+        case InactivityTimerOption::_1h:
+          return "1H";
+        case InactivityTimerOption::_3h:
+          return "3H";
+        default:
+          return "ERR9";
+      }
     case Option::more_options:
       return {};
     case Option::back:
