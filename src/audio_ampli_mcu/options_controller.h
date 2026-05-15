@@ -56,7 +56,8 @@ public:
 
 private:
   constexpr static uint8_t bias_increment = 5;
-  constexpr static int8_t left_right_balance_range = 5;
+  // In tenth-dB units (5 dB = 50 tenth-dB, 0.5dB step = 5 tenth-dB)
+  constexpr static int8_t left_right_balance_range = 50;
 
   void update_io_expander_gpio();
   void update_phono_gpio();

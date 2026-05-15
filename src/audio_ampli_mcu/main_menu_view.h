@@ -14,7 +14,9 @@ public:
     PersistentData& persistent_data,
     StateMachine& state_machine,
     const LvFontWrapper& small_font,
-    const LvFontWrapper& digit_font);
+    const LvFontWrapper& digit_font,
+    const LvFontWrapper& regular_medium_font
+  );
 
   void init();
   void menu_up();
@@ -43,6 +45,8 @@ private:
   const LvFontWrapper& small_font_;
   // Font use to draw the volume's digit
   const LvFontWrapper& digit_font_;
+  // Font use to draw the small .5 next to the volume's digit
+  const LvFontWrapper& regular_medium_font_;
 
   // Cached previous state for partial redraw optimization
   bool prev_mute_state_{false};

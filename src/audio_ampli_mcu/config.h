@@ -3,12 +3,12 @@
 
 #include "audio_input_enums.h"
 
-// Default volume
-#define STARTUP_VOLUME_DB -20
+// Volume stored internally in tenth-dB units (-20 dB -> -200)
+#define STARTUP_VOLUME_TENTH_DB (-200)
 
 // Changing the version will make previously saved settings unusable
 #define MAJOR_VERSION 1
-#define MINOR_VERSION 5
+#define MINOR_VERSION 7
 // Change to the patch will not impact save settings
 #define PATCH_VERSION 0
 
@@ -29,7 +29,15 @@
 #define ENCODER_TICK_PER_ROTATION 24
 #endif
 
+#if defined(USE_V2_PCB)
+// V2: 2 ticks = 0.5dB step (5 tenth-dB)
 #define TICK_PER_VOLUME_INCREMENT 2
+#define VOLUME_STEP_TENTH_DB 5
+#else
+// V1/V0: 2 ticks = 1dB step (10 tenth-dB)
+#define TICK_PER_VOLUME_INCREMENT 2
+#define VOLUME_STEP_TENTH_DB 10
+#endif
 
 // Number of encoder tick to change audio input
 #define TICK_PER_AUDIO_IN (ENCODER_TICK_PER_ROTATION / NUM_AUDIO_INPUT)

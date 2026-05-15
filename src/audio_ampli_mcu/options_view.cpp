@@ -2,6 +2,8 @@
 
 #include "left_arrow_img.h"
 
+#include <cstdlib>
+
 namespace
 {
 const char* format_on_off_option(const OnOffOption& option)
@@ -354,14 +356,28 @@ void OptionsView::draw_volume(Display& display, const bool has_state_changed)
     return;
   }
 
-  char option_buffer[15] = {0};
+  constexpr size_t buf_len = 15;
+  char option_buffer[buf_len] = {0};
   if (volume_ctrl_.is_muted())
   {
     strcpy(option_buffer, "[MUTED]");
   }
   else
   {
-    snprintf(option_buffer, 15, "Vol: %ddB", volume_ctrl_.get_volume_db());
+    const int32_t int_part = volume_ctrl_.get_volume_db_int();
+    const uint8_t rem = volume_ctrl_.get_volume_tenth_db_rem();
+    if (rem != 0 && int_part == 0 && volume_ctrl_.get_volume_db() < 0)
+    {
+      snprintf(option_buffer, buf_len, "Vol: -0.%ddB", rem);
+    }
+    else if (rem != 0)
+    {
+      snprintf(option_buffer, buf_len, "Vol: %d.%ddB", int_part, rem);
+    }
+    else
+    {
+      snprintf(option_buffer, buf_len, "Vol: %ddB", int_part);
+}
   }
   draw_string_fast(display, option_buffer, LCD_WIDTH / 4, y_text_top, LCD_WIDTH * 3 / 4, font_);
 }
@@ -615,13 +631,30 @@ std::optional<const char*> OptionsView::string_format_option(const Option& optio
     case Option::subwoofer:
       return format_on_off_option(persistent_data_.sufwoofer_enable_value);
     case Option::balance:
-    {
-      const auto str_template = is_focus ? "<%+d/%+d>" : "%+d/%+d ";
-      const auto [left, right] = volume_ctrl_.get_left_right_bias_compensation();
-      snprintf(tmp_format_str_buffer_, tmp_format_str_len_, str_template, left, right);
-
-      return tmp_format_str_buffer_;
-    }
+      {
+        const auto [left, right] = volume_ctrl_.get_left_right_bias_compensation();
+        const int32_t left_int = left / 10;
+        const int32_t right_int = right / 10;
+        const int32_t left_rem = std::abs(left) % 10;
+        const int32_t right_rem = std::abs(right) % 10;
+        if (left_rem != 0 && right_rem != 0)
+        {
+          snprintf(tmp_format_str_buffer_, tmp_format_str_len_, is_focus ? "<%+d.%d/%+d.%d>" : "%+d.%d/%+d.%d ", left_int, left_rem, right_int, right_rem);
+        }
+        else if (left_rem != 0)
+        {
+          snprintf(tmp_format_str_buffer_, tmp_format_str_len_, is_focus ? "<%+d.%d/%+d>" : "%+d.%d/%+d ", left_int, left_rem, right_int);
+        }
+        else if (right_rem != 0)
+        {
+          snprintf(tmp_format_str_buffer_, tmp_format_str_len_, is_focus ? "<%+d/%+d.%d>" : "%+d/%+d.%d ", left_int, right_int, right_rem);
+        }
+        else
+        {
+          snprintf(tmp_format_str_buffer_, tmp_format_str_len_, is_focus ? "<%+d/%+d>" : "%+d/%+d ", left_int, right_int);
+        }
+        return tmp_format_str_buffer_;
+      }
     case Option::bias:
     {
       const auto str_template = is_focus ? "<%d%%>" : " %d%% ";

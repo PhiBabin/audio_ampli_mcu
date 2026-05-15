@@ -92,17 +92,26 @@ bool MCP23S17::pinMode8(uint8_t port, uint8_t value)
 
 void MCP23S17::print_status()
 {
+  return;
     using NameToGpioVector = std::vector<std::tuple<const char*, const GpioPin&>>;
 #if defined(USE_V2_PCB)
-  const static NameToGpioVector table_iox1 = {
-    {{stringify_var(audio_in_select_bal)},
-     {stringify_var(audio_in_select_rca1)},
-     {stringify_var(audio_in_select_rca2)},
-     {stringify_var(audio_in_select_rca3)},
-     {stringify_var(in_out_unipolar)},
-     {stringify_var(in_out_bal_unipolar)},
-     {stringify_var(in_phono)},
-     {stringify_var(set_high_gain)}}};
+  const static NameToGpioVector table_iox1 = {{
+      {stringify_var(l_volume_bit0)},
+      {stringify_var(l_volume_bit1)},
+      {stringify_var(l_volume_bit2)},
+      {stringify_var(l_volume_bit3)},
+      {stringify_var(r_volume_bit0)},
+      {stringify_var(r_volume_bit1)},
+      {stringify_var(r_volume_bit2)},
+      {stringify_var(r_volume_bit3)},
+      {stringify_var(audio_in_select_bal)},
+      {stringify_var(audio_in_select_rca1)},
+      {stringify_var(audio_in_select_rca2)},
+      {stringify_var(audio_in_select_rca3)},
+      {stringify_var(in_out_unipolar)},
+      {stringify_var(in_out_bal_unipolar)},
+      {stringify_var(in_phono)},
+      {stringify_var(set_high_gain)}}};
 
   const static NameToGpioVector table_iox2 = {{
     {stringify_var(l_volume_bit4)},

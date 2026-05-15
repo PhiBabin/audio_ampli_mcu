@@ -70,6 +70,23 @@ void VolumeController::reset_volume_tick_count_based_volume_db()
 }
 
 void VolumeController::set_gpio_volume(
+  const std::array<GpioPin, 7U>& volume_pins, const uint8_t vol_7bit, const uint8_t mask)
+{
+
+  for (size_t i = 0; i < volume_pins.size(); ++i)
+  {
+    const auto should_set_it = ((mask >> i) & 1) == 1;
+    if (should_set_it)
+    {
+      const auto& pin = volume_pins[i];
+      const auto is_set = ((vol_7bit >> i) & 1) == 1;
+      gpio_handler_.cache_write_pin(pin, is_set ? HIGH : LOW);
+    }
+  }
+  gpio_handler_.apply();
+}
+
+void VolumeController::set_gpio_volume(
   const std::array<GpioPin, 6U>& volume_pins, const uint8_t vol_6bit, const uint8_t mask)
 {
 
@@ -87,13 +104,13 @@ void VolumeController::set_gpio_volume(
 }
 
 void VolumeController::latch_volume_gpio_one_side_v2(
-  const uint8_t prev_vol_6bit, const uint8_t vol_6bit, const std::array<GpioPin, 6U>& volume_pins)
+  const uint8_t prev_vol_7bit, const uint8_t vol_7bit, const std::array<GpioPin, 7U>& volume_pins)
 {
   constexpr uint32_t relay_0_to_1_transition_time_us = 1500;
   constexpr uint32_t relay_1_to_0_transition_time_us = 680;
 
   // If volume didn't change -> noop
-  if (prev_vol_6bit == vol_6bit)
+  if (prev_vol_7bit == vol_7bit)
   {
     return;
   }
@@ -102,14 +119,14 @@ void VolumeController::latch_volume_gpio_one_side_v2(
   // are changing at the same time we need to set the GPIO in two stages.
 
   // 1) Apply all 0 -> 1 changes (also apply no-op 1 -> 1)
-  set_gpio_volume(volume_pins, vol_6bit, /*mask = */ vol_6bit);
+  set_gpio_volume(volume_pins, vol_7bit, /*mask = */ vol_7bit);
 
   // 2) Wait ~0.82ms (1.5ms - 0.68ms)
   constexpr auto wait_time_us = relay_0_to_1_transition_time_us - relay_1_to_0_transition_time_us;
   delayMicroseconds(wait_time_us);
 
   // 3) Apply all 1 -> 0 changes (also apply no-op 0 -> 0)
-  set_gpio_volume(volume_pins, vol_6bit, /*mask = */ ~vol_6bit);
+  set_gpio_volume(volume_pins, vol_7bit, /*mask = */ ~vol_7bit);
 }
 
 void VolumeController::latch_volume_gpio_one_side_v1(
@@ -149,33 +166,45 @@ void VolumeController::latch_volume_gpio_one_side_v1(
 
 std::tuple<int16_t, int16_t> VolumeController::get_left_right_bias_compensation()
 {
-  const int16_t sign = persistent_data_.left_right_balance_db < 0 ? -1 : 1;
-  const int16_t change = sign * abs(persistent_data_.left_right_balance_db) / 2;
+  const int16_t bal_half = persistent_data_.left_right_balance_db / 5;
+  const int16_t sign = bal_half < 0 ? -1 : 1;
+  const int16_t abs_bal = bal_half * sign;
+  const int16_t change = sign * (abs_bal / 2);
 
+  int16_t left_half{0};
+  int16_t right_half{0};
+  
   // If there is an odd offset (e.g. +3dB), the distribution is not symmetric, so we increase the right side if the bias
   // is positive and the left side if negative.
-  if (abs(persistent_data_.left_right_balance_db) % 2 == 1)
+  if (abs_bal % 2 == 0)
   {
-    if (persistent_data_.left_right_balance_db > 0)
-    {
-      return std::make_tuple(-change, change + sign);
-    }
-    return std::make_tuple(-change - sign, change);
+    left_half = -change;
+    right_half = change;
   }
-  return std::make_tuple(-change, change);
+  else if (bal_half > 0)
+  {
+    left_half = -change;
+    right_half = change + sign;
+  }
+  else
+  {
+    left_half = -(change + sign);
+    right_half = change;
+  }
+  return std::make_tuple(left_half * 5, right_half * 5);
 }
 
-void VolumeController::set_gain_based_on_volume(const int32_t left_volume_db, const int32_t right_volume_db)
+void VolumeController::set_gain_based_on_volume(const int32_t left_vol_tenth, const int32_t right_vol_tenth)
 {
-  const int32_t max_vol = left_volume_db > right_volume_db ? left_volume_db : right_volume_db;
+  const int32_t max_vol_tenth = left_vol_tenth > right_vol_tenth ? left_vol_tenth : right_vol_tenth;
 
 #if defined(USE_V2_PCB)
-  if (max_vol < -12)
+  if (max_vol_tenth < -120)
   {
     gpio_handler_.cache_write_pin(pin_out::set_low_gain, HIGH);
     gpio_handler_.cache_write_pin(pin_out::set_high_gain, LOW);
   }
-  else if (max_vol <= 0)
+  else if (max_vol_tenth <= 0)
   {
     gpio_handler_.cache_write_pin(pin_out::set_low_gain, LOW);
     gpio_handler_.cache_write_pin(pin_out::set_high_gain, LOW);
@@ -186,7 +215,7 @@ void VolumeController::set_gain_based_on_volume(const int32_t left_volume_db, co
     gpio_handler_.cache_write_pin(pin_out::set_high_gain, HIGH);
   }
 #else
-  if (max_vol < 0)
+  if (max_vol_tenth < 0)
   {
     gpio_handler_.cache_write_pin(pin_out::set_low_gain, HIGH);
   }
@@ -199,41 +228,48 @@ void VolumeController::set_gain_based_on_volume(const int32_t left_volume_db, co
 
 void VolumeController::set_gpio_based_on_volume()
 {
-  uint8_t left_vol_6bit = 0;
-  uint8_t right_vol_6bit = 0;
+  uint8_t left_vol_bits = 0;
+  uint8_t right_vol_bits = 0;
   if (!is_muted())
   {
-    const int32_t volume_db = get_volume_db();
+    const int32_t volume_tenth_db = get_volume_db();
     const auto [left_bias, right_bias] = get_left_right_bias_compensation();
 
 #if defined(USE_V2_PCB)
-    constexpr int32_t min_vol = -75;
-    constexpr int32_t max_vol = 12;
+    constexpr int32_t min_vol_tenth = -755; // -75.5dB
+    constexpr int32_t max_vol_tenth = 120; // 12dB
     constexpr int32_t low_gain_threshold = -12;
     constexpr int32_t low_gain_boost = -12;
     constexpr int32_t medium_gain_boost = 0;
     constexpr int32_t high_gain_boost = 12;
 #else
-    constexpr int32_t min_vol = -63;
-    constexpr int32_t max_vol = 14;
+    constexpr int32_t min_vol_tenth = -635; // -63.5dB
+    constexpr int32_t max_vol_tenth = 140; // 14dB
     constexpr int32_t low_gain_boost = 0;
     constexpr int32_t high_gain_boost = 14;
 #endif
 
-    const int32_t left_eff_vol = constrain(volume_db + left_bias, min_vol, max_vol);
-    const int32_t right_eff_vol = constrain(volume_db + right_bias, min_vol, max_vol);
+    const int32_t left_eff_tenth = constrain(volume_tenth_db + left_bias, min_vol_tenth, max_vol_tenth);
+    const int32_t right_eff_tenth = constrain(volume_tenth_db + right_bias, min_vol_tenth, max_vol_tenth);
 
-    set_gain_based_on_volume(left_eff_vol, right_eff_vol);
+    #if !defined(USE_V2_PCB)
+#if !defined(USE_V2_PCB)
+    const int32_t left_int_db = left_eff_tenth >= 0 ? left_eff_tenth / 10 : (left_eff_tenth - 9) / 10;
+    const int32_t right_int_db = right_eff_tenth >= 0 ? right_eff_tenth / 10 : (right_eff_tenth - 9) / 10;
+#endif
+#endif
 
-    const int32_t max_vol_eff = left_eff_vol > right_eff_vol ? left_eff_vol : right_eff_vol;
+    set_gain_based_on_volume(left_eff_tenth, right_eff_tenth);
+
+    const int32_t max_vol_eff_tenth = left_eff_tenth > right_eff_tenth ? left_eff_tenth : right_eff_tenth;
 
 #if defined(USE_V2_PCB)
     int32_t gain_boost;
-    if (max_vol_eff < low_gain_threshold)
+    if (max_vol_eff_tenth < low_gain_threshold * 10)
     {
       gain_boost = low_gain_boost;
     }
-    else if (max_vol_eff <= 0)
+    else if (max_vol_eff_tenth <= 0)
     {
       gain_boost = medium_gain_boost;
     }
@@ -242,27 +278,41 @@ void VolumeController::set_gpio_based_on_volume()
       gain_boost = high_gain_boost;
     }
 #else
-    const int32_t gain_boost = (max_vol_eff < 0) ? low_gain_boost : high_gain_boost;
+    const int32_t gain_boost = (max_vol_eff_tenth < 0) ? low_gain_boost : high_gain_boost;
 #endif
 
-    const int32_t left_relay_db = constrain(left_eff_vol - gain_boost, -63, 0);
-    const int32_t right_relay_db = constrain(right_eff_vol - gain_boost, -63, 0);
+#if !defined(USE_V2_PCB)
+    const int32_t left_relay_int = constrain(left_int_db - gain_boost, -63, 0);
+    const int32_t right_relay_int = constrain(right_int_db - gain_boost, -63, 0);
+#endif
 
-    left_vol_6bit = 63 + left_relay_db;
-    right_vol_6bit = 63 + right_relay_db;
+#if defined(USE_V2_PCB)
+    left_vol_bits = static_cast<uint8_t>(constrain(
+      left_eff_tenth / 5 - 2 * gain_boost + 127, 0, 127));
+    right_vol_bits = static_cast<uint8_t>(constrain(
+      right_eff_tenth / 5 - 2 * gain_boost + 127, 0, 127));
+#else
+    left_vol_bits = static_cast<uint8_t>(63 + left_relay_int);
+    right_vol_bits = static_cast<uint8_t>(63 + right_relay_int);
+#endif
 
-    Serial.print("Vol: L=");
-    Serial.print(left_vol_6bit);
-    Serial.print(" R=");
-    Serial.println(right_vol_6bit);
+    // char vol_buf[8];
+    // Serial.print(" Vol: L=");
+    // for (int8_t b = 6; b >= 0; --b) { vol_buf[6 - b] = '0' + ((left_vol_bits >> b) & 1); }
+    // vol_buf[7] = '\0';
+    // Serial.print(vol_buf);
+    // Serial.print(" R=");
+    // for (int8_t b = 6; b >= 0; --b) { vol_buf[6 - b] = '0' + ((right_vol_bits >> b) & 1); }
+    // Serial.print(vol_buf);
+    // Serial.println("");
 
     switch (persistent_data_.mute_channel)
     {
       case MuteChannel::mute_left:
-        left_vol_6bit = 0;
+        left_vol_bits = 0;
         break;
       case MuteChannel::mute_right:
-        right_vol_6bit = 0;
+        right_vol_bits = 0;
         break;
       case MuteChannel::both_channel_enabled:
       default:
@@ -271,21 +321,21 @@ void VolumeController::set_gpio_based_on_volume()
   }
 
 #if defined(USE_V2_PCB)
-  latch_volume_gpio_one_side_v2(prev_vol_6bit_set_on_left_, left_vol_6bit, pin_out::left_volume_bits);
-  latch_volume_gpio_one_side_v2(prev_vol_6bit_set_on_right_, right_vol_6bit, pin_out::right_volume_bits);
-  prev_vol_6bit_set_on_left_ = left_vol_6bit;
-  prev_vol_6bit_set_on_right_ = right_vol_6bit;
+  latch_volume_gpio_one_side_v2(prev_vol_set_on_left_, left_vol_bits, pin_out::left_volume_bits);
+  latch_volume_gpio_one_side_v2(prev_vol_set_on_right_, right_vol_bits, pin_out::right_volume_bits);
+  prev_vol_set_on_left_ = left_vol_bits;
+  prev_vol_set_on_right_ = right_vol_bits;
 
 #elif defined(USE_V1_PCB)
   latch_volume_gpio_one_side_v1(
-    prev_vol_6bit_set_on_left_, left_vol_6bit, pin_out::latch_left_vol, pin_out::volume_bits);
+    prev_vol_set_on_left_, left_vol_bits, pin_out::latch_left_vol, pin_out::volume_bits);
   latch_volume_gpio_one_side_v1(
-    prev_vol_6bit_set_on_right_, right_vol_6bit, pin_out::latch_right_vol, pin_out::volume_bits);
-  prev_vol_6bit_set_on_left_ = left_vol_6bit;
-  prev_vol_6bit_set_on_right_ = right_vol_6bit;
+    prev_vol_set_on_right_, right_vol_bits, pin_out::latch_right_vol, pin_out::volume_bits);
+  prev_vol_set_on_left_ = left_vol_bits;
+  prev_vol_set_on_right_ = right_vol_bits;
 #else
-  latch_volume_gpio_one_side(prev_vol_6bit_set_on_left_, left_vol_6bit, pin_out::latch_left_vol);
-  prev_vol_6bit_set_on_left_ = left_vol_6bit;
+  latch_volume_gpio_one_side(prev_vol_set_on_left_, left_vol_bits, pin_out::latch_left_vol);
+  prev_vol_set_on_left_ = left_vol_bits;
 #endif
 }
 
@@ -299,17 +349,29 @@ int32_t VolumeController::get_volume_db() const
   return persistent_data_.get_volume_db();
 }
 
-void VolumeController::increase_volume_db(const int32_t delta_volume_db)
+int32_t VolumeController::get_volume_db_int() const
 {
-  set_volume_db(get_volume_db() + delta_volume_db);
+  const int32_t h = persistent_data_.get_volume_db();
+  return h / 10;
 }
 
-void VolumeController::set_volume_db(const int32_t new_volume_db)
+uint8_t VolumeController::get_volume_tenth_db_rem() const
+{
+  const int32_t h = persistent_data_.get_volume_db();
+  return static_cast<uint8_t>(abs(h) % 10);
+}
+
+void VolumeController::increase_volume_db(const int32_t delta_volume_tenth_db)
+{
+  set_volume_db(get_volume_db() + delta_volume_tenth_db);
+}
+
+void VolumeController::set_volume_db(const int32_t new_volume_tenth_db)
 {
 #if defined(USE_V2_PCB)
-  const auto constraint_volume_db = constrain(new_volume_db, -75, 12);
+  const auto constraint_volume_db = constrain(new_volume_tenth_db, -755, 120); // -75.5dB and +12.0dB
 #else
-  const auto constraint_volume_db = constrain(new_volume_db, -63, 14);
+  const auto constraint_volume_db = constrain(new_volume_tenth_db, -635, 140); // -63.5dB and +14.0dB
 #endif
 
   // Update volume DB in the persistent data
@@ -334,9 +396,10 @@ bool VolumeController::update_volume()
 
   // e.g. 4 - 8 => -4
   const auto delta_tick = current_count - prev_encoder_count_;
+
   if (delta_tick >= tick_per_db_)
   {
-    increase_volume_db(delta_tick / tick_per_db_);
+    increase_volume_db((delta_tick / tick_per_db_) * VOLUME_STEP_TENTH_DB);
     const auto remainder = delta_tick % tick_per_db_;
     prev_encoder_count_ = prev_encoder_count_ + delta_tick - remainder;
     return true;
@@ -345,7 +408,7 @@ bool VolumeController::update_volume()
   if (delta_tick <= -tick_per_db_)
   {
     // e.g -4 / 3 => increase_volume_db(-1)
-    increase_volume_db(delta_tick / tick_per_db_);
+    increase_volume_db((delta_tick / tick_per_db_) * VOLUME_STEP_TENTH_DB);
     // e.g. (-(-4)) % 3 => 1
     const auto remainder = (-delta_tick) % tick_per_db_;
     /// 8 - 4 + 1 => 5

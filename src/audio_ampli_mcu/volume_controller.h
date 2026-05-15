@@ -29,8 +29,16 @@ public:
   // Init GPIO pins
   void init();
 
-  // Return current volume as a value in the 0-63 db range
+  // Return current volume as a value in tenth-dB units
   int32_t get_volume_db() const;
+
+  // Return the integer dB part (truncation toward zero)
+  // e.g. -205 tenth-dB -> -20
+  int32_t get_volume_db_int() const;
+
+  // Return the tenth-dB remainder (0-9, for display)
+  // e.g. -205 tenth-dB -> 5
+  uint8_t get_volume_tenth_db_rem() const;
 
   // Update current volume in db
   void set_volume_db(const int32_t new_volume_db);
@@ -77,18 +85,21 @@ private:
   // Since relays don't take the same time to change from 0 -> 1 than to 1 -> 0, so delay logic is applied.
   void latch_volume_gpio_one_side_v1(const uint8_t prev_vol_6bit, const uint8_t vol_6bit, const GpioPin& latch_pin, const std::array<GpioPin, 6U>& volume_pins);
 
-  // Update the volume of one stereo side for firmware version v1.
+  // Update the volume of one stereo side for firmware version v2.
   // Since relays don't take the same time to change from 0 -> 1 than to 1 -> 0, so delay logic is applied.
   void latch_volume_gpio_one_side_v2(
-    const uint8_t prev_vol_6bit, const uint8_t vol_6bit, const std::array<GpioPin, 6U>& volume_pins);
+    const uint8_t prev_vol_7bit, const uint8_t vol_7bit, const std::array<GpioPin, 7U>& volume_pins);
 
-  /// Update the GPIOs pins of the volume based on @c vol_6bit.
-  /// @param[in] vol_6bit Values of the GPIOs
-  /// @param[in] mask Only the (mask & vol_6bit) GPIO will be updated.
+  /// Update the GPIOs pins of the volume based on @c vol_7bit.
+  /// @param[in] vol_7bit Values of the GPIOs
+  /// @param[in] mask Only the (mask & vol_7bit) GPIO will be updated.
+  void set_gpio_volume(const std::array<GpioPin, 7U>& volume_pins, const uint8_t vol_7bit, const uint8_t mask = 0xff);
+
+  /// Update the GPIOs pins of the volume (6-bit variant for V1/V0).
   void set_gpio_volume(const std::array<GpioPin, 6U>& volume_pins, const uint8_t vol_6bit, const uint8_t mask = 0xff);
 
   // Determine the correct gain based on the left+right effective volume and set GPIOs
-  void set_gain_based_on_volume(const int32_t left_volume_db, const int32_t right_volume_db);
+  void set_gain_based_on_volume(const int32_t left_vol_tenth, const int32_t right_vol_tenth);
 
   /// Update the volume of one stereo side for the V0 firmware.
   void latch_volume_gpio_one_side(const uint8_t prev_vol_6bit, const uint8_t vol_6bit, const GpioPin& latch_pin);
@@ -111,8 +122,8 @@ private:
   bool latched_volume_updated_{false};
   /// When set_gpio_based_on_volume() is called we need to know what was previous value of the GPIOs for each stereo
   /// side
-  uint8_t prev_vol_6bit_set_on_left_{0};
-  uint8_t prev_vol_6bit_set_on_right_{0};
+  uint8_t prev_vol_set_on_left_{0};
+  uint8_t prev_vol_set_on_right_{0};
 };
 
 #endif  // VOL_CTRL_GUARD_H_

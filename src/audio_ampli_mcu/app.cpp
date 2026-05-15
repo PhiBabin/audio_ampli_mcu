@@ -2,7 +2,8 @@
 
 #include "cat_sleep_img.h"
 #include "digit_font.h"
-#include "digit_font_droid_sans_mono.h"
+// #include "digit_font_droid_sans_mono.h"
+#include "digit_font_droid_sans_mono_130.h"
 #include "dm_sans_bold_62.h"
 #include "dm_sans_extrabold.h"
 
@@ -35,12 +36,12 @@ App::App()
   , volume_ctrl_(state_machine_, persistent_data_, volume_encoder_, gpio_handler_)
   , option_ctrl_(state_machine_, persistent_data_, volume_ctrl_, gpio_handler_)
   , display_{}
-  , digit_droid_sans_font_(&droid_sans_mono, true)
+  , digit_droid_sans_font_(&digit_font_droid_sans_mono_130, true) // droid_sans_mono
   , digit_light_font_(&dmsans_36pt_light, true)
   , regular_bold_font_(&dmsans_36pt_extrabold)
   , regular_medium_font_(&dmsans_36pt_regular_40)
   , regular_large_font_(&dm_sans_bold_62)
-  , main_menu_view_(option_ctrl_, volume_ctrl_, persistent_data_, state_machine_, regular_bold_font_, digit_droid_sans_font_)
+  , main_menu_view_(option_ctrl_, volume_ctrl_, persistent_data_, state_machine_, regular_bold_font_, digit_droid_sans_font_, regular_medium_font_)
   , option_view_(option_ctrl_, volume_ctrl_, persistent_data_, state_machine_, regular_bold_font_, regular_medium_font_, regular_large_font_)
   , standby_view_(state_machine_, display_, regular_bold_font_, cat_sleep_image)
   , interaction_handler_(option_view_, main_menu_view_, volume_ctrl_, state_machine_, menu_select_encoder_)

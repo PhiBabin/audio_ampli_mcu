@@ -16,7 +16,7 @@ public:
   // Each audio input and audio output pair have their own volume and gain setting
   struct PerAudioInputOutputData
   {
-    int32_t volume_db{STARTUP_VOLUME_DB};
+    int32_t volume_db{STARTUP_VOLUME_TENTH_DB};
   };
   struct PerAudioInputData
   {
@@ -36,7 +36,7 @@ public:
   OnOffOption sufwoofer_enable_value{OnOffOption::off};
   MonoOption mono_value{MonoOption::stereo};
   uint8_t bias{70};  // Bias in percentage, 70 == 70%
-  // Offset in dB of the left stereo output compared to the right output
+  // Offset in tenth-dB of the left stereo output compared to the right output (step = 5 tenth-dB = 0.5dB)
   int8_t left_right_balance_db{0};
   MuteChannel mute_channel{MuteChannel::both_channel_enabled};
 

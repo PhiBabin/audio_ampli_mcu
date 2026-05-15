@@ -65,11 +65,10 @@ static constexpr GpioPin r_volume_bit4{GpioModule::io_expander_2, GpioPort::a, 6
 static constexpr GpioPin r_volume_bit5{GpioModule::io_expander_2, GpioPort::a, 5};
 static constexpr GpioPin r_volume_bit6{GpioModule::io_expander_2, GpioPort::a, 4};
 
-// Ignore bit 0, because we need to add support for 7bit volume firts
-inline constexpr std::array<GpioPin, 6> left_volume_bits{
-  l_volume_bit1, l_volume_bit2, l_volume_bit3, l_volume_bit4, l_volume_bit5, l_volume_bit6};
-inline constexpr std::array<GpioPin, 6> right_volume_bits{
-  r_volume_bit1, r_volume_bit2, r_volume_bit3, r_volume_bit4, r_volume_bit5, r_volume_bit6};
+inline constexpr std::array<GpioPin, 7> left_volume_bits{
+  l_volume_bit0, l_volume_bit1, l_volume_bit2, l_volume_bit3, l_volume_bit4, l_volume_bit5, l_volume_bit6};
+inline constexpr std::array<GpioPin, 7> right_volume_bits{
+  r_volume_bit0, r_volume_bit1, r_volume_bit2, r_volume_bit3, r_volume_bit4, r_volume_bit5, r_volume_bit6};
 
 #else
 static constexpr GpioPin volume_bit0{GpioModule::pico, GpioPort::na, 22};

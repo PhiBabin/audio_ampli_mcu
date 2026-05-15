@@ -396,7 +396,7 @@ void OptionController::increment_option(const Option& option, const IncrementDir
         persistent_data_.left_right_balance_db,
         int8_t{-left_right_balance_range},
         left_right_balance_range,
-        int8_t{1},
+        int8_t{5},
         increment_dir);
       break;
     case Option::rename_bal:

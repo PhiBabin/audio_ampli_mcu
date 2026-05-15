@@ -86,6 +86,13 @@ struct lv_font_glyph_dsc_t
   uint32_t glyph_index;
 };
 
+typedef enum {
+    LV_FONT_FMT_TXT_CMAP_FORMAT0_FULL,
+    LV_FONT_FMT_TXT_CMAP_SPARSE_FULL, // unsupported
+    LV_FONT_FMT_TXT_CMAP_FORMAT0_TINY,
+    LV_FONT_FMT_TXT_CMAP_SPARSE_TINY, // unsupported
+} lv_font_fmt_txt_cmap_type_t;
+
 struct lv_font_t
 {
   // How many pixel to cut off from the top (for some reason there is at least 3 pixels wasted)
@@ -108,6 +115,12 @@ struct lv_font_t
   const lv_font_fmt_txt_glyph_dsc_t* new_glyph_dsc{NULL};
   // Unicode code of each character in bitmap
   const uint32_t* unicode_list{NULL};
+  // Only use with LV_FONT_FMT_TXT_CMAP_FORMAT0_FULL to map the unicode to the glyph
+  const uint8_t* glyph_id_ofs_list{NULL};
+  // Offset apply to the value in the glyph_id_ofs_list table. Only use with LV_FONT_FMT_TXT_CMAP_FORMAT0_FULL
+  const uint32_t glyph_id_start{1};
+  // Which encoding format for the CMAP to use. (Our code assumes a single CMAP for the font)
+  lv_font_fmt_txt_cmap_type_t format_type{LV_FONT_FMT_TXT_CMAP_FORMAT0_TINY};
 };
 
 class LvFontWrapper

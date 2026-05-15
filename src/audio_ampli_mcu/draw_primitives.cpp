@@ -358,13 +358,34 @@ LvFontWrapper::LvFontWrapper(const lv_font_t* font, const bool is_monospace)
       add_character(font_->unicode_list[i], i);
       ++i;
     }
-  }
-  else
+  } // This is the range of unicode format, but not all unicode in range have a supported glyph
+  else if (font_->format_type == LV_FONT_FMT_TXT_CMAP_FORMAT0_FULL)
   {
-    for (uint32_t unicode = font_->unicode_first; unicode <= font_->unicode_last; ++unicode)
+    if (font_->glyph_id_ofs_list != NULL)
+    {
+      for (uint32_t unicode = font_->unicode_first; unicode < font_->unicode_last; ++unicode)
+      {
+        const auto offset = unicode - font_->unicode_first;
+        // Don't add glyph for unicode within the range which have 0 in the glyph_id_ofs_list
+        // The very first unicode of the range can be zero, tho
+        if (font_->glyph_id_ofs_list[offset] == 0 && unicode != font_->unicode_first)
+        {
+          continue;
+        }
+        add_character(unicode, font_->glyph_id_start - 1 + font_->glyph_id_ofs_list[offset]);
+      }
+    }
+  }
+  else if (font_->format_type == LV_FONT_FMT_TXT_CMAP_FORMAT0_TINY)
+  {
+    for (uint32_t unicode = font_->unicode_first; unicode < font_->unicode_last; ++unicode)
     {
       add_character(unicode, unicode - font_->unicode_first);
     }
+  }
+  else
+  {
+    Serial.println("Error unsupported format");
   }
 
   // Update width_px to the largest glyph width
