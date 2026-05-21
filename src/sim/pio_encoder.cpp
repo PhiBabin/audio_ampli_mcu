@@ -18,7 +18,7 @@ void decrement_encoder(const uint8_t encoder_pin, const int increment)
   }
 }
 
-PioEncoder::PioEncoder(uint8_t _pin, size_t _pio, unsigned int _sm, int max_step_rate, bool wflip) : pin(_pin)
+PioEncoder::PioEncoder(uint8_t _pin, size_t _pio, unsigned int _sm, int /*max_step_rate*/, bool /*wflip*/) : pin(_pin)
 {
 }
 

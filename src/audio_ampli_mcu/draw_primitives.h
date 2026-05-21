@@ -110,13 +110,13 @@ struct lv_font_t
   // Pointer to the bitmap
   const uint8_t* glyph_bitmap;
   // Glyph description (width in px + offset in bitmap)
-  const lv_font_glyph_dsc_t* glyph_dsc{NULL};
+  const lv_font_glyph_dsc_t* glyph_dsc{nullptr};
   // New glyph description (width in px + offset in bitmap + bounding box)
-  const lv_font_fmt_txt_glyph_dsc_t* new_glyph_dsc{NULL};
+  const lv_font_fmt_txt_glyph_dsc_t* new_glyph_dsc{nullptr};
   // Unicode code of each character in bitmap
-  const uint32_t* unicode_list{NULL};
+  const uint32_t* unicode_list{nullptr};
   // Only use with LV_FONT_FMT_TXT_CMAP_FORMAT0_FULL to map the unicode to the glyph
-  const uint8_t* glyph_id_ofs_list{NULL};
+  const uint8_t* glyph_id_ofs_list{nullptr};
   // Offset apply to the value in the glyph_id_ofs_list table. Only use with LV_FONT_FMT_TXT_CMAP_FORMAT0_FULL
   const uint32_t glyph_id_start{1};
   // Which encoding format for the CMAP to use. (Our code assumes a single CMAP for the font)

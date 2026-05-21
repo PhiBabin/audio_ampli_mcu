@@ -638,7 +638,7 @@ void OptionsView::draw_menu(Display& display, const bool has_state_changed)
             top_y_arrow,
             /*vertical_mirror=*/true);
         }
-        // Intentional fallthrought
+        [[fallthrough]];
       case MenuItemType::increment_item:
       {
         const uint32_t top_y_text = y_center_black_zone - large_font_.get_height_px() / 2;
@@ -856,8 +856,7 @@ std::optional<const char*> OptionsView::string_format_option(const Option& optio
     }
     case Option::bias:
     {
-      const auto str_template = is_focus ? "<%d%%>" : " %d%% ";
-      snprintf(tmp_format_str_buffer_, tmp_format_str_len_, str_template, persistent_data_.bias);
+      snprintf(tmp_format_str_buffer_, tmp_format_str_len_, is_focus ? "<%d%%>" : " %d%% ", persistent_data_.bias);
 
       return tmp_format_str_buffer_;
     }

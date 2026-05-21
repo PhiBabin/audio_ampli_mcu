@@ -91,14 +91,14 @@ const int32_t& PersistentData::get_volume_db() const
 
 uint8_t PersistentData::compute_checksum() const
 {
-  uint8_t checksum = 0;
+  uint8_t my_checksum = 0;
   const uint8_t* data_out_ptr = reinterpret_cast<const uint8_t*>(this);
   // Skip checksum bits
   for (size_t i = 2; i < sizeof(PersistentData); ++i)
   {
-    checksum += data_out_ptr[i];
+    my_checksum += data_out_ptr[i];
   }
-  return checksum;
+  return my_checksum;
 }
 
 bool PersistentDataFlasher::maybe_load_data(PersistentData& data_out)
