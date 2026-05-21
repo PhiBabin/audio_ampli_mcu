@@ -66,7 +66,7 @@
 #define DEV_Digital_Write(_pin, _value) digitalWrite(_pin, _value == 0 ? LOW : HIGH)
 #define DEV_Digital_Read(_pin) digitalRead(_pin)
 
-#define DEV_SPI_BEGIN_TRANS SPI.beginTransaction(SPISettings(20000000, MSBFIRST, SPI_MODE3));
+#define DEV_SPI_BEGIN_TRANS SPI.beginTransaction(SPISettings(20000000, MSBFIRST, SPI_MODE0));
 #define DEV_SPI_END_TRANS SPI.endTransaction();
 /**
  * SPI
@@ -102,6 +102,28 @@ public:
   /// Replace every other pixel with black (checkerboard pattern) for a dissolve transition.
   /// Operates directly on the framebuffer for maximum speed.
   void checkerboard_dissolve();
+
+  /// Start a vertical melt transition. Call advance_transition() each frame until it returns true.
+  void start_melt();
+  /// Start a roto-zoom transition (spins the old screen into a vortex).
+  void start_roto_zoom();
+  /// Advance the active transition by one frame. Returns true when the transition is complete.
+  bool advance_transition();
+  /// Returns true if a transition is currently running.
+  bool is_transition_active() const { return transition_type_ != TransitionType::none; }
+
+private:
+  enum class TransitionType : uint8_t { none, melt, roto_zoom };
+
+  TransitionType transition_type_{TransitionType::none};
+  uint8_t transition_frame_{0};
+  unsigned long start_time_{0};
+  uint8_t melt_front_[LCD_WIDTH];
+  uint8_t* roto_backup_{nullptr};
+  uint8_t rot_angle_{0};
+
+  bool advance_melt();
+  bool advance_roto_zoom();
 
 private:
   void set_window(const uint16_t x_start, const uint16_t y_start, const uint16_t x_end, const uint16_t y_end);

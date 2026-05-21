@@ -31,7 +31,15 @@
 
 #include "RP2040_PWM.h"
 
+#ifdef SIM
+#include "sim/arduino.h"
+#else
+#endif
+
 #include <cassert>
+#include <cstdint>
+#include <cstring>
+#include <cstdlib>
 
 /// PWM instance to control backlight
 RP2040_PWM pwm_backlight(pin_out::lcd_backlight.pin, 100000, LCD_BACKLIGHT);
@@ -193,6 +201,7 @@ void LCD_Init(void)
   LCD_Write_Command(0x21);  //  (21h): Display Inversion On
 
   LCD_Write_Command(0x11);  //  (11h): Sleep Out
+  delay(120);               // ST7789V requires 120 ms after Sleep Out
 
   LCD_Write_Command(0x29);  //  (29h): Display On
 
@@ -398,6 +407,152 @@ void Display::checkerboard_dissolve()
     }
   }
   has_screen_changed = true;
+}
+
+// Fixed-point sin table: Q8.8 format, 256 entries for a full circle.
+// sin_lut[a] = round(256 * sin(2*pi*a/256))
+static const int16_t sin_lut[256] = {
+  0, 6, 13, 19, 25, 31, 38, 44, 50, 56, 62, 68, 74, 80, 86, 92,
+  98, 104, 109, 115, 121, 126, 132, 137, 142, 147, 152, 157, 162, 167, 172, 177,
+  181, 185, 190, 194, 198, 202, 206, 209, 213, 216, 220, 223, 226, 229, 231, 234,
+  237, 239, 241, 243, 245, 247, 248, 250, 251, 252, 253, 254, 255, 255, 256, 256,
+  256, 256, 256, 255, 255, 254, 253, 252, 251, 250, 248, 247, 245, 243, 241, 239,
+  237, 234, 231, 229, 226, 223, 220, 216, 213, 209, 206, 202, 198, 194, 190, 185,
+  181, 177, 172, 167, 162, 157, 152, 147, 142, 137, 132, 126, 121, 115, 109, 104,
+  98, 92, 86, 80, 74, 68, 62, 56, 50, 44, 38, 31, 25, 19, 13, 6,
+  0, -6, -13, -19, -25, -31, -38, -44, -50, -56, -62, -68, -74, -80, -86, -92,
+  -98, -104, -109, -115, -121, -126, -132, -137, -142, -147, -152, -157, -162, -167, -172, -177,
+  -181, -185, -190, -194, -198, -202, -206, -209, -213, -216, -220, -223, -226, -229, -231, -234,
+  -237, -239, -241, -243, -245, -247, -248, -250, -251, -252, -253, -254, -255, -255, -256, -256,
+  -256, -256, -256, -255, -255, -254, -253, -252, -251, -250, -248, -247, -245, -243, -241, -239,
+  -237, -234, -231, -229, -226, -223, -220, -216, -213, -209, -206, -202, -198, -194, -190, -185,
+  -181, -177, -172, -167, -162, -157, -152, -147, -142, -137, -132, -126, -121, -115, -109, -104,
+  -98, -92, -86, -80, -74, -68, -62, -56, -50, -44, -38, -31, -25, -19, -13, -6,
+};
+
+void Display::start_melt()
+{
+  transition_type_ = TransitionType::melt;
+  transition_frame_ = 0;
+  start_time_ = millis();
+  memset(melt_front_, 0, sizeof(melt_front_));
+}
+
+void Display::start_roto_zoom()
+{
+  roto_backup_ = static_cast<uint8_t*>(malloc(FRAME_BUFFER_LEN));
+  if (roto_backup_)
+  {
+    memcpy(roto_backup_, frame_buffer_, FRAME_BUFFER_LEN);
+  }
+  transition_type_ = TransitionType::roto_zoom;
+  transition_frame_ = 0;
+  start_time_ = millis();
+  rot_angle_ = 0;
+}
+
+bool Display::advance_transition()
+{
+  switch (transition_type_)
+  {
+    case TransitionType::melt:
+      return advance_melt();
+    case TransitionType::roto_zoom:
+      return advance_roto_zoom();
+    default:
+      return true;
+  }
+}
+
+bool Display::advance_melt()
+{
+  constexpr uint32_t MELT_DURATION_MS = 500;
+  constexpr uint8_t MAX_FRAMES = 12;
+  bool all_done = true;
+  const uint32_t elapsed = millis() - start_time_;
+  float progress = static_cast<float>(elapsed) / static_cast<float>(MELT_DURATION_MS);
+  const uint8_t current_frame =  static_cast<uint8_t>(MAX_FRAMES * progress);
+
+  for (int x = 0; x < LCD_WIDTH; ++x)
+  {
+    if (melt_front_[x] < LCD_HEIGHT)
+    {
+      all_done = false;
+      int advance = 8 + current_frame * 2 * (2000/MELT_DURATION_MS) + ((x * 7) % 12);
+      uint8_t prev = melt_front_[x];
+      uint8_t next = prev + advance;
+      if (next > LCD_HEIGHT)
+      {
+        next = LCD_HEIGHT;
+      }
+      melt_front_[x] = next;
+      for (uint8_t y = prev; y < next; ++y)
+      {
+        set_pixel_unsafe(x, y, 0);
+      }
+    }
+  }
+
+  has_screen_changed = true;
+
+  if (all_done || current_frame >= MAX_FRAMES)
+  {
+    transition_type_ = TransitionType::none;
+    return true;
+  }
+  return false;
+}
+
+bool Display::advance_roto_zoom()
+{
+  constexpr uint8_t MAX_FRAMES = 6;
+
+  if (!roto_backup_)
+  {
+    transition_type_ = TransitionType::none;
+    return true;
+  }
+
+  // Inverse rotation per-pixel: for each destination pixel, find its source.
+  // cos(-a) = cos(a), sin(-a) = -sin(a)
+  int16_t cos_val = sin_lut[(rot_angle_ + 64) & 0xFF];
+  int16_t sin_val = -sin_lut[rot_angle_];
+
+  for (int dy = 0; dy < LCD_HEIGHT; ++dy)
+  {
+    for (int dx = 0; dx < LCD_WIDTH; ++dx)
+    {
+      int rx = dx - LCD_WIDTH / 2;
+      int ry = dy - LCD_HEIGHT / 2;
+
+      int sx = ((rx * cos_val - ry * sin_val) >> 8) + LCD_WIDTH / 2;
+      int sy = ((rx * sin_val + ry * cos_val) >> 8) + LCD_HEIGHT / 2;
+
+      if (sx >= 0 && sx < LCD_WIDTH && sy >= 0 && sy < LCD_HEIGHT)
+      {
+        uint32_t bo = (static_cast<uint32_t>(sy) * LCD_WIDTH + sx) * 3 / 2;
+        uint16_t color;
+        if (sx & 1)
+          color = ((roto_backup_[bo + 1] & 0x0F) << 8) | roto_backup_[bo + 2];
+        else
+          color = (roto_backup_[bo] << 4) | ((roto_backup_[bo + 1] >> 4) & 0x0F);
+        set_pixel_unsafe(dx, dy, color);
+      }
+    }
+  }
+
+  ++transition_frame_;
+  rot_angle_ += 21;  // ~30° per frame, ~360° total over 12 frames
+  has_screen_changed = true;
+
+  if (transition_frame_ >= MAX_FRAMES)
+  {
+    free(roto_backup_);
+    roto_backup_ = nullptr;
+    transition_type_ = TransitionType::none;
+    return true;
+  }
+  return false;
 }
 
 void Display::set_pixel(const uint16_t x, const uint16_t y, const uint32_t color_12bit)

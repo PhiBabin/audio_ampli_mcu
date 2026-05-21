@@ -3,6 +3,7 @@
 #include "left_arrow_img.h"
 
 #include <cstdlib>
+#include <cstring>
 
 namespace
 {
@@ -49,6 +50,39 @@ const char* Menu::get_label() const
   return "";
 }
 
+void Menu::change_selected_item(const IncrementDir& dir)
+{
+  if (!maybe_selected_index)
+  {
+    return;
+  }
+  const auto index = maybe_selected_index.value();
+
+  // When going up in the menu, we need to decrement the index, because menu items are display from top to bottom.
+  // This is a bit confusing.
+  if (dir == IncrementDir::increment)
+  {
+    maybe_selected_index = index == 0 ? items.size() - 1 : index - 1;
+  }
+  else
+  {
+    maybe_selected_index = (index + 1) % items.size();
+  }
+}
+
+std::optional<std::reference_wrapper<const MenuItem>> Menu::try_get_selected_item() const
+{
+  if (!maybe_selected_index)
+  {
+    return std::nullopt;
+  }
+  if (maybe_selected_index.value() >= items.size())
+  {
+    return std::nullopt;
+  }
+  return items[maybe_selected_index.value()];
+}
+
 OptionsView::OptionsView(
   OptionController& option_ctrl,
   VolumeController& volume_ctrl,
@@ -77,7 +111,7 @@ void OptionsView::init()
       MenuItem{Option::subwoofer, "SUBWOOFER", MenuItemType::increment_item},
       MenuItem{Option::output_mode, "OUTPUT MODE", MenuItemType::increment_item},
       MenuItem{Option::output_type, "OUTPUT TYPE", MenuItemType::increment_item},
-#if defined (USE_V2_PCB)
+#if defined(USE_V2_PCB)
       MenuItem{Option::mono, "MONO/STEREO", MenuItemType::increment_item},
 #endif
     };
@@ -125,21 +159,15 @@ void OptionsView::init()
         "\nPHILIPPE BABIN",
         MenuItemType::text});
     adv_option_items.emplace_back(MenuItem{Option::back, "BACK", MenuItemType::change_menu, OptionMenuScreen::main});
-    menus_.emplace(
-      OptionMenuScreen::advance, Menu(OptionMenuScreen::advance, adv_option_items, /*take_last_item = */ false));
+    menus_.emplace(OptionMenuScreen::advance, Menu(OptionMenuScreen::advance, adv_option_items, /*take_last_item = */ false));
 
     items.emplace_back(MenuItem{Option::back, "EXIT MENU", MenuItemType::change_menu, OptionMenuScreen::exit});
 
-    menus_.emplace(
-      OptionMenuScreen::main,
-      Menu(
-        OptionMenuScreen::main,
-        std::move(items),
-        /*take_last_item = */ false));
+    menus_.emplace(OptionMenuScreen::main, Menu(OptionMenuScreen::main, std::move(items), /*take_last_item = */  false));
   }
   else
   {
-menus_.emplace(
+    menus_.emplace(
       OptionMenuScreen::main,
       Menu(
         OptionMenuScreen::main,
@@ -195,47 +223,16 @@ menus_.emplace(
   }
 }
 
-void Menu::change_selected_item(const IncrementDir& dir)
-{
-  if (!maybe_selected_index)
-  {
-    return;
-  }
-  const auto index = maybe_selected_index.value();
-
-  // When going up in the menu, we need to decrement the index, because menu items are display from top to bottom.
-  // This is a bit confusing.
-  if (dir == IncrementDir::increment)
-  {
-    maybe_selected_index = index == 0 ? items.size() - 1 : index - 1;
-  }
-  else
-  {
-    maybe_selected_index = (index + 1) % items.size();
-  }
-}
-
-std::optional<std::reference_wrapper<const MenuItem>> Menu::try_get_selected_item() const
-{
-  if (!maybe_selected_index)
-  {
-    return std::nullopt;
-  }
-  if (maybe_selected_index.value() >= items.size())
-  {
-    return std::nullopt;
-  }
-  return items[maybe_selected_index.value()];
-}
-
 Menu& OptionsView::get_selected_menu()
 {
   return menus_.at(selected_menu_);
 }
+
 void OptionsView::power_on()
 {
   option_ctrl_.power_on();
 }
+
 void OptionsView::power_off()
 {
   option_ctrl_.power_off();
@@ -294,22 +291,52 @@ void OptionsView::menu_change(const IncrementDir& dir)
     return;
   }
   const auto& menu_item = maybe_menu_item.value().get();
+
+  auto change_and_slide = [&]() {
+    if (use_large_ui_)
+    {
+      // menu_slide_.old_label = menu_item.label;
+      menu_slide_.maybe_old_item = menu_item;
+      menu.change_selected_item(dir);
+      const auto& maybe_new_item = menu.try_get_selected_item();
+      menu_slide_.maybe_new_item = maybe_new_item;
+      menu_slide_.dir = dir;
+      menu_slide_.active = true;
+
+    }
+    else
+    {
+      menu.change_selected_item(dir);
+    }
+  };
+
   switch (menu_item.type)
   {
     case MenuItemType::text:
     case MenuItemType::change_menu:
     case MenuItemType::increment_item:
-      menu.change_selected_item(dir);
+      change_and_slide();
       break;
     case MenuItemType::focus_item:
     {
       if (is_focus_)
       {
+        const char* old_text = string_format_option(menu_item.option, false).value_or("");
+        // Because some of the option don't return static string and instead return the address to a temporary buffer.
+        // We need to safe a copy of the content of the text
+        strncpy(value_slide_.old_text, old_text, sizeof(value_slide_.old_text) - 1);
+        value_slide_.old_text[sizeof(value_slide_.old_text) - 1] = '\0';
+
         option_ctrl_.increment_option(menu_item.option, dir);
+        value_slide_.new_text = string_format_option(menu_item.option, false).value_or("");
+
+        // Only activate if the value changed
+        value_slide_.active = strcmp(value_slide_.old_text, value_slide_.new_text) != 0;
+        value_slide_.dir = dir;
       }
       else
       {
-        menu.change_selected_item(dir);
+        change_and_slide();
       }
       break;
     }
@@ -379,7 +406,7 @@ void OptionsView::draw_volume(Display& display, const bool has_state_changed)
     else
     {
       snprintf(option_buffer, buf_len, "Vol: %ddB", int_part);
-}
+    }
   }
   draw_string_fast(display, option_buffer, LCD_WIDTH / 4, y_text_top, LCD_WIDTH * 3 / 4, font_);
 }
@@ -394,7 +421,8 @@ void OptionsView::draw_menu(Display& display, const bool has_state_changed)
 
   prev_selected_menu = selected_menu_;
 
-  if (!has_state_changed && !has_menu_changed && !has_menu_selection_changed && !on_button_press_)
+  if (
+    !has_state_changed && !has_menu_changed && !has_menu_selection_changed && !on_button_press_ && !menu_slide_.active)
   {
     prev_menu_selection = menu.maybe_selected_index;
     return;
@@ -403,6 +431,89 @@ void OptionsView::draw_menu(Display& display, const bool has_state_changed)
 
   if (use_large_ui_)
   {
+    if (menu_slide_.active)
+    {
+      const unsigned long anim_start = millis();
+
+      constexpr uint16_t bar_height_px = 56;
+      constexpr uint16_t top_bar_width_px = 5;
+      uint16_t height_option_top_px = 0;
+      uint16_t height_top_bar_px = bar_height_px;
+
+      if (selected_menu_ != OptionMenuScreen::main)
+      {
+        height_top_bar_px += bar_height_px;
+        height_option_top_px = bar_height_px;
+      }
+
+      const uint32_t label_ver = (bar_height_px - medium_font_.get_height_px()) / 2 + height_option_top_px;
+      const uint32_t v_top_y =
+        ((LCD_HEIGHT - height_top_bar_px) / 2 + height_top_bar_px) - large_font_.get_height_px() / 2;
+
+      while (true)
+      {
+        const uint32_t elapsed = millis() - anim_start;
+        float progress = static_cast<float>(elapsed) / static_cast<float>(slice_duration_ms);
+        if (progress > 1.0f)
+        {
+          progress = 1.0f;
+        }
+
+        int old_offset, new_offset;
+        // Decrement -> we are moving to the next item on list (which is on the right)
+        // So everything is moving from the right to the left.
+        if (menu_slide_.dir == IncrementDir::decrement)
+        {
+          old_offset = -static_cast<int>(progress * LCD_WIDTH);
+          new_offset = static_cast<int>((1.0f - progress) * LCD_WIDTH);
+        }
+        else
+        {
+          old_offset = static_cast<int>(progress * LCD_WIDTH);
+          new_offset = -static_cast<int>((1.0f - progress) * LCD_WIDTH);
+        }
+
+        display.draw_rectangle(0, height_option_top_px, LCD_WIDTH, height_top_bar_px, BLACK_COLOR);
+        display.draw_rectangle(0, height_top_bar_px - top_bar_width_px, LCD_WIDTH, height_top_bar_px, WHITE_COLOR);
+
+        display.draw_rectangle(0, v_top_y, LCD_WIDTH, v_top_y + large_font_.get_height_px(), BLACK_COLOR);
+
+        auto draw_menu_title = [&display, &label_ver, &v_top_y, this](const auto maybe_item, const auto offset)
+        {
+          if (offset + static_cast<int>(LCD_WIDTH) > 0 && offset < static_cast<int>(LCD_WIDTH))
+          {
+            if (maybe_item)
+            {
+              const auto& item = maybe_item.value().get();
+              // const auto maybe_label = string_format_option(old_menu.option, false);
+              draw_string_fast(
+                display, item.type != MenuItemType::text ? item.label : "ABOUT", offset, label_ver, offset + LCD_WIDTH, medium_font_, true, false);
+
+              // Draw currently selected option
+              const auto maybe_label = string_format_option(item.option, false);
+              if (maybe_label)
+              {
+                draw_string_fast(
+                      display, item.type != MenuItemType::text ? maybe_label.value() : "", offset, v_top_y, offset + LCD_WIDTH, large_font_, true, false);
+              }
+            }
+          }
+        };
+        draw_menu_title(menu_slide_.maybe_old_item, old_offset);
+        draw_menu_title(menu_slide_.maybe_new_item, new_offset);
+
+        display.blip_framebuffer();
+
+        if (progress >= 1.0f)
+        {
+          menu_slide_.active = false;
+          value_slide_.active = false;
+          break;
+        }
+      }
+    }
+
+
     const auto& maybe_menu_item = menu.try_get_selected_item();
     if (!maybe_menu_item)
     {
@@ -422,10 +533,22 @@ void OptionsView::draw_menu(Display& display, const bool has_state_changed)
 
     // Page counter: show "N / M" in the lower-right corner
     {
-      snprintf(page_count_buffer_, sizeof(page_count_buffer_), "%d / %d",
-               static_cast<int>(menu.maybe_selected_index.value_or(0) + 1),
-               static_cast<int>(menu.items.size()));
-      draw_string_fast(display, page_count_buffer_, LCD_WIDTH - 80, LCD_HEIGHT - font_.get_height_px() - 6, LCD_WIDTH - 5, font_, true, false, TextAlign::right);
+      snprintf(
+        page_count_buffer_,
+        sizeof(page_count_buffer_),
+        "%d / %d",
+        static_cast<int>(menu.maybe_selected_index.value_or(0) + 1),
+        static_cast<int>(menu.items.size()));
+      draw_string_fast(
+        display,
+        page_count_buffer_,
+        LCD_WIDTH - 80,
+        LCD_HEIGHT - font_.get_height_px() - 6,
+        LCD_WIDTH - 5,
+        font_,
+        true,
+        false,
+        TextAlign::right);
 
       // Progress bar: a thin white line proportional to the position in the menu.
       constexpr uint16_t bar_height = 3;
@@ -434,8 +557,7 @@ void OptionsView::draw_menu(Display& display, const bool has_state_changed)
       if (num_items > 1)
       {
         const auto selected_idx = static_cast<uint32_t>(menu.maybe_selected_index.value_or(0));
-        const uint16_t filled_width = static_cast<uint16_t>(
-         selected_idx * LCD_WIDTH / (num_items - 1));
+        const uint16_t filled_width = static_cast<uint16_t>(selected_idx * LCD_WIDTH / (num_items - 1));
         display.draw_rectangle(0, bar_y, filled_width, LCD_HEIGHT, WHITE_COLOR);
       }
     }
@@ -494,6 +616,7 @@ void OptionsView::draw_menu(Display& display, const bool has_state_changed)
     display.draw_rectangle(0, height_top_bar_px - top_bar_width_px, LCD_WIDTH, height_top_bar_px, WHITE_COLOR);
 
     const uint32_t y_center_black_zone = (LCD_HEIGHT - height_top_bar_px) / 2 + height_top_bar_px;
+
     switch (menu_item.type)
     {
       case MenuItemType::text:
@@ -520,6 +643,61 @@ void OptionsView::draw_menu(Display& display, const bool has_state_changed)
       {
         const uint32_t top_y_text = y_center_black_zone - large_font_.get_height_px() / 2;
         // Draw a field label and values
+        if (value_slide_.active)
+        {
+          const unsigned long anim_start = millis();
+          while (true)
+          {
+            const uint32_t elapsed = millis() - anim_start;
+            float progress = static_cast<float>(elapsed) / slice_duration_ms;
+            if (progress > 1.0f)
+            {
+              progress = 1.0f;
+            }
+
+            const int old_offset = value_slide_.dir == IncrementDir::increment ? -static_cast<int>(progress * LCD_WIDTH)
+                                                                               : static_cast<int>(progress * LCD_WIDTH);
+            const int new_offset = value_slide_.dir == IncrementDir::increment
+                                     ? static_cast<int>((1.0f - progress) * LCD_WIDTH)
+                                     : -static_cast<int>((1.0f - progress) * LCD_WIDTH);
+
+            display.draw_rectangle(0, top_y_text, LCD_WIDTH, top_y_text + large_font_.get_height_px(), BLACK_COLOR);
+
+            if (old_offset + static_cast<int>(LCD_WIDTH) > 0 && old_offset < static_cast<int>(LCD_WIDTH))
+            {
+              draw_string_fast(
+                display,
+                value_slide_.old_text,
+                old_offset,
+                top_y_text,
+                old_offset + LCD_WIDTH,
+                large_font_,
+                true,
+                false);
+            }
+            if (new_offset + static_cast<int>(LCD_WIDTH) > 0 && new_offset < static_cast<int>(LCD_WIDTH))
+            {
+              draw_string_fast(
+                display,
+                value_slide_.new_text,
+                new_offset,
+                top_y_text,
+                new_offset + LCD_WIDTH,
+                large_font_,
+                true,
+                false);
+            }
+
+            display.blip_framebuffer();
+
+            if (progress >= 1.0f)
+            {
+              value_slide_.active = false;
+              break;
+            }
+          }
+        }
+
         const char* value_str = string_format_option(menu_item.option, /*is_focus =*/false).value_or("ERR");
         draw_string_fast(display, value_str, 0, top_y_text, LCD_WIDTH, large_font_, true, false);
         break;
@@ -618,45 +796,64 @@ std::optional<const char*> OptionsView::string_format_option(const Option& optio
         default:
           return "ERR3";
       }
-#if defined (USE_V2_PCB)
-      case Option::mono:
-        switch (persistent_data_.mono_value)
-        {
-          case MonoOption::mono:
-            return "MONO";
-          case MonoOption::stereo:
-            return "STEREO";
-          default:
-            return "ERR44";
-        }
+#if defined(USE_V2_PCB)
+    case Option::mono:
+      switch (persistent_data_.mono_value)
+      {
+        case MonoOption::mono:
+          return "MONO";
+        case MonoOption::stereo:
+          return "STEREO";
+        default:
+          return "ERR44";
+      }
 #endif
     case Option::subwoofer:
       return format_on_off_option(persistent_data_.sufwoofer_enable_value);
     case Option::balance:
+    {
+      const auto [left, right] = volume_ctrl_.get_left_right_bias_compensation();
+      const int32_t left_int = left / 10;
+      const int32_t right_int = right / 10;
+      const int32_t left_rem = std::abs(left) % 10;
+      const int32_t right_rem = std::abs(right) % 10;
+      if (left_rem != 0 && right_rem != 0)
       {
-        const auto [left, right] = volume_ctrl_.get_left_right_bias_compensation();
-        const int32_t left_int = left / 10;
-        const int32_t right_int = right / 10;
-        const int32_t left_rem = std::abs(left) % 10;
-        const int32_t right_rem = std::abs(right) % 10;
-        if (left_rem != 0 && right_rem != 0)
-        {
-          snprintf(tmp_format_str_buffer_, tmp_format_str_len_, is_focus ? "<%+d.%d/%+d.%d>" : "%+d.%d/%+d.%d ", left_int, left_rem, right_int, right_rem);
-        }
-        else if (left_rem != 0)
-        {
-          snprintf(tmp_format_str_buffer_, tmp_format_str_len_, is_focus ? "<%+d.%d/%+d>" : "%+d.%d/%+d ", left_int, left_rem, right_int);
-        }
-        else if (right_rem != 0)
-        {
-          snprintf(tmp_format_str_buffer_, tmp_format_str_len_, is_focus ? "<%+d/%+d.%d>" : "%+d/%+d.%d ", left_int, right_int, right_rem);
-        }
-        else
-        {
-          snprintf(tmp_format_str_buffer_, tmp_format_str_len_, is_focus ? "<%+d/%+d>" : "%+d/%+d ", left_int, right_int);
-        }
-        return tmp_format_str_buffer_;
+        snprintf(
+          tmp_format_str_buffer_,
+          tmp_format_str_len_,
+          is_focus ? "<%+d.%d/%+d.%d>" : "%+d.%d/%+d.%d ",
+          left_int,
+          left_rem,
+          right_int,
+          right_rem);
       }
+      else if (left_rem != 0)
+      {
+        snprintf(
+          tmp_format_str_buffer_,
+          tmp_format_str_len_,
+          is_focus ? "<%+d.%d/%+d>" : "%+d.%d/%+d ",
+          left_int,
+          left_rem,
+          right_int);
+      }
+      else if (right_rem != 0)
+      {
+        snprintf(
+          tmp_format_str_buffer_,
+          tmp_format_str_len_,
+          is_focus ? "<%+d/%+d.%d>" : "%+d/%+d.%d ",
+          left_int,
+          right_int,
+          right_rem);
+      }
+      else
+      {
+        snprintf(tmp_format_str_buffer_, tmp_format_str_len_, is_focus ? "<%+d/%+d>" : "%+d/%+d ", left_int, right_int);
+      }
+      return tmp_format_str_buffer_;
+    }
     case Option::bias:
     {
       const auto str_template = is_focus ? "<%d%%>" : " %d%% ";

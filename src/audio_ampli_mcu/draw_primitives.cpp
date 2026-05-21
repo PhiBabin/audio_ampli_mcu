@@ -203,7 +203,7 @@ void draw_string_fast(
     case TextAlign::center:
     {
       const int32_t middle_x = (end_x - start_x) / 2 + start_x;
-      start_text_x = MAX(0, middle_x - static_cast<int32_t>(text_width_px / 2));
+      start_text_x = middle_x - static_cast<int32_t>(text_width_px / 2);
       end_text_x = middle_x + static_cast<int32_t>(text_width_px / 2);
       break;
     }

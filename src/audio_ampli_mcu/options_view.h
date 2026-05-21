@@ -73,6 +73,9 @@ private:
   Menu& get_selected_menu();
   std::optional<const char*> string_format_option(const Option& option, const bool is_focus);
 
+
+  static constexpr uint32_t slice_duration_ms = 400;
+
   // Whether we are using the large size menu theme or the small size
   bool use_large_ui_{true};
 
@@ -106,6 +109,30 @@ private:
   // Temporary buffer used for string_format_option().
   constexpr static size_t tmp_format_str_len_ = 100;
   char tmp_format_str_buffer_[tmp_format_str_len_];
+
+  // Horizontal slide transition when switching between menu items.
+  struct MenuSlideState
+  {
+    bool active{false};
+    IncrementDir dir{IncrementDir::increment};
+    std::optional<std::reference_wrapper<const MenuItem>> maybe_old_item;
+    std::optional<std::reference_wrapper<const MenuItem>> maybe_new_item;
+  };
+  MenuSlideState menu_slide_;
+
+  // Horizontal slide transition when the option value changes.
+  struct ValueSlideState
+  {
+    bool active{false};
+    IncrementDir dir{IncrementDir::increment};
+    // The old text needs to be copied, because it might point to a temporary buffer
+    // which get overidden when the text is updated.
+    char old_text[50];
+    // The new text value doesn't need to be copied
+    const char* new_text{nullptr};
+  };
+  ValueSlideState value_slide_{};
+
 };
 
 #endif  // OPTIONS_VIEW_GUARD_H_

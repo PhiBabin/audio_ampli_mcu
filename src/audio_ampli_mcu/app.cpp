@@ -163,15 +163,26 @@ void App::tick()
   interaction_handler_.update();
   volume_ctrl_.update();
 
-  const auto has_state_changed = state_machine_.update();
+  bool has_state_changed = state_machine_.update();
   if (has_state_changed)
   {
     Serial.println("state changed!");
-    // Checkerboard dissolve before transitioning to the new state
-    display_.checkerboard_dissolve();
-    display_.blip_framebuffer();
+    // On first init, no animation
+    static bool init = true;
+    if (!init)
+    {
+      display_.start_melt();
+      while(!display_.advance_transition())
+      {
+        display_.blip_framebuffer();
+      }
+      display_.blip_framebuffer();
+    }
+    init = false;
     display_.clear_screen(BLACK_COLOR);
+    has_state_changed = true;
   }
+
 
   switch (state_machine_.get_state())
   {
