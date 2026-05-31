@@ -107,22 +107,21 @@ void OptionsView::init()
   if (use_large_ui_)
   {
     std::vector<MenuItem> items{
-      MenuItem{Option::balance, "L/R BALANCE", MenuItemType::focus_item},  // real focus
-      MenuItem{Option::subwoofer, "SUBWOOFER", MenuItemType::increment_item},
       MenuItem{Option::output_mode, "OUTPUT MODE", MenuItemType::increment_item},
       MenuItem{Option::output_type, "OUTPUT TYPE", MenuItemType::increment_item},
+      MenuItem{Option::balance, "L/R BALANCE", MenuItemType::focus_item},  // real focus
 #if defined(USE_V2_PCB)
       MenuItem{Option::mono, "MONO/STEREO", MenuItemType::increment_item},
 #endif
+      MenuItem{Option::subwoofer, "SUBWOOFER", MenuItemType::increment_item},
     };
 
     std::vector<MenuItem> adv_option_items{
-      MenuItem{Option::bias, "BIAS", MenuItemType::focus_item},
+      MenuItem{Option::inactivity_timer, "AUTO OFF", MenuItemType::focus_item},
       MenuItem{Option::mute_channel, "MUTE CHAN", MenuItemType::focus_item},
       MenuItem{Option::rename_bal, "RENAME BAL", MenuItemType::focus_item},
       MenuItem{Option::rename_rca1, "RENAME RCA1", MenuItemType::focus_item},
-      MenuItem{Option::rename_rca2, "RENAME RCA2", MenuItemType::focus_item},
-      MenuItem{Option::inactivity_timer, "AUTO OFF", MenuItemType::focus_item}};
+      MenuItem{Option::rename_rca2, "RENAME RCA2", MenuItemType::focus_item},};
 
     // Add phono menu if a phono card has been detected
     if (option_ctrl_.has_phono_card())
@@ -502,14 +501,14 @@ void OptionsView::draw_menu(Display& display, const bool has_state_changed)
         draw_menu_title(menu_slide_.maybe_old_item, old_offset);
         draw_menu_title(menu_slide_.maybe_new_item, new_offset);
 
-        display.blip_framebuffer();
-
+        // Don't blip if we reach the end of the animation, because we will immediately blip afterware
         if (progress >= 1.0f)
         {
           menu_slide_.active = false;
           value_slide_.active = false;
           break;
         }
+        display.blip_framebuffer();
       }
     }
 

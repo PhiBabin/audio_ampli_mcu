@@ -73,8 +73,8 @@ private:
   Menu& get_selected_menu();
   std::optional<const char*> string_format_option(const Option& option, const bool is_focus);
 
-
-  static constexpr uint32_t slice_duration_ms = 400;
+  // Duration of the changing option animation
+  static constexpr uint32_t slice_duration_ms = 300;
 
   // Whether we are using the large size menu theme or the small size
   bool use_large_ui_{true};

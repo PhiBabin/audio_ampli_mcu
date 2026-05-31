@@ -167,6 +167,13 @@ void OptionController::update_io_expander_gpio()
   gpio_handler_.cache_write_pin(pin_out::in_out_bal_unipolar, in_out_bal_unipolar_value);
   gpio_handler_.cache_write_pin(pin_out::out_lfe_bal, out_lfe_bal);
   gpio_handler_.cache_write_pin(pin_out::out_lfe_se, out_lfe_se);
+
+  // Set LED
+  const bool is_phone = persistent_data_.output_mode_value == OutputModeOption::phones;
+  gpio_handler_.cache_write_pin(pin_out::led_unip, is_phone && !is_bal_output ? HIGH : LOW);
+  gpio_handler_.cache_write_pin(pin_out::led_bip, is_phone && is_bal_output ? HIGH : LOW);
+
+  // Callee calls gpio_handler_.apply();
 }
 
 void OptionController::update_phono_gpio()
