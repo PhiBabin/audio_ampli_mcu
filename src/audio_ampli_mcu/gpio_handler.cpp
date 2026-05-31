@@ -115,6 +115,24 @@ void GpioHandler::write_pin(const GpioPin pin, const uint8_t value)
   io_expander_ptr->write_pin(pin.port, pin.pin, value);
 }
 
+void GpioHandler::force_reset_of_latches()
+{
+  // Commit any cached init/writes to hardware first
+  apply();
+
+  Serial.println("Force reset LOW output latch to HIGH then back to LOW");
+  // Pulse all LOW outputs on every IO expander: HIGH, 5ms delay, then back to LOW
+  // Assumed that no latch is connected to the PI pico
+  for (uint8_t i = 0; i < static_cast<uint8_t>(GpioModule::enum_length); ++i)
+  {
+    IoExpander* io_expander = gpio_module_to_io_expander_[i];
+    if (io_expander != nullptr)
+    {
+      io_expander->force_reset_of_latches();
+    }
+  }
+}
+
 void GpioHandler::apply()
 {
   // For all possible

@@ -82,6 +82,13 @@ void App::init()
   remote_ctrl_.init();
   interaction_handler_.init();
 
+  // Very important step: sending a LOW to a relay which has been latched to HIGH in a previous power cycle
+  // as no effet. You need to send a HIGH then a LOW to unlatch the relays
+#ifdef USE_V2_PCB
+  gpio_handler_.force_reset_of_latches();
+#endif
+
+
   display_.init();
   display_.clear_screen(BLACK_COLOR);
   display_.blip_framebuffer();

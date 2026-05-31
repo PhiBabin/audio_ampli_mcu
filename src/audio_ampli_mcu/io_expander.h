@@ -19,8 +19,6 @@ public:
   IoExpander(const int iox_chip_select_pin, const uint8_t address = 0x00);
   void begin();
   bool is_connected();
-  // void write_pin(const int pin, const uint8_t value);
-  // void cache_write_pin(int pin, const uint8_t value);
   void apply();
 
   void init_input(const GpioPort& port, const uint8_t pin);
@@ -28,6 +26,9 @@ public:
   void write_pin(const GpioPort& port, const uint8_t pin, const uint8_t value);
   void cache_write_pin(const GpioPort& port, const uint8_t pin, const uint8_t value);
   void cache_init_output(const GpioPort& port, const uint8_t pin, const uint8_t value);
+  // On V2, the relays latched to HIGH, won't be set to LOW, you need to set them to HIGH then LOW.
+  // Pulse all LOW outputs to HIGH, 5ms delay, then back to LOW
+  void force_reset_of_latches();
 
 private:
   uint8_t port_enum_to_port_idx(const GpioPort& port);

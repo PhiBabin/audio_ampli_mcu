@@ -18,6 +18,7 @@ public:
   void cache_init_output(const GpioPin pin, const uint8_t value);
   void cache_write_pin(const GpioPin pin, const uint8_t value);
   void write_pin(const GpioPin pin, const uint8_t value);
+  void force_reset_of_latches();
   void apply();
 
   bool is_module_connected(const GpioModule& module);

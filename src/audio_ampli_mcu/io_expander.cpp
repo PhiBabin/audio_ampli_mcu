@@ -142,6 +142,34 @@ void IoExpander::apply()
   }
 }
 
+void IoExpander::force_reset_of_latches()
+{
+  if (maybe_is_connected_.has_value() && !maybe_is_connected_.value())
+  {
+    return;
+  }
+
+  for (int port = 0; port < 2; ++port)
+  {
+    // Output pins have direction bit = 0; find those that are also LOW (value bit = 0)
+    const uint8_t reset_mask = ~direction_gpio_[port] & ~value_gpio_[port];
+    if (reset_mask == 0)
+    {
+      continue;
+    }
+
+    // Pulse HIGH
+    value_gpio_[port] |= reset_mask;
+    io_expander_.write8(port, value_gpio_[port]);
+
+    delay(5);
+
+    // Restore to LOW
+    value_gpio_[port] &= ~reset_mask;
+    io_expander_.write8(port, value_gpio_[port]);
+  }
+}
+
 void IoExpander::write_pin(const GpioPort& port, const uint8_t pin, const uint8_t value)
 {
   cache_init_output(port, pin, value);
