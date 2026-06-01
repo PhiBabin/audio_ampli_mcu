@@ -30,9 +30,7 @@ void VolumeController::init()
   gpio_handler_.apply();
 #endif
 
-  // Restore the volume db from the flash
-  reset_volume_tick_count_based_volume_db();
-
+  // init the pins
 #if defined(USE_V2_PCB)
   for (const auto& pin : pin_out::left_volume_bits)
   {
@@ -49,8 +47,10 @@ void VolumeController::init()
     gpio_handler_.cache_init_output(pin, LOW);
   }
 #endif
+
+  // Restore the volume db from the flash
+  reset_volume_tick_count_based_volume_db();
   gpio_handler_.apply();
-  set_gpio_based_on_volume();
 }
 
 void VolumeController::on_option_change()
@@ -173,7 +173,7 @@ std::tuple<int16_t, int16_t> VolumeController::get_left_right_bias_compensation(
 
   int16_t left_half{0};
   int16_t right_half{0};
-  
+
   // If there is an odd offset (e.g. +3dB), the distribution is not symmetric, so we increase the right side if the bias
   // is positive and the left side if negative.
   if (abs_bal % 2 == 0)

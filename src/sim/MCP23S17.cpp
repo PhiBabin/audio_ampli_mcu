@@ -5,6 +5,7 @@
 #include "sim/sim_config.h"
 
 #include <cassert>
+#include <cstdint>
 #include <tuple>
 #include <vector>
 
@@ -48,6 +49,20 @@ bool MCP23S17::write8(uint8_t port, uint8_t value)
   // Serial.print("> Send write8 port=");
   // Serial.println(port);
   assert(port < 2);
+
+  const auto& my_pin = pin_out::l_volume_bit0;
+  if (my_pin.module == gpio_module_ && (my_pin.port == GpioPort::a ? 0 : 1) == port)
+  {
+    const bool old_value = ((value_gpio_[port] >> my_pin.pin) & 1);
+    const bool new_value = ((value >> my_pin.pin) & 1);
+    if (old_value != new_value)
+    {
+      Serial.println("====================");
+      Serial.println(new_value ? "0 -> 1" : "1 -> 0");
+      Serial.println("====================");
+    }
+  }
+
   value_gpio_[port] = value;
   if (port == 1)
   {
